@@ -1,16 +1,11 @@
-import { useEffect } from 'react'
 import { AuthShell } from '../../layouts/AuthShell'
 import { AuthHeader } from '../../components/ui/AuthHeader'
 import { Card } from '../../components/ui/Card'
-import { usePasswordRecoveryAccess } from '../../hooks/usePasswordRecoveryAccess'
 import { ResetPasswordForm } from './components/ResetPasswordForm'
+import { useRedefinirSenhaPage } from './hooks/useRedefinirSenhaPage'
 
 export default function RedefinirSenhaPage() {
-  const accessStatus = usePasswordRecoveryAccess()
-
-  useEffect(() => {
-    document.title = 'Rafael Bot - Redefinir senha'
-  }, [])
+  const { accessStatus } = useRedefinirSenhaPage()
 
   if (accessStatus === 'checking' || accessStatus === 'denied') {
     return null

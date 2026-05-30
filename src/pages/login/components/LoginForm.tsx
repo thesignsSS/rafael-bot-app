@@ -1,77 +1,21 @@
-import { useState, type FormEvent } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { Link } from 'react-router-dom'
 import { Button } from '../../../components/ui/Button'
 import { Icon } from '../../../components/ui/Icon'
 import { TextField } from '../../../components/ui/TextField'
-import { supabase } from '../../../lib/supabase'
-import {
-  loginSchema,
-  type LoginFormData,
-} from '../schemas/loginSchema'
-
-function mapFieldErrors(
-  fieldErrors: Record<string, string[] | undefined>,
-): Partial<Record<keyof LoginFormData, string>> {
-  const errors: Partial<Record<keyof LoginFormData, string>> = {}
-  for (const key of ['email', 'password'] as const) {
-    const messages = fieldErrors[key]
-    if (messages?.[0]) {
-      errors[key] = messages[0]
-    }
-  }
-  return errors
-}
-
-
-function getLoginErrorMessage(error: { code?: string; message?: string }): string {
-  if (
-    error.code === 'email_not_confirmed' ||
-    error.message === 'Email not confirmed'
-  ) {
-    return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.'
-  }
-
-  return 'E-mail ou senha incorretos'
-}
+import { useLoginForm } from '../hooks/useLoginForm'
 
 export function LoginForm() {
-  const navigate = useNavigate()
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<keyof LoginFormData, string>>
-  >({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const result = loginSchema.safeParse({ email, password })
-
-    if (!result.success) {
-      setFieldErrors(mapFieldErrors(result.error.flatten().fieldErrors))
-      return
-    }
-
-    setFieldErrors({})
-    setIsSubmitting(true)
-
-    const { error } = await supabase.auth.signInWithPassword({
-      email: result.data.email,
-      password: result.data.password,
-    })
-
-    setIsSubmitting(false)
-
-    if (error) {
-      toast.error(getLoginErrorMessage(error))
-      return
-    }
-
-    navigate('/', { replace: true })
-  }
+  const {
+    email,
+    password,
+    showPassword,
+    fieldErrors,
+    isSubmitting,
+    handleSubmit,
+    handleEmailChange,
+    handlePasswordChange,
+    toggleShowPassword,
+  } = useLoginForm()
 
   return (
     <form
@@ -88,12 +32,7 @@ export function LoginForm() {
         placeholder="seu@email.com.br"
         value={email}
         error={fieldErrors.email}
-        onChange={(event) => {
-          setEmail(event.target.value)
-          if (fieldErrors.email) {
-            setFieldErrors((prev) => ({ ...prev, email: undefined }))
-          }
-        }}
+        onChange={(event) => handleEmailChange(event.target.value)}
       />
 
       <TextField
@@ -105,17 +44,12 @@ export function LoginForm() {
         placeholder="••••••••"
         value={password}
         error={fieldErrors.password}
-        onChange={(event) => {
-          setPassword(event.target.value)
-          if (fieldErrors.password) {
-            setFieldErrors((prev) => ({ ...prev, password: undefined }))
-          }
-        }}
+        onChange={(event) => handlePasswordChange(event.target.value)}
         endAdornment={
           <button
             type="button"
             className="flex size-10 items-center justify-center text-outline transition-colors hover:text-primary"
-            onClick={() => setShowPassword((prev) => !prev)}
+            onClick={toggleShowPassword}
             aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
           >
             <Icon

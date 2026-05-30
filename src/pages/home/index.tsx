@@ -1,20 +1,8 @@
-import { useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Button } from '../../components/ui/Button'
-import { useAuth } from '../../contexts/auth-context'
+import { useHomePage } from './hooks/useHomePage'
 
 export default function HomePage() {
-  const { user, signOut } = useAuth()
-  const navigate = useNavigate()
-
-  useEffect(() => {
-    document.title = 'Rafael Bot'
-  }, [])
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/login', { replace: true })
-  }
+  const { user, handleSignOut } = useHomePage()
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-page-floor px-4">

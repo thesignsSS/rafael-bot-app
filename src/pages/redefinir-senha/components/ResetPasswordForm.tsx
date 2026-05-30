@@ -1,74 +1,22 @@
-import { useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
 import { Button } from '../../../components/ui/Button'
 import { Icon } from '../../../components/ui/Icon'
 import { TextField } from '../../../components/ui/TextField'
-import { clearPasswordRecoveryFlag } from '../../../hooks/usePasswordRecoveryAccess'
-import { supabase } from '../../../lib/supabase'
-import {
-  resetPasswordSchema,
-  type ResetPasswordFormData,
-} from '../schemas/resetPasswordSchema'
-
-function mapFieldErrors(
-  fieldErrors: Record<string, string[] | undefined>,
-): Partial<Record<keyof ResetPasswordFormData, string>> {
-  const errors: Partial<Record<keyof ResetPasswordFormData, string>> = {}
-  for (const key of ['password', 'confirmPassword'] as const) {
-    const messages = fieldErrors[key]
-    if (messages?.[0]) {
-      errors[key] = messages[0]
-    }
-  }
-  return errors
-}
+import { useResetPasswordForm } from '../hooks/useResetPasswordForm'
 
 export function ResetPasswordForm() {
-  const navigate = useNavigate()
-  const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
-  const [showPassword, setShowPassword] = useState(false)
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [fieldErrors, setFieldErrors] = useState<
-    Partial<Record<keyof ResetPasswordFormData, string>>
-  >({})
-  const [isSubmitting, setIsSubmitting] = useState(false)
-
-  const clearFieldError = (field: keyof ResetPasswordFormData) => {
-    if (fieldErrors[field]) {
-      setFieldErrors((prev) => ({ ...prev, [field]: undefined }))
-    }
-  }
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-
-    const result = resetPasswordSchema.safeParse({ password, confirmPassword })
-
-    if (!result.success) {
-      setFieldErrors(mapFieldErrors(result.error.flatten().fieldErrors))
-      return
-    }
-
-    setFieldErrors({})
-    setIsSubmitting(true)
-
-    const { error } = await supabase.auth.updateUser({
-      password: result.data.password,
-    })
-
-    if (error) {
-      setIsSubmitting(false)
-      toast.error('Não foi possível redefinir a senha. Tente novamente.')
-      return
-    }
-
-    clearPasswordRecoveryFlag()
-    await supabase.auth.signOut()
-    setIsSubmitting(false)
-    navigate('/login', { replace: true, state: { passwordReset: true } })
-  }
+  const {
+    password,
+    confirmPassword,
+    showPassword,
+    showConfirmPassword,
+    fieldErrors,
+    isSubmitting,
+    handleSubmit,
+    handlePasswordChange,
+    handleConfirmPasswordChange,
+    toggleShowPassword,
+    toggleShowConfirmPassword,
+  } = useResetPasswordForm()
 
   return (
     <form
@@ -89,15 +37,12 @@ export function ResetPasswordForm() {
         placeholder="••••••••"
         value={password}
         error={fieldErrors.password}
-        onChange={(event) => {
-          setPassword(event.target.value)
-          clearFieldError('password')
-        }}
+        onChange={(event) => handlePasswordChange(event.target.value)}
         endAdornment={
           <button
             type="button"
             className="flex size-10 items-center justify-center text-outline transition-colors hover:text-primary"
-            onClick={() => setShowPassword((prev) => !prev)}
+            onClick={toggleShowPassword}
             aria-label={showPassword ? 'Ocultar senha' : 'Mostrar senha'}
           >
             <Icon
@@ -117,15 +62,12 @@ export function ResetPasswordForm() {
         placeholder="••••••••"
         value={confirmPassword}
         error={fieldErrors.confirmPassword}
-        onChange={(event) => {
-          setConfirmPassword(event.target.value)
-          clearFieldError('confirmPassword')
-        }}
+        onChange={(event) => handleConfirmPasswordChange(event.target.value)}
         endAdornment={
           <button
             type="button"
             className="flex size-10 items-center justify-center text-outline transition-colors hover:text-primary"
-            onClick={() => setShowConfirmPassword((prev) => !prev)}
+            onClick={toggleShowConfirmPassword}
             aria-label={
               showConfirmPassword ? 'Ocultar confirmação' : 'Mostrar confirmação'
             }
