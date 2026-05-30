@@ -1,0 +1,55 @@
+---
+description: Arquitetura hook-based — lógica em hooks, componentes só renderizam
+globs: src/**/*.{ts,tsx}
+alwaysApply: true
+---
+
+# Arquitetura hook-based
+
+Separe **lógica** (estado, efeitos, handlers, chamadas API) de **UI** (JSX). Componentes consomem hooks; não implementam regras de negócio inline.
+
+## Onde colocar cada coisa
+
+| Camada | Responsabilidade | Local |
+|--------|------------------|-------|
+| Hook | Estado, `useEffect`, submit, validação, navegação, toasts | `src/hooks/` (global) ou `src/pages/<feature>/hooks/` (feature) |
+| Componente | Layout, props do hook, eventos repassados | `*.tsx` |
+| Context | `createContext` + hook `useXxx` com guard | `src/contexts/*-context.ts` |
+| Provider | Wiring mínimo do context | `src/contexts/*Provider.tsx` |
+| Puro | Parse, map, helpers sem React | mesmo arquivo do hook ou `src/lib/` |
+
+## Regras
+
+1. **Nomeie hooks com `use`** (`useLoginForm`, `usePasswordRecoveryAccess`).
+2. **Context sempre via hook dedicado** — nunca `useContext(AuthContext)` fora de `useAuth`.
+3. **Páginas finas** — orquestram hooks + layout; sem `useState`/`useEffect` de feature (exceto `document.title` via hook compartilhado se existir).
+4. **Formulários** — estado, validação Zod e submit em `useXxxForm`; o componente só renderiza campos.
+5. **Efeitos colaterais** (API, `sessionStorage`, redirect) ficam no hook, com cleanup no `useEffect`.
+6. **Retorno tipado** — objetos nomeados (`{ status, submit, fieldErrors }`), não tuplas opacas.
+
+## Exemplos do projeto
+
+```tsx
+// ✅ Página fina (src/pages/redefinir-senha/index.tsx)
+const accessStatus = usePasswordRecoveryAccess()
+if (accessStatus === 'checking' || accessStatus === 'denied') return null
+return <AuthShell>...</AuthShell>
+
+// ✅ Context via hook (src/contexts/auth-context.ts)
+export function useAuth() { ... }
+
+// ❌ Lógica no componente de formulário
+export function LoginForm() {
+  const [email, setEmail] = useState('')
+  const handleSubmit = async () => { await supabase.auth.signInWithPassword(...) }
+}
+// → extrair para useLoginForm() em pages/login/hooks/
+```
+
+## Exceções
+
+- **UI primitiva** (`Button`, `TextField`, `Icon`): estado visual local mínimo (ex.: foco) é aceitável.
+- **Guards de rota** (`ProtectedRoute`, `GuestRoute`): só leitura de `useAuth` + redirect.
+- **Schemas Zod**, tipos e `src/lib/supabase.ts`: sem hooks.
+
+Ao criar feature nova, **crie o hook primeiro** (ou junto) e mantenha o `.tsx` ab abaixo de ~80 linhas de JSX.
