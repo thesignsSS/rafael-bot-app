@@ -4,7 +4,7 @@ Instruções para agentes de código que trabalham neste repositório. Formato c
 
 ## Project Overview
 
-**bot-rafael-app** é um frontend SPA em estágio inicial (scaffold). Objetivo futuro implícito pelo nome: interface para um bot “Rafael”; **ainda não há** lógica de bot, API ou backend.
+**bot-rafael-app** é um frontend SPA para interface do bot “Rafael”. Auth via **Supabase** (e-mail/senha); rota `/` protegida. Lógica do bot ainda não implementada.
 
 | Tecnologia | Uso |
 |------------|-----|
@@ -13,6 +13,8 @@ Instruções para agentes de código que trabalham neste repositório. Formato c
 | Vite 6 | Dev server, HMR, build |
 | Tailwind CSS 4 | Estilos via `@tailwindcss/vite` |
 | ESLint 9 + typescript-eslint | Lint em `.ts` / `.tsx` |
+| `@supabase/supabase-js` | Auth (sessão, login) |
+| `sonner` | Toasts de feedback |
 
 Documentação humana do estado atual: [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md).
 
@@ -24,7 +26,7 @@ npm install
 
 - Node.js: 20.19+ ou 22.12+.
 - Gerenciador de pacotes: **npm** (`package-lock.json` presente).
-- Não há banco de dados, Docker nem `.env` obrigatório neste estágio.
+- Copie `.env.example` → `.env` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (obrigatório para dev).
 
 ## Development Workflow
 
@@ -76,7 +78,8 @@ npm run build
 
 ```ts
 interface ImportMetaEnv {
-  readonly VITE_API_URL: string
+  readonly VITE_SUPABASE_URL: string
+  readonly VITE_SUPABASE_ANON_KEY: string
 }
 ```
 
@@ -103,10 +106,11 @@ interface ImportMetaEnv {
 | Erro de tipo no build | `npm run typecheck` e corrigir antes de `vite build` |
 | Build falha após novas deps | `rm -rf node_modules && npm install` |
 | Porta 5173 em uso | `vite --port 5174` ou `server.port` em `vite.config.ts` |
+| App não inicia / erro Supabase | Verificar `.env` com URL e anon key; reiniciar `npm run dev` após criar `.env` |
 
 ## Additional Notes
 
 - Repositório **single-package** (não é monorepo).
 - `tsconfig.json` referencia `tsconfig.app.json` (src) e `tsconfig.node.json` (vite.config.ts).
-- Sem roteamento: preferir extrair componentes e adicionar router ao crescer.
+- Rotas em `src/routes/AppRoutes.tsx`; guards em `src/components/auth/`; sessão em `AuthProvider`.
 - Ao implementar o bot: documentar endpoints e contratos em `docs/ESTADO-ATUAL.md`.

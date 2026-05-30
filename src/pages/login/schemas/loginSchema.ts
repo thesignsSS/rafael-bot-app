@@ -5,7 +5,9 @@ export const loginSchema = z.object({
     .string()
     .min(1, 'Informe seu e-mail')
     .email('E-mail inválido'),
-  password: z.string().min(1, 'Informe sua senha'),
+  password: z
+    .string()
+    .min(6, 'A senha deve ter pelo menos 6 caracteres'),
 })
 
 export type LoginFormData = z.infer<typeof loginSchema>

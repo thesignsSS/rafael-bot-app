@@ -1,8 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Button } from '../../../components/ui/Button'
 import { Icon } from '../../../components/ui/Icon'
 import { TextField } from '../../../components/ui/TextField'
+import { supabase } from '../../../lib/supabase'
 import {
   loginSchema,
   type LoginFormData,
@@ -22,6 +24,7 @@ function mapFieldErrors(
 }
 
 export function LoginForm() {
+  const navigate = useNavigate()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -29,11 +32,9 @@ export function LoginForm() {
     Partial<Record<keyof LoginFormData, string>>
   >({})
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [formMessage, setFormMessage] = useState<string | null>(null)
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    setFormMessage(null)
 
     const result = loginSchema.safeParse({ email, password })
 
@@ -45,10 +46,19 @@ export function LoginForm() {
     setFieldErrors({})
     setIsSubmitting(true)
 
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const { error } = await supabase.auth.signInWithPassword({
+      email: result.data.email,
+      password: result.data.password,
+    })
 
-    setFormMessage('Iniciando sessão...')
     setIsSubmitting(false)
+
+    if (error) {
+      toast.error('E-mail ou senha incorretos')
+      return
+    }
+
+    navigate('/', { replace: true })
   }
 
   return (
@@ -112,12 +122,6 @@ export function LoginForm() {
           Esqueceu sua senha?
         </Link>
       </div>
-
-      {formMessage ? (
-        <p className="text-body-md text-primary" role="status">
-          {formMessage}
-        </p>
-      ) : null}
 
       <Button type="submit" loading={isSubmitting} icon="login">
         Entrar
