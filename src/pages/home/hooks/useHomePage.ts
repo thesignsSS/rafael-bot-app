@@ -4,7 +4,7 @@ import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
 
 export function useHomePage() {
-  useDocumentTitle('Rafael Bot')
+  useDocumentTitle('Nova Proposta | Rafael Bot')
 
   const { user, signOut } = useAuth()
   const navigate = useNavigate()

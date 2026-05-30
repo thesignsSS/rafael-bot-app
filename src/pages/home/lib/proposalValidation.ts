@@ -1,0 +1,39 @@
+import { emailPattern } from './proposalUtils'
+
+export function validateClientEmailValue(email: string): string | null {
+  const trimmedEmail = email.trim()
+
+  if (!trimmedEmail) {
+    return 'Informe o e-mail do cliente.'
+  }
+
+  if (!emailPattern.test(trimmedEmail)) {
+    return 'Digite um e-mail válido.'
+  }
+
+  return null
+}
+
+export function validateClientCpfValue(cpf: string): string | null {
+  if (!cpf.trim()) {
+    return 'Informe o CPF do cliente.'
+  }
+
+  return null
+}
+
+export function validateClientPhoneValue(phone: string): string | null {
+  if (!phone.trim()) {
+    return 'Informe o telefone do cliente.'
+  }
+
+  return null
+}
+
+export function validateCityValue(city: string): string | null {
+  if (!city) {
+    return 'Selecione o município do imóvel.'
+  }
+
+  return null
+}
