@@ -1,10 +1,13 @@
-import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { AuthShell } from '../../layouts/AuthShell'
-import { Card } from '../../components/ui/Card'
 import { AuthHeader } from '../../components/ui/AuthHeader'
+import { Card } from '../../components/ui/Card'
+import { ForgotPasswordForm } from './components/ForgotPasswordForm'
+import { ResetEmailConfirmScreen } from './components/ResetEmailConfirmScreen'
 
 export default function RecuperarSenhaPage() {
+  const [pendingEmail, setPendingEmail] = useState<string | null>(null)
+
   useEffect(() => {
     document.title = 'Rafael Bot - Recuperar senha'
   }, [])
@@ -12,21 +15,12 @@ export default function RecuperarSenhaPage() {
   return (
     <AuthShell>
       <Card>
-        <AuthHeader />
-        <div className="space-y-4 text-center">
-          <h2 className="text-headline-md font-semibold text-on-surface">
-            Recuperar senha
-          </h2>
-          <p className="text-body-md text-on-surface-variant">
-            Em construção.
-          </p>
-          <Link
-            to="/login"
-            className="inline-block text-label-md font-medium text-primary hover:underline"
-          >
-            Voltar ao login
-          </Link>
-        </div>
+        <AuthHeader subtitle={pendingEmail ? undefined : 'Recuperar senha'} />
+        {pendingEmail ? (
+          <ResetEmailConfirmScreen email={pendingEmail} />
+        ) : (
+          <ForgotPasswordForm onEmailSent={setPendingEmail} />
+        )}
       </Card>
     </AuthShell>
   )

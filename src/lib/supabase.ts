@@ -9,4 +9,10 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    // Sessão de recovery é estabelecida manualmente em usePasswordRecoveryAccess
+    // após validar o token da URL — evita login automático com link inválido/expirado.
+    detectSessionInUrl: false,
+  },
+})

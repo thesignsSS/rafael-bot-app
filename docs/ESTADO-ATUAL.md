@@ -1,6 +1,6 @@
 # Estado atual do bot-rafael-app
 
-Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase, login e cadastro integrados.
+Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase, login, cadastro e recuperação de senha integrados.
 
 ## Resumo
 
@@ -9,12 +9,12 @@ Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase,
 | **Propósito** | Frontend SPA para interface do bot Rafael; auth com Supabase |
 | **Stack** | React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, ESLint 9 |
 | **Linguagem** | TypeScript (`.ts` / `.tsx`), modo `strict` |
-| **Roteamento** | `react-router-dom`: `/` protegida (home); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
-| **Auth** | Supabase (`signInWithPassword`, `signUp`, sessão em localStorage, `AuthProvider`) |
-| **Validação** | Zod (`loginSchema`, `signupSchema`) nos formulários de auth |
+| **Roteamento** | `react-router-dom`: `/` protegida; `/redefinir-senha` pública (valida token manualmente); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
+| **Auth** | Supabase (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`, sessão em localStorage, `AuthProvider`) |
+| **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
 | **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase) |
-| **API / backend** | Supabase Auth (e-mail/senha); recuperação ainda stub |
+| **API / backend** | Supabase Auth (e-mail/senha, recuperação de senha) |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
 | **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ver `.env.example`) |
@@ -51,6 +51,8 @@ bot-rafael-app/
 │   ├── contexts/
 │   │   ├── AuthProvider.tsx
 │   │   └── auth-context.ts
+│   ├── hooks/
+│   │   └── usePasswordRecoveryAccess.ts
 │   ├── lib/
 │   │   └── supabase.ts
 │   ├── layouts/
@@ -59,7 +61,8 @@ bot-rafael-app/
 │   │   ├── home/            # Rota protegida (placeholder)
 │   │   ├── login/
 │   │   ├── cadastro/        # signUp integrado
-│   │   └── recuperar-senha/
+│   │   ├── recuperar-senha/ # resetPasswordForEmail
+│   │   └── redefinir-senha/ # updateUser após link do e-mail
 │   ├── routes/
 │   │   └── AppRoutes.tsx
 │   ├── App.tsx
@@ -80,9 +83,10 @@ flowchart LR
   loading -->|sim| spinner[SessionLoadingScreen]
   loading -->|não| routes[AppRoutes]
   routes --> home["/ home protegida"]
+  routes --> redefinir["/redefinir-senha token manual"]
   routes --> login["/login convidado"]
   routes --> cadastro["/cadastro convidado"]
-  routes --> recuperar["/recuperar-senha stub"]
+  routes --> recuperar["/recuperar-senha convidado"]
 ```
 
 1. `index.html` carrega `/src/main.tsx`.
@@ -90,8 +94,10 @@ flowchart LR
 3. Enquanto carrega, exibe spinner fullscreen.
 4. Rotas protegidas (`/`) redirecionam para `/login` sem sessão.
 5. Rotas de convidado (`/login`, etc.) redirecionam para `/` se já logado.
-6. Login chama `signInWithPassword`; erro → toast genérico em PT; sucesso → `/`.
-7. Cadastro chama `signUp` com `user_metadata.full_name`; sessão → `/`; sem sessão → tela de confirmação de e-mail.
+6. `/redefinir-senha` valida token manualmente; sem token válido não cria sessão.
+7. Login chama `signInWithPassword`; erro → toast genérico em PT; sucesso → `/`.
+8. Cadastro chama `signUp` com `user_metadata.full_name`; sessão → `/`; sem sessão → tela de confirmação de e-mail.
+9. Recuperação: `resetPasswordForEmail` → e-mail com link Supabase → `/redefinir-senha` (validação manual do token) → `updateUser` → `signOut` → `/login` com toast de sucesso.
 
 ## Comportamento da UI atual
 
@@ -106,6 +112,7 @@ flowchart LR
 - Erro de credenciais: toast "E-mail ou senha incorretos" (sonner).
 - E-mail não confirmado: toast "Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada."
 - Links para `/recuperar-senha` e `/cadastro`.
+- Após redefinir senha: toast "Senha redefinida com sucesso. Faça login com sua nova senha." (via `location.state`).
 
 ### `/cadastro`
 
@@ -117,8 +124,30 @@ flowchart LR
 
 ### `/recuperar-senha`
 
-- Mesmo shell (`AuthShell` + card); texto "Em construção" e link voltar ao login.
-- Redireciona para `/` se o usuário já estiver autenticado.
+- Formulário com e-mail; chama `resetPasswordForEmail` com `redirectTo: {origin}/redefinir-senha`.
+- Sucesso → tela inline "Verifique seu e-mail" (padrão do cadastro).
+- Erro de API → toast genérico "Não foi possível enviar. Tente novamente."
+- Redireciona para `/` se o usuário já estiver autenticado (`GuestRoute`).
+
+### `/redefinir-senha` (pública, validação manual)
+
+- Rota fora de `ProtectedRoute`/`GuestRoute`; sessão **não** é criada automaticamente pela URL (`detectSessionInUrl: false`).
+- Hook valida token da URL (`setSession` no hash ou `verifyOtp` na query); link inválido/expirado → `signOut` + redirect `/recuperar-senha`.
+- Link válido → sessão temporária de recovery (necessária para `updateUser`) + formulário nova senha + confirmar (Zod).
+- Sucesso → `signOut` → `/login` com toast. Refresh durante o fluxo via flag em `sessionStorage`.
+
+## Configuração Supabase (recuperação de senha)
+
+No Dashboard → **Authentication**:
+
+| Campo | Valor dev |
+|-------|-----------|
+| **Site URL** | `http://localhost:5173` |
+| **Redirect URLs** | `http://localhost:5173/redefinir-senha` |
+
+**Email Templates → Reset password:** o link deve usar `href="{{ .ConfirmationURL }}"` (fluxo implicit para SPA). Alternativa: `href="{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=recovery"` (exige `verifyOtp` no hook — já implementado).
+
+Referências: [Password-based Auth](https://supabase.com/docs/guides/auth/passwords#resetting-a-password), [Email Templates](https://supabase.com/docs/guides/auth/auth-email-templates).
 
 ## Variáveis de ambiente
 
@@ -133,7 +162,6 @@ No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 
 ## O que ainda não existe
 
-- Recuperar senha integrado ao Supabase
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
 - Testes (Vitest)
@@ -141,9 +169,8 @@ No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 
 ## Próximos passos sugeridos
 
-1. Formulário de recuperação de senha com Supabase Auth.
-2. Home autenticada com funcionalidades do bot.
-3. Vitest + React Testing Library.
+1. Home autenticada com funcionalidades do bot.
+2. Vitest + React Testing Library.
 
 ## Referências
 
