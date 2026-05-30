@@ -1,5 +1,6 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
+import { useMobileSidebar } from '../../components/dashboard/hooks/useMobileSidebar'
 import { useAuth } from '../../contexts/auth-context'
 
 const ROUTE_TITLES: Record<string, string> = {
@@ -11,6 +12,8 @@ export function useDashboardLayout() {
   const { user, signOut } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
+  const { isOpen: isSidebarOpen, open: openSidebar, close: closeSidebar } =
+    useMobileSidebar()
 
   const title = useMemo(
     () => ROUTE_TITLES[pathname] ?? 'Rafael Bot',
@@ -22,5 +25,16 @@ export function useDashboardLayout() {
     navigate('/login', { replace: true })
   }, [signOut, navigate])
 
-  return { title, user, handleSignOut }
+  useEffect(() => {
+    closeSidebar()
+  }, [pathname, closeSidebar])
+
+  return {
+    title,
+    user,
+    handleSignOut,
+    isSidebarOpen,
+    openSidebar,
+    closeSidebar,
+  }
 }

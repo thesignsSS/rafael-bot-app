@@ -1,38 +1,53 @@
 import { Icon } from '../ui/Icon'
-import { SidebarNavButton } from './SidebarNavButton'
-import { SidebarNavItem } from './SidebarNavItem'
+import { SidebarContent } from './SidebarContent'
 
-export function DashboardSidebar() {
+type DashboardSidebarProps = {
+  isMobileOpen: boolean
+  onMobileClose: () => void
+}
+
+export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSidebarProps) {
   return (
-    <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 border-r border-outline-variant bg-surface px-4 py-4 lg:flex lg:flex-col">
-      <div className="mb-8 px-2">
-        <h1 className="text-headline-md font-bold text-on-surface">Rafael Bot</h1>
-        <p className="text-body-sm text-on-surface-variant">Documentos</p>
-      </div>
+    <>
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 border-r border-outline-variant bg-surface px-4 py-4 lg:flex lg:flex-col">
+        <SidebarContent />
+      </aside>
 
-      <nav className="flex flex-1 flex-col gap-1">
-        <SidebarNavItem icon="note_add" label="Nova Proposta" to="/" end />
-        <SidebarNavItem icon="description" label="Minhas Propostas" to="/propostas" />
-        <SidebarNavButton icon="history" label="Histórico" />
-        <SidebarNavButton icon="help" label="Ajuda" />
-      </nav>
+      <div
+        className={`fixed inset-0 z-40 lg:hidden ${isMobileOpen ? '' : 'pointer-events-none'}`}
+        aria-hidden={!isMobileOpen}
+      >
+        <button
+          type="button"
+          aria-label="Fechar menu"
+          onClick={onMobileClose}
+          className={`absolute inset-0 bg-inverse-surface/40 transition-opacity duration-300 ${
+            isMobileOpen ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
 
-      <div className="mt-auto border-t border-outline-variant pt-4">
-        <div className="rounded-xl bg-surface-container-low p-4">
-          <p className="mb-2 text-body-sm text-on-surface-variant">
-            Dúvidas? Fale com o administrador
-          </p>
-          <a
-            href="https://wa.me/5585999999999"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-body-sm font-semibold text-primary"
-          >
-            <Icon name="call" size={18} />
-            (85) 99999-9999
-          </a>
-        </div>
+        <aside
+          role="dialog"
+          aria-modal={isMobileOpen}
+          aria-label="Menu de navegação"
+          className={`absolute inset-y-0 left-0 flex w-60 flex-col border-r border-outline-variant bg-surface px-4 py-4 shadow-xl transition-transform duration-300 ease-out ${
+            isMobileOpen ? 'translate-x-0' : '-translate-x-full'
+          }`}
+        >
+          <div className="mb-4 flex items-center justify-end">
+            <button
+              type="button"
+              onClick={onMobileClose}
+              aria-label="Fechar menu"
+              className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            >
+              <Icon name="close" size={24} />
+            </button>
+          </div>
+
+          <SidebarContent onNavigate={onMobileClose} />
+        </aside>
       </div>
-    </aside>
+    </>
   )
 }

@@ -5,14 +5,26 @@ import { DashboardSidebar } from '../components/dashboard/DashboardSidebar'
 import { useDashboardLayout } from './hooks/useDashboardLayout'
 
 export function DashboardLayout() {
-  const { title, user, handleSignOut } = useDashboardLayout()
+  const {
+    title,
+    user,
+    handleSignOut,
+    isSidebarOpen,
+    openSidebar,
+    closeSidebar,
+  } = useDashboardLayout()
 
   return (
     <div className="min-h-screen bg-background text-on-background">
-      <DashboardSidebar />
+      <DashboardSidebar isMobileOpen={isSidebarOpen} onMobileClose={closeSidebar} />
 
       <div className="lg:pl-60">
-        <DashboardHeader title={title} user={user} onSignOut={handleSignOut} />
+        <DashboardHeader
+          title={title}
+          user={user}
+          onSignOut={handleSignOut}
+          onOpenSidebar={openSidebar}
+        />
 
         <main className="min-h-[calc(100vh-4rem)] p-4 sm:p-8">
           <Outlet />

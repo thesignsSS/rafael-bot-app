@@ -6,9 +6,15 @@ type DashboardHeaderProps = {
   title: string
   user: User | null
   onSignOut: () => void
+  onOpenSidebar: () => void
 }
 
-export function DashboardHeader({ title, user, onSignOut }: DashboardHeaderProps) {
+export function DashboardHeader({
+  title,
+  user,
+  onSignOut,
+  onOpenSidebar,
+}: DashboardHeaderProps) {
   const { isOpen, menuRef, toggleMenu, closeMenu } = useUserMenu()
 
   const displayName =
@@ -23,6 +29,15 @@ export function DashboardHeader({ title, user, onSignOut }: DashboardHeaderProps
     <header className="sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3 lg:hidden">
+          <button
+            type="button"
+            onClick={onOpenSidebar}
+            aria-label="Abrir menu"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
+          >
+            <Icon name="menu" size={24} />
+          </button>
+
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary">
             <Icon name="description" size={24} />
           </div>
