@@ -9,7 +9,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase,
 | **Propósito** | Frontend SPA para interface do bot Rafael; auth com Supabase e cadastro de proposta imobiliária |
 | **Stack** | React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, ESLint 9 |
 | **Linguagem** | TypeScript (`.ts` / `.tsx`), modo `strict` |
-| **Roteamento** | `react-router-dom`: `/` protegida; `/redefinir-senha` pública (valida token manualmente); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
+| **Roteamento** | `react-router-dom`: `/` e `/propostas` protegidas (layout dashboard); `/redefinir-senha` pública (valida token manualmente); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
 | **Auth** | Supabase (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`, sessão em localStorage, `AuthProvider`) |
 | **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
@@ -47,6 +47,7 @@ bot-rafael-app/
 ├── src/
 │   ├── components/
 │   │   ├── auth/            # ProtectedRoute, GuestRoute
+│   │   ├── dashboard/       # DashboardSidebar, DashboardHeader, SidebarNavItem
 │   │   └── ui/              # AuthHeader, Button, Checkbox, TextField, Card, ...
 │   ├── contexts/
 │   │   ├── AuthProvider.tsx
@@ -56,9 +57,11 @@ bot-rafael-app/
 │   ├── lib/
 │   │   └── supabase.ts
 │   ├── layouts/
-│   │   └── AuthShell.tsx
+│   │   ├── AuthShell.tsx
+│   │   └── DashboardLayout.tsx
 │   ├── pages/
 │   │   ├── home/            # Rota protegida: Nova Proposta
+│   │   ├── propostas/       # Listagem de propostas (mock local)
 │   │   ├── login/
 │   │   ├── cadastro/        # signUp integrado
 │   │   ├── recuperar-senha/ # resetPasswordForEmail
@@ -83,6 +86,7 @@ flowchart LR
   loading -->|sim| spinner[SessionLoadingScreen]
   loading -->|não| routes[AppRoutes]
   routes --> home["/ home protegida"]
+  routes --> propostas["/propostas listagem"]
   routes --> redefinir["/redefinir-senha token manual"]
   routes --> login["/login convidado"]
   routes --> cadastro["/cadastro convidado"]
@@ -104,13 +108,21 @@ flowchart LR
 ### `/` (protegida)
 
 - Tela "Nova Proposta" exibida após login.
-- Layout com sidebar fixa em desktop, topo com usuário e ação de sair (`signOut`).
+- Layout compartilhado (`DashboardLayout`): sidebar com navegação, header com título e logout.
 - Formulário de dados do cliente: nome, CPF obrigatório, telefone obrigatório e e-mail obrigatório com validação de formato.
 - Formulário de dados do imóvel: tipo (`Novo`/`Usado`) e município obrigatório com busca carregada pela API pública do IBGE.
 - Área de documentos adicionais com upload múltiplo, lista de arquivos selecionados e remoção individual antes do envio.
 - Campo aberto de informações adicionais com limite de 10.000 caracteres.
 - Resumo da proposta atualizado em tela e validação básica antes de enviar.
 - Envio ainda não integra backend/storage; por enquanto exibe feedback via toast.
+
+### `/propostas` (protegida)
+
+- Tela "Minhas Propostas" com listagem em tabela (ID, cliente, tipo de imóvel, data).
+- Dados mockados em `src/pages/propostas/mocks/proposals.mock.ts` (128 itens; busca e paginação client-side).
+- Busca por nome do cliente ou ID da proposta; paginação de 4 itens por página.
+- Layout compartilhado via `DashboardLayout` (sidebar com navegação, header com título por rota, footer).
+- Botão "Nova Proposta" redireciona para `/`.
 
 ### `/login`
 
@@ -172,6 +184,7 @@ No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
 - Persistência/envio real dos documentos da proposta
+- Integração da listagem com API/Supabase (hoje usa mock local)
 - Testes (Vitest)
 - Lógica de bot ou APIs além de Auth
 
