@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import { Icon } from '../ui/Icon'
+import { useUserMenu } from './hooks/useUserMenu'
 
 type DashboardHeaderProps = {
   title: string
@@ -8,6 +9,16 @@ type DashboardHeaderProps = {
 }
 
 export function DashboardHeader({ title, user, onSignOut }: DashboardHeaderProps) {
+  const { isOpen, menuRef, toggleMenu, closeMenu } = useUserMenu()
+
+  const displayName =
+    user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
+
+  const handleSignOut = () => {
+    closeMenu()
+    onSignOut()
+  }
+
   return (
     <header className="sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
@@ -25,18 +36,39 @@ export function DashboardHeader({ title, user, onSignOut }: DashboardHeaderProps
           {title}
         </h2>
 
-        <button
-          type="button"
-          onClick={onSignOut}
-          className="flex items-center gap-2 rounded-lg px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high"
-        >
-          <span className="hidden max-w-44 truncate sm:block">
-            Olá, {user?.user_metadata.full_name ?? user?.email ?? 'Corretor'}
-          </span>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-highest">
-            <Icon name="person" size={20} className="text-primary" />
-          </div>
-        </button>
+        <div ref={menuRef} className="relative">
+          <button
+            type="button"
+            onClick={toggleMenu}
+            aria-expanded={isOpen}
+            aria-haspopup="menu"
+            className="flex items-center gap-2 rounded-lg px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high"
+          >
+            <span className="hidden max-w-44 truncate sm:block">
+              Olá, {displayName}
+            </span>
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-highest">
+              <Icon name="person" size={20} className="text-primary" />
+            </div>
+          </button>
+
+          {isOpen ? (
+            <div
+              role="menu"
+              className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-40 overflow-hidden rounded-lg border border-outline-variant bg-white shadow-xl"
+            >
+              <button
+                type="button"
+                role="menuitem"
+                onClick={handleSignOut}
+                className="flex w-full items-center gap-2 px-4 py-3 text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+              >
+                <Icon name="logout" size={18} className="text-on-surface-variant" />
+                Sair
+              </button>
+            </div>
+          ) : null}
+        </div>
       </div>
     </header>
   )
