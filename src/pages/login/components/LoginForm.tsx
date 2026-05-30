@@ -23,6 +23,18 @@ function mapFieldErrors(
   return errors
 }
 
+
+function getLoginErrorMessage(error: { code?: string; message?: string }): string {
+  if (
+    error.code === 'email_not_confirmed' ||
+    error.message === 'Email not confirmed'
+  ) {
+    return 'Confirme seu e-mail antes de entrar. Verifique sua caixa de entrada.'
+  }
+
+  return 'E-mail ou senha incorretos'
+}
+
 export function LoginForm() {
   const navigate = useNavigate()
   const [email, setEmail] = useState('')
@@ -54,7 +66,7 @@ export function LoginForm() {
     setIsSubmitting(false)
 
     if (error) {
-      toast.error('E-mail ou senha incorretos')
+      toast.error(getLoginErrorMessage(error))
       return
     }
 

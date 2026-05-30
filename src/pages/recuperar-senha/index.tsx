@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { AuthShell } from '../../layouts/AuthShell'
 import { Card } from '../../components/ui/Card'
-import { LoginHeader } from '../login/components/LoginHeader'
+import { AuthHeader } from '../../components/ui/AuthHeader'
 
 export default function RecuperarSenhaPage() {
   useEffect(() => {
@@ -12,7 +12,7 @@ export default function RecuperarSenhaPage() {
   return (
     <AuthShell>
       <Card>
-        <LoginHeader />
+        <AuthHeader />
         <div className="space-y-4 text-center">
           <h2 className="text-headline-md font-semibold text-on-surface">
             Recuperar senha

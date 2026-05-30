@@ -2,7 +2,7 @@ import { useEffect } from 'react'
 import { AuthShell } from '../../layouts/AuthShell'
 import { Card } from '../../components/ui/Card'
 import { LoginForm } from './components/LoginForm'
-import { LoginHeader } from './components/LoginHeader'
+import { AuthHeader } from '../../components/ui/AuthHeader'
 
 export default function LoginPage() {
   useEffect(() => {
@@ -12,7 +12,7 @@ export default function LoginPage() {
   return (
     <AuthShell>
       <Card>
-        <LoginHeader />
+        <AuthHeader />
         <LoginForm />
       </Card>
     </AuthShell>
