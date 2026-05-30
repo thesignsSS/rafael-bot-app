@@ -6,7 +6,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase,
 
 | Aspecto | Situação atual |
 |---------|----------------|
-| **Propósito** | Frontend SPA para interface do bot Rafael; auth com Supabase |
+| **Propósito** | Frontend SPA para interface do bot Rafael; auth com Supabase e cadastro de proposta imobiliária |
 | **Stack** | React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, ESLint 9 |
 | **Linguagem** | TypeScript (`.ts` / `.tsx`), modo `strict` |
 | **Roteamento** | `react-router-dom`: `/` protegida; `/redefinir-senha` pública (valida token manualmente); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
@@ -14,7 +14,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase,
 | **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
 | **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase) |
-| **API / backend** | Supabase Auth (e-mail/senha, recuperação de senha) |
+| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
 | **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ver `.env.example`) |
@@ -58,7 +58,7 @@ bot-rafael-app/
 │   ├── layouts/
 │   │   └── AuthShell.tsx
 │   ├── pages/
-│   │   ├── home/            # Rota protegida (placeholder)
+│   │   ├── home/            # Rota protegida: Nova Proposta
 │   │   ├── login/
 │   │   ├── cadastro/        # signUp integrado
 │   │   ├── recuperar-senha/ # resetPasswordForEmail
@@ -103,7 +103,14 @@ flowchart LR
 
 ### `/` (protegida)
 
-- Placeholder: boas-vindas, e-mail do usuário, botão Sair (`signOut`).
+- Tela "Nova Proposta" exibida após login.
+- Layout com sidebar fixa em desktop, topo com usuário e ação de sair (`signOut`).
+- Formulário de dados do cliente: nome, CPF obrigatório, telefone obrigatório e e-mail obrigatório com validação de formato.
+- Formulário de dados do imóvel: tipo (`Novo`/`Usado`) e município obrigatório com busca carregada pela API pública do IBGE.
+- Área de documentos adicionais com upload múltiplo, lista de arquivos selecionados e remoção individual antes do envio.
+- Campo aberto de informações adicionais com limite de 10.000 caracteres.
+- Resumo da proposta atualizado em tela e validação básica antes de enviar.
+- Envio ainda não integra backend/storage; por enquanto exibe feedback via toast.
 
 ### `/login`
 
@@ -164,6 +171,7 @@ No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
+- Persistência/envio real dos documentos da proposta
 - Testes (Vitest)
 - Lógica de bot ou APIs além de Auth
 
