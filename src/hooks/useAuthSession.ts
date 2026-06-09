@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
 import type { AuthContextValue } from '../contexts/auth-context'
+import { isAdminRole, isCorretorRole, parseUserRole } from '../lib/auth/roles'
+import { supabase } from '../lib/supabase'
 
 export function useAuthSession(): AuthContextValue {
   const [session, setSession] = useState<Session | null>(null)
@@ -27,13 +28,18 @@ export function useAuthSession(): AuthContextValue {
     await supabase.auth.signOut()
   }, [])
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const user = session?.user ?? null
+    const role = parseUserRole(user)
+
+    return {
       session,
-      user: session?.user ?? null,
+      user,
+      role,
+      isAdmin: isAdminRole(role),
+      isCorretor: isCorretorRole(role),
       isLoading,
       signOut,
-    }),
-    [session, isLoading, signOut],
-  )
+    }
+  }, [session, isLoading, signOut])
 }

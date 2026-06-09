@@ -1,8 +1,14 @@
 import { Navigate, Outlet } from 'react-router-dom'
 import { useAuth } from '../../contexts/auth-context'
+import { hasRouteAccess } from '../../lib/auth/roles'
+import type { UserRole } from '../../lib/auth/roles'
 
-export function ProtectedRoute() {
-  const { session, isLoading } = useAuth()
+type ProtectedRouteProps = {
+  allowedRoles?: UserRole[]
+}
+
+export function ProtectedRoute({ allowedRoles }: ProtectedRouteProps) {
+  const { session, role, isLoading } = useAuth()
 
   if (isLoading) {
     return null
@@ -10,6 +16,12 @@ export function ProtectedRoute() {
 
   if (!session) {
     return <Navigate to="/login" replace />
+  }
+
+  if (!hasRouteAccess(role, allowedRoles)) {
+    return (
+      <Navigate to="/" replace state={{ permissionDenied: true }} />
+    )
   }
 
   return <Outlet />

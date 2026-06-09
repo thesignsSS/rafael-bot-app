@@ -5,4 +5,5 @@ export type ProposalListItem = {
   clientName: string
   propertyType: PropertyType
   createdAt: string
+  ownerId: string
 }

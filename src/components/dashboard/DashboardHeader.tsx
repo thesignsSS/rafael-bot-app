@@ -5,6 +5,7 @@ import { useUserMenu } from './hooks/useUserMenu'
 type DashboardHeaderProps = {
   title: string
   user: User | null
+  isAdmin?: boolean
   onSignOut: () => void
   onOpenSidebar: () => void
 }
@@ -12,6 +13,7 @@ type DashboardHeaderProps = {
 export function DashboardHeader({
   title,
   user,
+  isAdmin = false,
   onSignOut,
   onOpenSidebar,
 }: DashboardHeaderProps) {
@@ -57,12 +59,17 @@ export function DashboardHeader({
             onClick={toggleMenu}
             aria-expanded={isOpen}
             aria-haspopup="menu"
-            className="flex items-center gap-2 rounded-lg px-3 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            className="flex items-center gap-2 rounded-lg px-2 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high sm:px-3"
           >
             <span className="hidden max-w-44 truncate sm:block">
               Olá, {displayName}
             </span>
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-surface-container-highest">
+            {isAdmin ? (
+              <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold text-on-primary-container">
+                Administrador
+              </span>
+            ) : null}
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest">
               <Icon name="person" size={20} className="text-primary" />
             </div>
           </button>

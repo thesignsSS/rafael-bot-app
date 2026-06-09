@@ -1,29 +1,42 @@
 import type { ProposalListItem } from '../types/proposal-list-item'
 
+export const MOCK_OWNER_A = '11111111-1111-4111-8111-111111111111'
+export const MOCK_OWNER_B = '22222222-2222-4222-8222-222222222222'
+export const MOCK_OWNER_C = '33333333-3333-4333-8333-333333333333'
+
+export const MOCK_OWNER_IDS = [MOCK_OWNER_A, MOCK_OWNER_B, MOCK_OWNER_C] as const
+
+const pickMockOwnerId = (index: number): string =>
+  MOCK_OWNER_IDS[index % MOCK_OWNER_IDS.length]
+
 const SEED_PROPOSALS: ProposalListItem[] = [
   {
     id: 'RB-8291',
     clientName: 'João da Silva Santos',
     propertyType: 'Novo',
     createdAt: '2024-05-22T10:00:00.000Z',
+    ownerId: MOCK_OWNER_A,
   },
   {
     id: 'RB-8290',
     clientName: 'Maria Oliveira Souza',
     propertyType: 'Usado',
     createdAt: '2024-05-21T10:00:00.000Z',
+    ownerId: MOCK_OWNER_B,
   },
   {
     id: 'RB-8285',
     clientName: 'Pedro Henrique Gomes',
     propertyType: 'Novo',
     createdAt: '2024-05-19T10:00:00.000Z',
+    ownerId: MOCK_OWNER_C,
   },
   {
     id: 'RB-8272',
     clientName: 'Ana Luiza Ribeiro',
     propertyType: 'Usado',
     createdAt: '2024-05-15T10:00:00.000Z',
+    ownerId: MOCK_OWNER_A,
   },
 ]
 
@@ -70,6 +83,7 @@ const generateMockProposals = (): ProposalListItem[] => {
       clientName: `${firstName} ${middleName} ${lastName}`,
       propertyType: index % 2 === 0 ? 'Novo' : 'Usado',
       createdAt: date.toISOString(),
+      ownerId: pickMockOwnerId(index),
     })
   }
 
@@ -77,3 +91,32 @@ const generateMockProposals = (): ProposalListItem[] => {
 }
 
 export const MOCK_PROPOSALS = generateMockProposals()
+
+export function resolveMockOwnerId(userId: string): string {
+  let hash = 0
+
+  for (const char of userId) {
+    hash = (hash + char.charCodeAt(0)) % MOCK_OWNER_IDS.length
+  }
+
+  return MOCK_OWNER_IDS[hash]
+}
+
+export function getProposalsForUser(
+  userId: string | null,
+  isAdmin: boolean,
+): ProposalListItem[] {
+  if (isAdmin) {
+    return MOCK_PROPOSALS
+  }
+
+  if (!userId) {
+    return []
+  }
+
+  const effectiveOwnerId = resolveMockOwnerId(userId)
+
+  return MOCK_PROPOSALS.filter(
+    (proposal) => proposal.ownerId === effectiveOwnerId,
+  )
+}

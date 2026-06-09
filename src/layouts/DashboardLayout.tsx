@@ -8,6 +8,7 @@ export function DashboardLayout() {
   const {
     title,
     user,
+    isAdmin,
     handleSignOut,
     isSidebarOpen,
     openSidebar,
@@ -22,6 +23,7 @@ export function DashboardLayout() {
         <DashboardHeader
           title={title}
           user={user}
+          isAdmin={isAdmin}
           onSignOut={handleSignOut}
           onOpenSidebar={openSidebar}
         />

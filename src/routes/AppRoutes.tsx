@@ -12,12 +12,34 @@ import RedefinirSenhaPage from '../pages/redefinir-senha'
 export function AppRoutes() {
   return (
     <Routes>
+      {/* Auth-only — qualquer usuário logado */}
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/propostas" element={<PropostasPage />} />
         </Route>
       </Route>
+
+      {/*
+        Rotas por grupo (fase 2 — descomentar ao criar as páginas):
+
+        <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/admin" element={<AdminPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['corretor']} />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/minha-area" element={<CorretorPage />} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute allowedRoles={['supervisor']} />}>
+          ...
+        </Route>
+      */}
+
       <Route element={<GuestRoute />}>
         <Route path="/login" element={<LoginPage />} />
         <Route path="/cadastro" element={<CadastroPage />} />

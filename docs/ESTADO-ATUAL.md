@@ -1,6 +1,6 @@
 # Estado atual do bot-rafael-app
 
-Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase, login, cadastro e recuperação de senha integrados.
+Documentação do projeto na versão **0.0.0**. Última revisão: permissionamento (admin/corretor), auth Supabase e propostas com escopo por perfil.
 
 ## Resumo
 
@@ -13,7 +13,8 @@ Documentação do projeto na versão **0.0.0**. Última revisão: auth Supabase,
 | **Auth** | Supabase (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`, sessão em localStorage, `AuthProvider`) |
 | **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
-| **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase) |
+| **Estado global** | `AuthProvider` + `useAuth` (sessão, `role`, `isAdmin`, `isCorretor`) |
+| **Permissionamento** | `app_metadata.role` (`admin` \| `corretor`); guards em `ProtectedRoute` com `allowedRoles` opcional |
 | **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
@@ -53,8 +54,12 @@ bot-rafael-app/
 │   │   ├── AuthProvider.tsx
 │   │   └── auth-context.ts
 │   ├── hooks/
+│   │   ├── useAuthSession.ts
+│   │   ├── usePermissionDeniedToast.ts
 │   │   └── usePasswordRecoveryAccess.ts
 │   ├── lib/
+│   │   ├── auth/
+│   │   │   └── roles.ts
 │   │   └── supabase.ts
 │   ├── layouts/
 │   │   ├── AuthShell.tsx
@@ -179,12 +184,89 @@ VITE_SUPABASE_ANON_KEY=sua-anon-key
 
 No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 
+## Permissionamento
+
+### Perfis e fonte da verdade
+
+| Perfil | Valor em `app_metadata.role` | Comportamento padrão |
+|--------|------------------------------|----------------------|
+| Corretor | `corretor` | Signup público; fallback se role ausente |
+| Administrador | `admin` | Criado manualmente no Supabase Dashboard |
+
+Lógica pura em `src/lib/auth/roles.ts`: `parseUserRole`, `hasRouteAccess`, helpers `isAdminRole` / `isCorretorRole`.
+
+O contexto de auth expõe `role`, `isAdmin` e `isCorretor` via `useAuth()`.
+
+### Proteção de rotas (`ProtectedRoute`)
+
+Um único guard cobre autenticação e restrição por grupo:
+
+| Cenário | Configuração | Quem acessa |
+|---------|--------------|-------------|
+| Só autenticação | `<ProtectedRoute />` | Qualquer usuário logado |
+| Só admin | `<ProtectedRoute allowedRoles={['admin']} />` | Administradores |
+| Só corretor | `<ProtectedRoute allowedRoles={['corretor']} />` | Corretores |
+| Vários grupos | `<ProtectedRoute allowedRoles={['admin', 'corretor']} />` | União dos grupos |
+| Grupo futuro | Estender `UserRole` em `roles.ts` + `allowedRoles` na rota | Conforme definido |
+
+Acesso negado por role: redirect para `/` com toast "Sem permissão" (`usePermissionDeniedToast` no dashboard).
+
+Exemplos comentados em `src/routes/AppRoutes.tsx`. Rotas `/admin/*` ainda não existem.
+
+**Fase 2:** itens de sidebar/nav devem usar `hasRouteAccess` para ocultar links inacessíveis.
+
+### Escopo de propostas (mock)
+
+- Campo `ownerId` em cada proposta mock.
+- **Admin:** vê todas as propostas; título da tela "Todas as Propostas".
+- **Corretor:** vê subset simulado via `resolveMockOwnerId(userId)` até integração com Supabase (então filtrar por `ownerId === user.id`).
+- Badge "Administrador" no header quando `isAdmin`.
+
+### Promover usuário a admin
+
+No Supabase Dashboard → **Authentication → Users** → selecionar usuário → **Edit** → **App Metadata**:
+
+```json
+{ "role": "admin" }
+```
+
+### Trigger: role padrão no signup
+
+Rodar no SQL Editor do Supabase para definir `corretor` em todo cadastro novo:
+
+```sql
+CREATE OR REPLACE FUNCTION public.set_default_user_role()
+RETURNS trigger AS $$
+BEGIN
+  NEW.raw_app_meta_data =
+    COALESCE(NEW.raw_app_meta_data, '{}'::jsonb) ||
+    jsonb_build_object('role', 'corretor');
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE TRIGGER on_auth_user_created_set_role
+  BEFORE INSERT ON auth.users
+  FOR EACH ROW EXECUTE FUNCTION public.set_default_user_role();
+```
+
+### Adicionar novo grupo (ex.: `supervisor`)
+
+1. Incluir o valor em `KNOWN_ROLES` / `UserRole` em `src/lib/auth/roles.ts`.
+2. Atribuir `app_metadata.role` no Supabase (manual ou trigger).
+3. Proteger rotas com `<ProtectedRoute allowedRoles={['supervisor']} />`.
+
+### Segurança
+
+Guards de rota são **UX no frontend**. Ao integrar dados reais, reforçar permissões com RLS/policies no Supabase — o cliente não deve ser a única barreira.
+
 ## O que ainda não existe
 
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
 - Persistência/envio real dos documentos da proposta
-- Integração da listagem com API/Supabase (hoje usa mock local)
+- Integração da listagem com API/Supabase (hoje usa mock local com `ownerId` simulado)
+- Rotas `/admin/*` e gestão de usuários
 - Testes (Vitest)
 - Lógica de bot ou APIs além de Auth
 

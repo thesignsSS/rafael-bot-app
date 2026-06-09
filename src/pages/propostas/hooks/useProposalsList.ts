@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { MOCK_PROPOSALS } from '../mocks/proposals.mock'
+import { useAuth } from '../../../contexts/auth-context'
+import { getProposalsForUser } from '../mocks/proposals.mock'
 import { normalizeProposalSearch } from '../lib/proposalListUtils'
 import type { ProposalListItem } from '../types/proposal-list-item'
 
 const PAGE_SIZE = 4
-const TOTAL_SENT = MOCK_PROPOSALS.length
 
 const filterProposals = (
   proposals: ProposalListItem[],
@@ -28,12 +28,22 @@ const filterProposals = (
 }
 
 export function useProposalsList() {
+  const { user, isAdmin } = useAuth()
+  const userId = user?.id ?? null
+
   const [query, setQuery] = useState('')
   const [page, setPage] = useState(1)
 
+  const scopedProposals = useMemo(
+    () => getProposalsForUser(userId, isAdmin),
+    [userId, isAdmin],
+  )
+
+  const totalSent = scopedProposals.length
+
   const filteredItems = useMemo(
-    () => filterProposals(MOCK_PROPOSALS, query),
-    [query],
+    () => filterProposals(scopedProposals, query),
+    [scopedProposals, query],
   )
 
   const totalCount = filteredItems.length
@@ -41,7 +51,7 @@ export function useProposalsList() {
 
   useEffect(() => {
     setPage(1)
-  }, [query])
+  }, [query, userId, isAdmin])
 
   useEffect(() => {
     if (page > totalPages) {
@@ -87,7 +97,7 @@ export function useProposalsList() {
     setQuery,
     page,
     totalPages,
-    totalSent: TOTAL_SENT,
+    totalSent,
     totalCount,
     visibleCount,
     items,
