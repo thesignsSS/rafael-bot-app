@@ -36,6 +36,34 @@ vite.config.ts     # react() + tailwindcss()
 tsconfig.json      # referências app + node
 ```
 
+## Variáveis de ambiente
+
+Copie `.env.example` para `.env` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (obrigatório para dev).
+
+## Permissionamento (dev)
+
+Perfis **admin** e **corretor** vêm de `app_metadata.role` no Supabase Auth (não use `user_metadata` para roles). Detalhes em [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md#permissionamento).
+
+### Promover usuário a administrador
+
+No Supabase Dashboard → **SQL Editor**, substitua o e-mail e execute:
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role": "admin"}'::jsonb
+where email = 'seu-email@exemplo.com';
+```
+
+Para voltar a corretor:
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role": "corretor"}'::jsonb
+where email = 'seu-email@exemplo.com';
+```
+
+Depois da alteração, faça **logout e login** no app para o JWT carregar o novo perfil.
+
 ## Estado atual (resumo)
 
 - Uma tela estática de boas-vindas em `App.tsx`

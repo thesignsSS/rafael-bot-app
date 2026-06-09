@@ -107,10 +107,27 @@ interface ImportMetaEnv {
 | Build falha após novas deps | `rm -rf node_modules && npm install` |
 | Porta 5173 em uso | `vite --port 5174` ou `server.port` em `vite.config.ts` |
 | App não inicia / erro Supabase | Verificar `.env` com URL e anon key; reiniciar `npm run dev` após criar `.env` |
+| Badge admin não aparece após SQL | Confirmar `raw_app_meta_data.role = "admin"`; usuário deve logout/login para refrescar JWT |
 
 ## Additional Notes
 
 - Repositório **single-package** (não é monorepo).
 - `tsconfig.json` referencia `tsconfig.app.json` (src) e `tsconfig.node.json` (vite.config.ts).
 - Rotas em `src/routes/AppRoutes.tsx`; guards em `src/components/auth/`; sessão em `AuthProvider`.
+- Permissionamento: `app_metadata.role` (`admin` | `corretor`); leitura em `src/lib/auth/roles.ts`; guards via `ProtectedRoute` com `allowedRoles` opcional.
 - Ao implementar o bot: documentar endpoints e contratos em `docs/ESTADO-ATUAL.md`.
+
+## Auth e permissionamento
+
+- **Roles** ficam em `user.app_metadata.role` (`raw_app_meta_data` no Postgres). **Não** usar `user_metadata` para autorização — o usuário pode alterá-lo pelo cliente.
+- Fallback no frontend: role ausente ou inválida → `corretor`.
+- Promover usuário a admin (Supabase **SQL Editor**; trocar o e-mail):
+
+```sql
+update auth.users
+set raw_app_meta_data = coalesce(raw_app_meta_data, '{}'::jsonb) || '{"role": "admin"}'::jsonb
+where email = 'seu-email@exemplo.com';
+```
+
+- Após alterar metadata, o usuário precisa **logout/login** para refrescar o JWT.
+- Documentação completa: [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md#permissionamento).
