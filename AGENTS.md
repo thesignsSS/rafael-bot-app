@@ -16,7 +16,13 @@ Instruções para agentes de código que trabalham neste repositório. Formato c
 | `@supabase/supabase-js` | Auth (sessão, login) |
 | `sonner` | Toasts de feedback |
 
-Documentação humana do estado atual: [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md).
+Documentação do projeto:
+
+| Arquivo | Propósito |
+|---------|-----------|
+| [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) | Estado funcional, rotas, features e decisões de produto |
+| [DESIGN.md](DESIGN.md) | Design system: cores, tipografia, layout, componentes |
+| `AGENTS.md` (este arquivo) | Convenções para agentes e desenvolvedores |
 
 ## Setup Commands
 
@@ -66,6 +72,38 @@ Testes **não estão configurados**. Ao adicionar Vitest:
   - `src/hooks/`, `src/lib/`, `src/services/` — conforme necessidade
 - Idioma da UI: `index.html` usa `lang="pt-BR"`.
 
+## UI e design system
+
+Sempre que **criar ou alterar interface** (páginas, layouts, componentes visuais, tokens, estilos globais):
+
+1. **Consulte [DESIGN.md](DESIGN.md) antes de implementar** — cores, tipografia, espaçamento, elevação, formas e padrões de componentes (botões, inputs, cards etc.).
+2. **Aplique os tokens** definidos em `src/index.css` (`@theme`), alinhados ao `DESIGN.md`; não invente paleta ou escala tipográfica ad hoc.
+3. **Atualize o `DESIGN.md`** quando a implementação introduzir padrão visual novo ou decisão de design que deva valer para o restante do app (ex.: variante de componente, token de cor, regra de layout).
+
+Exceções: lógica pura (hooks, serviços, guards) sem impacto visual não exige consulta ao `DESIGN.md`.
+
+## Documentação do projeto
+
+Ao **finalizar uma implementação** (feature, refatoração relevante, nova convenção ou integração), atualize a documentação com informações e decisões que ajudem quem mantém o código depois. Não encerre a tarefa só com código — a doc faz parte do entregável.
+
+### Quando atualizar
+
+| Situação | O que atualizar |
+|----------|-----------------|
+| Nova feature, rota ou fluxo de usuário | [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) |
+| Mudança de arquitetura, stack, convenções ou comandos | Este `AGENTS.md` **e** [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) |
+| Novo padrão visual, token ou componente de UI | [DESIGN.md](DESIGN.md) **e**, se afetar resumo do produto, [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) |
+| Nova variável de ambiente | `.env.example`, tipos em `src/vite-env.d.ts`, seções relevantes em `AGENTS.md` e `docs/ESTADO-ATUAL.md` |
+| Novo endpoint ou contrato de API | [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) |
+
+### O que registrar
+
+- **O quê** mudou (comportamento, rotas, permissões, UI).
+- **Por quê** (decisão tomada, trade-off, limitação conhecida).
+- **Como** usar ou configurar (env vars, SQL de admin, comandos novos).
+
+Mantenha cada arquivo coerente com seu escopo: estado do produto em `ESTADO-ATUAL.md`, design em `DESIGN.md`, instruções operacionais para agentes em `AGENTS.md`. Evite duplicar parágrafos inteiros — prefira links entre os arquivos.
+
 ## Build and Deployment
 
 ```bash
@@ -90,7 +128,7 @@ interface ImportMetaEnv {
 - Mensagens de commit claras (português ou inglês).
 - Antes de PR: `npm run lint`, `npm run typecheck` e `npm run build` devem passar.
 - Escopo mínimo: não refatorar arquivos não relacionados à tarefa.
-- Atualizar [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md) e este `AGENTS.md` quando mudar arquitetura ou convenções.
+- **Documentação:** seguir a seção [Documentação do projeto](#documentação-do-projeto) — incluir atualizações em `docs/ESTADO-ATUAL.md`, `DESIGN.md` e/ou `AGENTS.md` conforme o escopo da mudança.
 
 ## Security Considerations
 
@@ -115,6 +153,7 @@ interface ImportMetaEnv {
 - `tsconfig.json` referencia `tsconfig.app.json` (src) e `tsconfig.node.json` (vite.config.ts).
 - Rotas em `src/routes/AppRoutes.tsx`; guards em `src/components/auth/`; sessão em `AuthProvider`.
 - Permissionamento: `app_metadata.role` (`admin` | `corretor`); leitura em `src/lib/auth/roles.ts`; guards via `ProtectedRoute` com `allowedRoles` opcional.
+- Design system: [DESIGN.md](DESIGN.md); tokens em `src/index.css`.
 - Ao implementar o bot: documentar endpoints e contratos em `docs/ESTADO-ATUAL.md`.
 
 ## Auth e permissionamento
