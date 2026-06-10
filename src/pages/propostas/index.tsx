@@ -6,7 +6,7 @@ import { useProposalsList } from './hooks/useProposalsList'
 import { useProposalsListPage } from './hooks/useProposalsListPage'
 
 export default function PropostasPage() {
-  const { goToNewProposal } = useProposalsListPage()
+  const { goToNewProposal, goToProposalDetail } = useProposalsListPage()
   const list = useProposalsList()
 
   return (
@@ -20,7 +20,11 @@ export default function PropostasPage() {
       />
 
       <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
-        <ProposalsTable items={list.items} isEmpty={list.totalCount === 0} />
+        <ProposalsTable
+          items={list.items}
+          isEmpty={list.totalCount === 0}
+          onSelectProposal={goToProposalDetail}
+        />
         <ProposalsPagination
           visibleCount={list.visibleCount}
           totalCount={list.totalCount}

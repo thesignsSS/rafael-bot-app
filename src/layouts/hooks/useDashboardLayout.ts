@@ -9,6 +9,18 @@ const ROUTE_TITLES: Record<string, string> = {
   '/propostas': 'Minhas Propostas',
 }
 
+function resolveRouteTitle(pathname: string, isAdmin: boolean): string {
+  if (pathname.startsWith('/propostas/')) {
+    return 'Detalhes da Proposta'
+  }
+
+  if (pathname === '/propostas' && isAdmin) {
+    return 'Todas as Propostas'
+  }
+
+  return ROUTE_TITLES[pathname] ?? 'Rafael Bot'
+}
+
 export function useDashboardLayout() {
   const { user, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
@@ -18,13 +30,10 @@ export function useDashboardLayout() {
 
   usePermissionDeniedToast()
 
-  const title = useMemo(() => {
-    if (pathname === '/propostas' && isAdmin) {
-      return 'Todas as Propostas'
-    }
-
-    return ROUTE_TITLES[pathname] ?? 'Rafael Bot'
-  }, [pathname, isAdmin])
+  const title = useMemo(
+    () => resolveRouteTitle(pathname, isAdmin),
+    [pathname, isAdmin],
+  )
 
   const handleSignOut = useCallback(async () => {
     await signOut()

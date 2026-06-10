@@ -7,9 +7,14 @@ import type { ProposalListItem } from '../types/proposal-list-item'
 type ProposalsTableProps = {
   items: ProposalListItem[]
   isEmpty: boolean
+  onSelectProposal: (proposalId: string) => void
 }
 
-export function ProposalsTable({ items, isEmpty }: ProposalsTableProps) {
+export function ProposalsTable({
+  items,
+  isEmpty,
+  onSelectProposal,
+}: ProposalsTableProps) {
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
@@ -43,7 +48,16 @@ export function ProposalsTable({ items, isEmpty }: ProposalsTableProps) {
             items.map((proposal) => (
               <tr
                 key={proposal.id}
-                className="group transition-colors hover:bg-surface-container"
+                onClick={() => onSelectProposal(proposal.id)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault()
+                    onSelectProposal(proposal.id)
+                  }
+                }}
+                tabIndex={0}
+                role="button"
+                className="group cursor-pointer transition-colors hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
               >
                 <td className="px-6 py-4 text-body-md font-medium text-primary transition-transform group-hover:translate-x-0.5">
                   {formatProposalId(proposal.id)}

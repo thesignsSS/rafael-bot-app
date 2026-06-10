@@ -6,6 +6,7 @@ import CadastroPage from '../pages/cadastro'
 import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
 import PropostasPage from '../pages/propostas'
+import ProposalDetailPage from '../pages/propostas/detail'
 import RecuperarSenhaPage from '../pages/recuperar-senha'
 import RedefinirSenhaPage from '../pages/redefinir-senha'
 
@@ -17,6 +18,7 @@ export function AppRoutes() {
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/propostas" element={<PropostasPage />} />
+          <Route path="/propostas/:proposalId" element={<ProposalDetailPage />} />
         </Route>
       </Route>
 

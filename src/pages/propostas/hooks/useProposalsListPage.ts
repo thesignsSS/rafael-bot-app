@@ -11,5 +11,12 @@ export function useProposalsListPage() {
     navigate('/')
   }, [navigate])
 
-  return { goToNewProposal }
+  const goToProposalDetail = useCallback(
+    (proposalId: string) => {
+      navigate(`/propostas/${proposalId}`)
+    },
+    [navigate],
+  )
+
+  return { goToNewProposal, goToProposalDetail }
 }
