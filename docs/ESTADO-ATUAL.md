@@ -15,10 +15,10 @@ Documentação do projeto na versão **0.0.0**. Última revisão: permissionamen
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
 | **Estado global** | `AuthProvider` + `useAuth` (sessão, `role`, `isAdmin`, `isCorretor`) |
 | **Permissionamento** | `app_metadata.role` (`admin` \| `corretor`); guards em `ProtectedRoute` com `allowedRoles` opcional |
-| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; recuperação ainda stub |
+| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoint HTTP do bot para envio da proposta; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
-| **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (ver `.env.example`) |
+| **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY` (ver `.env.example`) |
 
 ## Stack e versões instaladas
 
@@ -119,7 +119,9 @@ flowchart LR
 - Área de documentos adicionais com upload múltiplo, lista de arquivos selecionados e remoção individual antes do envio.
 - Campo aberto de informações adicionais com limite de 10.000 caracteres.
 - Resumo da proposta atualizado em tela e validação básica antes de enviar.
-- Envio ainda não integra backend/storage; por enquanto exibe feedback via toast.
+- Envio converte os anexos para base64 sem prefixo Data URL e faz `POST` para o endpoint do bot configurado em `VITE_FORM_SUBMISSION_API_URL`.
+- Arquivos aceitos no envio: `pdf`, `doc`, `docx`, `xls`, `xlsx`, `jpeg`, `jpg`, `png`, `txt`.
+- Feedback de envio: botão em loading, toast de sucesso quando a API retorna `ok: true`, e erro amigável para falhas de validação, autorização, endpoint ou servidor.
 
 ### `/propostas` (protegida)
 
@@ -180,6 +182,8 @@ Copie `.env.example` para `.env` e preencha:
 ```
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-anon-key
+VITE_FORM_SUBMISSION_API_URL=http://localhost:3335/api/form-submissions
+VITE_FORM_SUBMISSION_API_KEY=sua-api-key-do-bot
 ```
 
 No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
@@ -260,19 +264,20 @@ CREATE TRIGGER on_auth_user_created_set_role
 
 Guards de rota são **UX no frontend**. Ao integrar dados reais, reforçar permissões com RLS/policies no Supabase — o cliente não deve ser a única barreira.
 
+> Segurança: `VITE_FORM_SUBMISSION_API_KEY` fica exposta no bundle do browser. Em produção, usar uma rota backend/proxy para chamar o servidor do bot com a chave somente no servidor.
+
 ## O que ainda não existe
 
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
-- Persistência/envio real dos documentos da proposta
 - Integração da listagem com API/Supabase (hoje usa mock local com `ownerId` simulado)
 - Rotas `/admin/*` e gestão de usuários
+- Proxy backend para manter a API key do bot fora do bundle em produção
 - Testes (Vitest)
-- Lógica de bot ou APIs além de Auth
 
 ## Próximos passos sugeridos
 
-1. Home autenticada com funcionalidades do bot.
+1. Proxy backend para envio ao bot sem expor API key no browser.
 2. Vitest + React Testing Library.
 
 ## Referências

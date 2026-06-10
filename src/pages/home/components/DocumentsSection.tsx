@@ -1,6 +1,11 @@
 import type { ChangeEvent } from 'react'
 import { Icon } from '../../../components/ui/Icon'
-import { fileKey, formatFileSize } from '../lib/proposalUtils'
+import {
+  fileKey,
+  formatFileSize,
+  supportedFileExtensions,
+  supportedFileExtensionsLabel,
+} from '../lib/proposalUtils'
 import { FormSection } from './FormSection'
 
 type DocumentsSectionProps = {
@@ -33,7 +38,7 @@ export function DocumentsSection({
           ou clique para selecionar
         </span>
         <span className="mt-3 text-body-sm text-outline">
-          PDF, JPG, PNG ou DOC/DOCX
+          {supportedFileExtensionsLabel}
         </span>
         {extraFiles.length > 0 ? (
           <span className="mt-3 text-label-sm font-semibold text-primary">
@@ -45,6 +50,9 @@ export function DocumentsSection({
         id="extra-documents"
         type="file"
         multiple
+        accept={supportedFileExtensions
+          .map((extension) => `.${extension}`)
+          .join(',')}
         className="sr-only"
         onChange={onExtraFileChange}
       />
