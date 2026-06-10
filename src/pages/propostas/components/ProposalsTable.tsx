@@ -65,23 +65,23 @@ export function ProposalsTable({
                 }}
                 tabIndex={0}
                 role="button"
-                className="group cursor-pointer transition-colors hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
+                className="cursor-pointer transition-colors hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
               >
-                <td className="px-6 py-4 text-body-md font-medium text-primary transition-transform group-hover:translate-x-0.5">
+                <td className="px-6 py-4 text-body-md font-medium text-primary">
                   {formatProposalId(proposal.id)}
                 </td>
                 {showOwnerColumn ? (
-                  <td className="px-6 py-4 text-body-md text-on-surface transition-transform group-hover:translate-x-0.5">
+                  <td className="px-6 py-4 text-body-md text-on-surface">
                     {proposal.ownerName}
                   </td>
                 ) : null}
-                <td className="px-6 py-4 text-body-md text-on-surface transition-transform group-hover:translate-x-0.5">
+                <td className="px-6 py-4 text-body-md text-on-surface">
                   {proposal.clientName}
                 </td>
-                <td className="px-6 py-4 text-body-md text-on-surface transition-transform group-hover:translate-x-0.5">
+                <td className="px-6 py-4 text-body-md text-on-surface">
                   {proposal.propertyType}
                 </td>
-                <td className="px-6 py-4 text-body-md text-on-surface-variant transition-transform group-hover:translate-x-0.5">
+                <td className="px-6 py-4 text-body-md text-on-surface-variant">
                   {formatCreatedAt(proposal.createdAt)}
                 </td>
               </tr>
