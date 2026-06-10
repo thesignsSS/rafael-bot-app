@@ -30,28 +30,20 @@ export function DashboardHeader({
   return (
     <header className="sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3 lg:hidden">
+        <div className="flex items-center gap-3">
           <button
             type="button"
             onClick={onOpenSidebar}
             aria-label="Abrir menu"
-            className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
+            className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high lg:hidden"
           >
             <Icon name="menu" size={24} />
           </button>
 
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-on-primary">
-            <Icon name="description" size={24} />
-          </div>
           <div>
-            <p className="text-label-md font-bold text-on-surface">{title}</p>
-            <p className="text-body-sm text-on-surface-variant">Rafael Bot</p>
+            <h2 className="text-headline-lg font-semibold text-on-surface">{title}</h2>
           </div>
         </div>
-
-        <h2 className="hidden text-headline-lg font-semibold text-on-surface lg:block">
-          {title}
-        </h2>
 
         <div ref={menuRef} className="relative">
           <button
@@ -61,14 +53,14 @@ export function DashboardHeader({
             aria-haspopup="menu"
             className="flex items-center gap-2 rounded-lg px-2 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high sm:px-3"
           >
-            <span className="hidden max-w-44 truncate sm:block">
-              Olá, {displayName}
-            </span>
-            {isAdmin ? (
-              <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold text-on-primary-container">
-                Administrador
-              </span>
-            ) : null}
+            <div className="flex flex-col items-start gap-0.5">
+              <span className="max-w-32 truncate sm:max-w-44">Olá, {displayName}</span>
+              {isAdmin ? (
+                <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold text-on-primary-container">
+                  Administrador
+                </span>
+              ) : null}
+            </div>
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest">
               <Icon name="person" size={20} className="text-primary" />
             </div>

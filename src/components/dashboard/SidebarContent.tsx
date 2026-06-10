@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
@@ -5,16 +6,25 @@ import { SidebarNavItem } from './SidebarNavItem'
 
 type SidebarContentProps = {
   onNavigate?: () => void
+  trailingAction?: ReactNode
 }
 
-export function SidebarContent({ onNavigate }: SidebarContentProps) {
+export function SidebarContent({ onNavigate, trailingAction }: SidebarContentProps) {
   const { isAdmin } = useAuth()
 
   return (
     <>
-      <div className="mb-8 px-2">
-        <h1 className="text-headline-md font-bold text-on-surface">Rafael Bot</h1>
-        <p className="text-body-sm text-on-surface-variant">Documentos</p>
+      <div className="mb-8 flex items-center justify-between gap-2 px-2">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
+            <Icon name="robot_2" size={24} />
+          </div>
+          <div className="min-w-0">
+            <h1 className="text-headline-md font-bold text-on-surface">Rafael Bot</h1>
+            <p className="text-body-sm text-on-surface-variant">Documentos</p>
+          </div>
+        </div>
+        {trailingAction}
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">

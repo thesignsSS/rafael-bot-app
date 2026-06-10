@@ -34,18 +34,19 @@ export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSideb
             isMobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >
-          <div className="mb-4 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={onMobileClose}
-              aria-label="Fechar menu"
-              className="flex h-10 w-10 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
-            >
-              <Icon name="close" size={24} />
-            </button>
-          </div>
-
-          <SidebarContent onNavigate={onMobileClose} />
+          <SidebarContent
+            onNavigate={onMobileClose}
+            trailingAction={
+              <button
+                type="button"
+                onClick={onMobileClose}
+                aria-label="Fechar menu"
+                className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high"
+              >
+                <Icon name="close" size={24} />
+              </button>
+            }
+          />
         </aside>
       </div>
     </>
