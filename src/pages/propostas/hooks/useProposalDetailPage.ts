@@ -51,14 +51,6 @@ export function useProposalDetailPage() {
     toast.success(`Preparando download de ${documents.length} arquivos da proposta #${proposal.id}.`)
   }, [proposal, documents.length])
 
-  const finalizeAnalysis = useCallback(() => {
-    if (!proposal) {
-      return
-    }
-
-    toast.success(`Análise da proposta #${proposal.id} finalizada.`)
-  }, [proposal])
-
   const renameDocument = useCallback((documentId: string) => {
     const document = documents.find((item) => item.id === documentId)
 
@@ -122,7 +114,6 @@ export function useProposalDetailPage() {
     documents,
     goBack,
     downloadAll,
-    finalizeAnalysis,
     renameDocument,
     deleteDocument,
     viewDocument,

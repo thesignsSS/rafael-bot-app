@@ -5,9 +5,6 @@ import {
   MOCK_PROPOSALS,
 } from './proposals.mock'
 
-const PROPERTY_IMAGE_URL =
-  'https://lh3.googleusercontent.com/aida-public/AB6AXuD5M-2WDRygMwO9PNdaJmT7L3YnxxyibGTVLj23rZWA9V3uVPsK7-MehKZmemXjPKfyqbuG2_Pxz3EQC-X1FbciDEg3dx21jL67usbaSZNlIrQ2psHX_a8EHa7HBNX2dD2JASe3uAnfV9wcqSmSn23s5s1wQBD2x5KXgCyCA26eeqUvgWxVM0izcvsEAv8xEPyEDCfAQOfkuR9Hw2UjGzWrPzvTgIRYumqyUrHCoams1_eTqFhiNe8Kqjpx_aYrFGmOCoQ9KlY1hjXJ'
-
 const RB8291_DOCUMENTS: ProposalDocument[] = [
   {
     id: 'doc-rg',
@@ -51,9 +48,6 @@ const DETAIL_OVERRIDES: Record<string, Partial<ProposalDetail>> = {
       type: 'Novo',
       location: 'Fortaleza, CE',
       buildingName: 'Edifício Solar do Parque',
-      imageUrl: PROPERTY_IMAGE_URL,
-      imageCaption: 'Unidade Reservada',
-      imageSubtitle: 'Edifício Solar do Parque',
     },
     documents: RB8291_DOCUMENTS,
   },
@@ -134,6 +128,7 @@ function buildProposalDetail(
       id: listItem.id,
       status: override.status ?? 'Enviada',
       ownerId: listItem.ownerId,
+      ownerName: listItem.ownerName,
       createdAt: listItem.createdAt,
       client: override.client ?? {
         name: listItem.clientName,
@@ -144,9 +139,6 @@ function buildProposalDetail(
         type: listItem.propertyType,
         location: LOCATIONS[index % LOCATIONS.length],
         buildingName: BUILDINGS[index % BUILDINGS.length],
-        imageUrl: PROPERTY_IMAGE_URL,
-        imageCaption: 'Unidade Reservada',
-        imageSubtitle: BUILDINGS[index % BUILDINGS.length],
       },
       documents: override.documents ?? buildDocumentsForProposal(
         listItem.id,
@@ -162,6 +154,7 @@ function buildProposalDetail(
     id: listItem.id,
     status: index % 5 === 0 ? 'Em análise' : index % 11 === 0 ? 'Finalizada' : 'Enviada',
     ownerId: listItem.ownerId,
+    ownerName: listItem.ownerName,
     createdAt: listItem.createdAt,
     client: {
       name: listItem.clientName,
@@ -172,9 +165,6 @@ function buildProposalDetail(
       type: listItem.propertyType,
       location,
       buildingName,
-      imageUrl: PROPERTY_IMAGE_URL,
-      imageCaption: 'Unidade Reservada',
-      imageSubtitle: buildingName,
     },
     documents: buildDocumentsForProposal(listItem.id, listItem.createdAt),
   }

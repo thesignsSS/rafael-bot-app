@@ -1,3 +1,4 @@
+import { useAuth } from '../../contexts/auth-context'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
@@ -7,6 +8,8 @@ type SidebarContentProps = {
 }
 
 export function SidebarContent({ onNavigate }: SidebarContentProps) {
+  const { isAdmin } = useAuth()
+
   return (
     <>
       <div className="mb-8 px-2">
@@ -16,7 +19,12 @@ export function SidebarContent({ onNavigate }: SidebarContentProps) {
 
       <nav className="flex flex-1 flex-col gap-1">
         <SidebarNavItem icon="note_add" label="Nova Proposta" to="/" end onNavigate={onNavigate} />
-        <SidebarNavItem icon="description" label="Minhas Propostas" to="/propostas" onNavigate={onNavigate} />
+        <SidebarNavItem
+          icon="description"
+          label={isAdmin ? 'Todas as Propostas' : 'Minhas Propostas'}
+          to="/propostas"
+          onNavigate={onNavigate}
+        />
         <SidebarNavButton icon="history" label="Histórico" />
         <SidebarNavButton icon="help" label="Ajuda" />
       </nav>

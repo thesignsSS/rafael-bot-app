@@ -1,22 +1,18 @@
 import { Icon } from '../../../../components/ui/Icon'
 import { formatProposalId } from '../../lib/proposalListUtils'
-import type { ProposalStatus } from '../../types/proposal-detail'
-import { ProposalStatusBadge } from './ProposalStatusBadge'
 
 type ProposalDetailHeaderProps = {
   proposalId: string
-  status: ProposalStatus
+  ownerName: string
   onBack: () => void
   onDownloadAll: () => void
-  onFinalizeAnalysis: () => void
 }
 
 export function ProposalDetailHeader({
   proposalId,
-  status,
+  ownerName,
   onBack,
   onDownloadAll,
-  onFinalizeAnalysis,
 }: ProposalDetailHeaderProps) {
   return (
     <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -32,12 +28,12 @@ export function ProposalDetailHeader({
           </button>
         </div>
 
-        <div className="flex flex-wrap items-center gap-4">
-          <h2 className="text-headline-xl font-bold tracking-tight text-on-surface">
-            Proposta {formatProposalId(proposalId)}
-          </h2>
-          <ProposalStatusBadge status={status} />
-        </div>
+        <h2 className="text-headline-xl font-bold tracking-tight text-on-surface">
+          Proposta {formatProposalId(proposalId)}
+        </h2>
+        <p className="text-body-md text-on-surface-variant">
+          Corretor: <span className="font-medium text-on-surface">{ownerName}</span>
+        </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
@@ -47,13 +43,6 @@ export function ProposalDetailHeader({
           className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low active:scale-95"
         >
           Baixar Tudo (.zip)
-        </button>
-        <button
-          type="button"
-          onClick={onFinalizeAnalysis}
-          className="rounded-lg bg-primary px-6 py-2 text-label-md font-semibold text-on-primary transition-all hover:shadow-lg active:scale-95"
-        >
-          Finalizar Análise
         </button>
       </div>
     </div>

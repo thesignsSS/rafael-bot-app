@@ -1,9 +1,14 @@
 import { useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
 
 export function useProposalsListPage() {
-  useDocumentTitle('Minhas Propostas | Rafael Bot')
+  const { isAdmin } = useAuth()
+
+  useDocumentTitle(
+    isAdmin ? 'Todas as Propostas | Rafael Bot' : 'Minhas Propostas | Rafael Bot',
+  )
 
   const navigate = useNavigate()
 

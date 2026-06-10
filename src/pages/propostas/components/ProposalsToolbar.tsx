@@ -23,7 +23,7 @@ export function ProposalsToolbar({
           type="text"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por cliente ou ID da proposta..."
+          placeholder="Buscar por cliente, corretor ou ID da proposta..."
           className="w-full rounded-lg border border-outline-variant bg-surface py-2 pl-10 pr-4 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>

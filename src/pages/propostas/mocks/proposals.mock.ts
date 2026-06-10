@@ -6,8 +6,17 @@ export const MOCK_OWNER_C = '33333333-3333-4333-8333-333333333333'
 
 export const MOCK_OWNER_IDS = [MOCK_OWNER_A, MOCK_OWNER_B, MOCK_OWNER_C] as const
 
+const MOCK_OWNER_NAMES: Record<(typeof MOCK_OWNER_IDS)[number], string> = {
+  [MOCK_OWNER_A]: 'Rafael Mendes',
+  [MOCK_OWNER_B]: 'Carla Souza',
+  [MOCK_OWNER_C]: 'Bruno Alves',
+}
+
 const pickMockOwnerId = (index: number): string =>
   MOCK_OWNER_IDS[index % MOCK_OWNER_IDS.length]
+
+const pickMockOwnerName = (ownerId: string): string =>
+  MOCK_OWNER_NAMES[ownerId as (typeof MOCK_OWNER_IDS)[number]] ?? 'Corretor'
 
 const SEED_PROPOSALS: ProposalListItem[] = [
   {
@@ -16,6 +25,7 @@ const SEED_PROPOSALS: ProposalListItem[] = [
     propertyType: 'Novo',
     createdAt: '2024-05-22T10:00:00.000Z',
     ownerId: MOCK_OWNER_A,
+    ownerName: MOCK_OWNER_NAMES[MOCK_OWNER_A],
   },
   {
     id: 'RB-8290',
@@ -23,6 +33,7 @@ const SEED_PROPOSALS: ProposalListItem[] = [
     propertyType: 'Usado',
     createdAt: '2024-05-21T10:00:00.000Z',
     ownerId: MOCK_OWNER_B,
+    ownerName: MOCK_OWNER_NAMES[MOCK_OWNER_B],
   },
   {
     id: 'RB-8285',
@@ -30,6 +41,7 @@ const SEED_PROPOSALS: ProposalListItem[] = [
     propertyType: 'Novo',
     createdAt: '2024-05-19T10:00:00.000Z',
     ownerId: MOCK_OWNER_C,
+    ownerName: MOCK_OWNER_NAMES[MOCK_OWNER_C],
   },
   {
     id: 'RB-8272',
@@ -37,6 +49,7 @@ const SEED_PROPOSALS: ProposalListItem[] = [
     propertyType: 'Usado',
     createdAt: '2024-05-15T10:00:00.000Z',
     ownerId: MOCK_OWNER_A,
+    ownerName: MOCK_OWNER_NAMES[MOCK_OWNER_A],
   },
 ]
 
@@ -78,12 +91,15 @@ const generateMockProposals = (): ProposalListItem[] => {
     const date = new Date(baseDate)
     date.setDate(baseDate.getDate() - (index - 3))
 
+    const ownerId = pickMockOwnerId(index)
+
     proposals.push({
       id: `RB-${numericId}`,
       clientName: `${firstName} ${middleName} ${lastName}`,
       propertyType: index % 2 === 0 ? 'Novo' : 'Usado',
       createdAt: date.toISOString(),
-      ownerId: pickMockOwnerId(index),
+      ownerId,
+      ownerName: pickMockOwnerName(ownerId),
     })
   }
 

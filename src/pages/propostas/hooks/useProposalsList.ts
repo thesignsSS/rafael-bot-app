@@ -18,11 +18,13 @@ const filterProposals = (
 
   return proposals.filter((proposal) => {
     const normalizedId = normalizeProposalSearch(proposal.id)
-    const normalizedName = normalizeProposalSearch(proposal.clientName)
+    const normalizedClientName = normalizeProposalSearch(proposal.clientName)
+    const normalizedOwnerName = normalizeProposalSearch(proposal.ownerName)
 
     return (
       normalizedId.includes(normalizedQuery) ||
-      normalizedName.includes(normalizedQuery)
+      normalizedClientName.includes(normalizedQuery) ||
+      normalizedOwnerName.includes(normalizedQuery)
     )
   })
 }

@@ -1,3 +1,4 @@
+import { useAuth } from '../../contexts/auth-context'
 import { ProposalsActionHeader } from './components/ProposalsActionHeader'
 import { ProposalsPagination } from './components/ProposalsPagination'
 import { ProposalsTable } from './components/ProposalsTable'
@@ -6,6 +7,7 @@ import { useProposalsList } from './hooks/useProposalsList'
 import { useProposalsListPage } from './hooks/useProposalsListPage'
 
 export default function PropostasPage() {
+  const { isAdmin } = useAuth()
   const { goToNewProposal, goToProposalDetail } = useProposalsListPage()
   const list = useProposalsList()
 
@@ -23,6 +25,7 @@ export default function PropostasPage() {
         <ProposalsTable
           items={list.items}
           isEmpty={list.totalCount === 0}
+          showOwnerColumn={isAdmin}
           onSelectProposal={goToProposalDetail}
         />
         <ProposalsPagination

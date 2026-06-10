@@ -2,7 +2,6 @@ import { ProposalClientCard } from '../components/detail/ProposalClientCard'
 import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
-import { ProposalPropertyVisual } from '../components/detail/ProposalPropertyVisual'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
 
 export default function ProposalDetailPage() {
@@ -12,7 +11,6 @@ export default function ProposalDetailPage() {
     documents,
     goBack,
     downloadAll,
-    finalizeAnalysis,
     renameDocument,
     deleteDocument,
     viewDocument,
@@ -27,7 +25,6 @@ export default function ProposalDetailPage() {
           <div className="space-y-6">
             <div className="h-56 rounded-xl bg-surface-container" />
             <div className="h-40 rounded-xl bg-surface-container" />
-            <div className="h-48 rounded-xl bg-surface-container" />
           </div>
           <div className="h-[520px] rounded-xl bg-surface-container lg:col-span-2" />
         </div>
@@ -39,10 +36,9 @@ export default function ProposalDetailPage() {
     <div className="mx-auto max-w-[1200px] animate-fade-up">
       <ProposalDetailHeader
         proposalId={proposal.id}
-        status={proposal.status}
+        ownerName={proposal.ownerName}
         onBack={goBack}
         onDownloadAll={downloadAll}
-        onFinalizeAnalysis={finalizeAnalysis}
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
@@ -56,12 +52,6 @@ export default function ProposalDetailPage() {
           <ProposalPropertyCard
             propertyType={proposal.property.type}
             location={proposal.property.location}
-          />
-
-          <ProposalPropertyVisual
-            imageUrl={proposal.property.imageUrl}
-            caption={proposal.property.imageCaption}
-            subtitle={proposal.property.imageSubtitle}
           />
         </div>
 

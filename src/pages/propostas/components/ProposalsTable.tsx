@@ -7,14 +7,17 @@ import type { ProposalListItem } from '../types/proposal-list-item'
 type ProposalsTableProps = {
   items: ProposalListItem[]
   isEmpty: boolean
+  showOwnerColumn?: boolean
   onSelectProposal: (proposalId: string) => void
 }
 
 export function ProposalsTable({
   items,
   isEmpty,
+  showOwnerColumn = false,
   onSelectProposal,
 }: ProposalsTableProps) {
+  const columnCount = showOwnerColumn ? 5 : 4
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
@@ -23,6 +26,11 @@ export function ProposalsTable({
             <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
               ID da Proposta
             </th>
+            {showOwnerColumn ? (
+              <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
+                Corretor
+              </th>
+            ) : null}
             <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
               Nome do Cliente
             </th>
@@ -38,7 +46,7 @@ export function ProposalsTable({
           {isEmpty ? (
             <tr>
               <td
-                colSpan={4}
+                colSpan={columnCount}
                 className="px-6 py-12 text-center text-body-md text-on-surface-variant"
               >
                 Nenhuma proposta encontrada para esta busca.
@@ -62,6 +70,11 @@ export function ProposalsTable({
                 <td className="px-6 py-4 text-body-md font-medium text-primary transition-transform group-hover:translate-x-0.5">
                   {formatProposalId(proposal.id)}
                 </td>
+                {showOwnerColumn ? (
+                  <td className="px-6 py-4 text-body-md text-on-surface transition-transform group-hover:translate-x-0.5">
+                    {proposal.ownerName}
+                  </td>
+                ) : null}
                 <td className="px-6 py-4 text-body-md text-on-surface transition-transform group-hover:translate-x-0.5">
                   {proposal.clientName}
                 </td>

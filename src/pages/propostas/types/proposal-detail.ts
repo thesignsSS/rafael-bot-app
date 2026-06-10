@@ -16,6 +16,7 @@ export type ProposalDetail = {
   id: string
   status: ProposalStatus
   ownerId: string
+  ownerName: string
   createdAt: string
   client: {
     name: string
@@ -26,9 +27,6 @@ export type ProposalDetail = {
     type: PropertyType
     location: string
     buildingName: string
-    imageUrl: string
-    imageCaption: string
-    imageSubtitle: string
   }
   documents: ProposalDocument[]
 }
