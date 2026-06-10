@@ -81,6 +81,7 @@ export function ProposalForm() {
           hasClientEmail={Boolean(form.clientEmail.trim())}
           hasEmailError={Boolean(form.emailError)}
           hasCity={Boolean(form.city)}
+          isSubmitting={form.isSubmitting}
           onSubmit={form.handleSubmit}
         />
       </div>

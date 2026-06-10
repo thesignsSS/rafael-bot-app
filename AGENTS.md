@@ -4,7 +4,7 @@ Instruções para agentes de código que trabalham neste repositório. Formato c
 
 ## Project Overview
 
-**bot-rafael-app** é um frontend SPA para interface do bot “Rafael”. Auth via **Supabase** (e-mail/senha); rota `/` protegida. Lógica do bot ainda não implementada.
+**bot-rafael-app** é um frontend SPA para interface do bot “Rafael”. Auth via **Supabase** (e-mail/senha); rota `/` protegida com formulário de proposta imobiliária e envio HTTP para o servidor do bot.
 
 | Tecnologia | Uso |
 |------------|-----|
@@ -26,7 +26,7 @@ npm install
 
 - Node.js: 20.19+ ou 22.12+.
 - Gerenciador de pacotes: **npm** (`package-lock.json` presente).
-- Copie `.env.example` → `.env` com `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (obrigatório para dev).
+- Copie `.env.example` → `.env` com `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` e `VITE_FORM_SUBMISSION_API_KEY` (obrigatório para dev com envio ao bot).
 
 ## Development Workflow
 
@@ -80,10 +80,13 @@ npm run build
 interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
   readonly VITE_SUPABASE_ANON_KEY: string
+  readonly VITE_FORM_SUBMISSION_API_URL?: string
+  readonly VITE_FORM_SUBMISSION_API_KEY?: string
 }
 ```
 
 - Não commitar `.env` com segredos; usar `.env.example` quando introduzir env vars.
+- `VITE_FORM_SUBMISSION_API_KEY` fica exposta no bundle do browser; em produção, preferir proxy/backend para manter a chave no servidor.
 
 ## Pull Request Guidelines
 
@@ -107,6 +110,7 @@ interface ImportMetaEnv {
 | Build falha após novas deps | `rm -rf node_modules && npm install` |
 | Porta 5173 em uso | `vite --port 5174` ou `server.port` em `vite.config.ts` |
 | App não inicia / erro Supabase | Verificar `.env` com URL e anon key; reiniciar `npm run dev` após criar `.env` |
+| Envio ao bot falha | Verificar `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY`, CORS do servidor e se o endpoint `/api/form-submissions` está ativo |
 
 ## Additional Notes
 

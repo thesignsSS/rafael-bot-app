@@ -12,7 +12,8 @@ type ProposalSummaryProps = {
   hasClientEmail: boolean
   hasEmailError: boolean
   hasCity: boolean
-  onSubmit: () => void
+  isSubmitting: boolean
+  onSubmit: () => void | Promise<void>
 }
 
 export function ProposalSummary({
@@ -24,6 +25,7 @@ export function ProposalSummary({
   hasClientEmail,
   hasEmailError,
   hasCity,
+  isSubmitting,
   onSubmit,
 }: ProposalSummaryProps) {
   return (
@@ -61,10 +63,11 @@ export function ProposalSummary({
         </div>
         <Button
           onClick={onSubmit}
+          loading={isSubmitting}
           icon="send"
           className="h-14 text-base uppercase tracking-normal"
         >
-          Enviar documentação
+          {isSubmitting ? 'Enviando...' : 'Enviar documentação'}
         </Button>
       </div>
     </section>

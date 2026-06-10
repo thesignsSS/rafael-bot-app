@@ -1,15 +1,22 @@
 import { useCallback, useState, type ChangeEvent } from 'react'
 import { toast } from 'sonner'
+import { useAuth } from '../../../contexts/auth-context'
 import { fileKey } from '../lib/proposalUtils'
 import {
+  isSupportedFile,
   validateClientCpfValue,
   validateClientEmailValue,
   validateClientPhoneValue,
 } from '../lib/proposalValidation'
+import {
+  filesToSubmissionDocuments,
+  submitProposalToBot,
+} from '../lib/submitProposal'
 import type { PropertyType } from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
 
 export function useProposalForm() {
+  const { user } = useAuth()
   const cityCombobox = useCityCombobox()
 
   const [clientName, setClientName] = useState('')
@@ -22,6 +29,7 @@ export function useProposalForm() {
   const [propertyType, setPropertyType] = useState<PropertyType>('Novo')
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [additionalInfo, setAdditionalInfo] = useState('')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleClientCpfChange = useCallback(
     (value: string) => {
@@ -74,10 +82,20 @@ export function useProposalForm() {
   const handleExtraFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
       const selectedFiles = Array.from(event.target.files ?? [])
+      const unsupportedFiles = selectedFiles.filter((file) => !isSupportedFile(file))
+      const supportedFiles = selectedFiles.filter(isSupportedFile)
+
+      if (unsupportedFiles.length > 0) {
+        toast.error(
+          `Arquivo(s) com extensão não suportada: ${unsupportedFiles
+            .map((file) => file.name)
+            .join(', ')}`,
+        )
+      }
 
       setExtraFiles((currentFiles) => {
         const currentFileKeys = new Set(currentFiles.map(fileKey))
-        const newFiles = selectedFiles.filter(
+        const newFiles = supportedFiles.filter(
           (file) => !currentFileKeys.has(fileKey(file)),
         )
 
@@ -97,7 +115,11 @@ export function useProposalForm() {
 
   const { validateCity } = cityCombobox
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
+    if (isSubmitting) {
+      return
+    }
+
     if (!clientName.trim()) {
       toast.error('Informe o nome do cliente para enviar a documentação.')
       return
@@ -123,9 +145,62 @@ export function useProposalForm() {
       return
     }
 
-    toast.success('Documentação pronta para análise.')
+    const unsupportedFiles = extraFiles.filter((file) => !isSupportedFile(file))
+
+    if (unsupportedFiles.length > 0) {
+      toast.error('Remova arquivos com extensão não suportada antes de enviar.')
+      return
+    }
+
+    const brokerName =
+      typeof user?.user_metadata.full_name === 'string'
+        ? user.user_metadata.full_name
+        : user?.email ?? 'Corretor'
+
+    try {
+      setIsSubmitting(true)
+
+      const documents = await filesToSubmissionDocuments(extraFiles)
+
+      await submitProposalToBot({
+        brokerName,
+        clientName: clientName.trim(),
+        formData: {
+          'Nome do Cliente Completo': clientName.trim(),
+          'CPF do Cliente': clientCpf.trim(),
+          'Telefone do Cliente': clientPhone.trim(),
+          'E-mail': clientEmail.trim(),
+          'Tipo do Imóvel': propertyType,
+          'Município do Imóvel': cityCombobox.city,
+          'Informações Adicionais': additionalInfo.trim(),
+        },
+        documents,
+      })
+
+      toast.success(
+        'Arquivos enviados com sucesso. O bot já recebeu os dados e enviará a confirmação no WhatsApp.',
+      )
+    } catch (error) {
+      console.error('Falha ao enviar proposta para o bot:', error)
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Falha ao enviar documentação. Tente novamente.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }, [
+    isSubmitting,
     clientName,
+    clientCpf,
+    clientPhone,
+    clientEmail,
+    propertyType,
+    additionalInfo,
+    extraFiles,
+    user,
+    cityCombobox.city,
     validateClientCpf,
     validateClientPhone,
     validateClientEmail,
@@ -149,6 +224,7 @@ export function useProposalForm() {
     extraFiles,
     additionalInfo,
     setAdditionalInfo,
+    isSubmitting,
     clientLabel,
     emailLabel,
     handleClientCpfChange,

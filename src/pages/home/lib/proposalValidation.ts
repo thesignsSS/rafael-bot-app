@@ -1,4 +1,8 @@
-import { emailPattern } from './proposalUtils'
+import {
+  emailPattern,
+  getFileExtension,
+  supportedFileExtensions,
+} from './proposalUtils'
 
 export function validateClientEmailValue(email: string): string | null {
   const trimmedEmail = email.trim()
@@ -36,4 +40,12 @@ export function validateCityValue(city: string): string | null {
   }
 
   return null
+}
+
+export function isSupportedFile(file: File) {
+  const extension = getFileExtension(file.name)
+
+  return supportedFileExtensions.some(
+    (supportedExtension) => supportedExtension === extension,
+  )
 }

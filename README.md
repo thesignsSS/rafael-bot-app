@@ -1,6 +1,6 @@
 # bot-rafael-app
 
-Frontend SPA com [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), [Vite](https://vite.dev) e [Tailwind CSS](https://tailwindcss.com) v4. Projeto em estágio inicial (scaffold).
+Frontend SPA do Rafael Bot com [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), [Vite](https://vite.dev), [Tailwind CSS](https://tailwindcss.com) v4 e auth via Supabase.
 
 ## Documentação
 
@@ -12,6 +12,7 @@ Frontend SPA com [React](https://react.dev), [TypeScript](https://www.typescript
 ## Pré-requisitos
 
 - Node.js 20.19+ ou 22.12+
+- `.env` baseado em `.env.example`
 
 ## Comandos
 
@@ -38,7 +39,10 @@ tsconfig.json      # referências app + node
 
 ## Estado atual (resumo)
 
-- Uma tela estática de boas-vindas em `App.tsx`
+- Login/cadastro/recuperação de senha com Supabase
+- Rota protegida com formulário de proposta imobiliária
+- Busca de municípios do Ceará via API pública do IBGE
+- Envio da proposta e anexos para o servidor do bot via `VITE_FORM_SUBMISSION_API_URL`
 - TypeScript em modo `strict`
-- Sem roteamento, testes, API ou variáveis de ambiente
+- Sem testes configurados
 - Detalhes completos em [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md)
