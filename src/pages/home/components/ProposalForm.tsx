@@ -11,7 +11,29 @@ export function ProposalForm() {
   const form = useProposalForm()
 
   return (
-    <>
+    <div className="relative">
+      {form.isSubmitting ? (
+        <div className="absolute inset-0 z-20 flex items-center justify-center rounded-2xl bg-white/75 backdrop-blur-[1px]">
+          <div className="flex min-w-64 items-center gap-4 rounded-xl border border-outline-variant bg-white px-5 py-4 shadow-lg">
+            <div className="flex h-11 w-11 items-center justify-center rounded-full bg-blue-50 text-primary">
+              <Icon name="sync" size={24} className="animate-spin" />
+            </div>
+            <div>
+              <p className="text-label-md font-semibold text-on-surface">
+                Enviando proposta
+              </p>
+              <p className="text-body-sm text-on-surface-variant">
+                Aguarde enquanto salvamos os dados e anexos.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      <div
+        className={form.isSubmitting ? 'pointer-events-none select-none opacity-70' : ''}
+        aria-busy={form.isSubmitting}
+      >
       <section className="mb-8 flex items-start gap-4 border-b border-outline-variant/60 pb-7">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-primary">
           <Icon name="note_add" size={32} />
@@ -96,6 +118,7 @@ export function ProposalForm() {
           onSubmit={form.handleSubmit}
         />
       </div>
-    </>
+      </div>
+    </div>
   )
 }

@@ -1,3 +1,4 @@
+import { PendingReasonModal } from './components/detail/PendingReasonModal'
 import { ProposalsActionHeader } from './components/ProposalsActionHeader'
 import { ProposalsKanbanBoard } from './components/ProposalsKanbanBoard'
 import { ProposalsToolbar } from './components/ProposalsToolbar'
@@ -12,6 +13,15 @@ export default function PropostasPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <PendingReasonModal
+        isOpen={list.isPendingReasonModalOpen}
+        isSaving={Boolean(list.movingProposalId)}
+        value={list.pendingReasonDraft}
+        onChange={list.setPendingReasonDraft}
+        onClose={list.closePendingReasonModal}
+        onConfirm={list.confirmPendingReasonMove}
+      />
+
       <ProposalsActionHeader onNewProposal={goToNewProposal} />
 
       <ProposalsToolbar

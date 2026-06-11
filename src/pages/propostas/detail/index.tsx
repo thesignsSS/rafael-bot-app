@@ -1,4 +1,8 @@
+import { ProposalAllDocumentsPreviewModal } from '../components/detail/ProposalAllDocumentsPreviewModal'
+import { PendingReasonModal } from '../components/detail/PendingReasonModal'
+import { PendingDocumentsUploadModal } from '../components/detail/PendingDocumentsUploadModal'
 import { ProposalBrokerCard } from '../components/detail/ProposalBrokerCard'
+import { ProposalCommentsSection } from '../components/detail/ProposalCommentsSection'
 import { ProposalClientCard } from '../components/detail/ProposalClientCard'
 import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
@@ -18,25 +22,52 @@ export default function ProposalDetailPage() {
     refetch,
     isEditing,
     isAdmin,
+    canBrokerHandlePending,
     editDraft,
     documentPreview,
+    allDocumentsPreview,
     isSavingProposal,
     isSavingStatus,
+    isSavingComment,
     statusOptions,
     isUpdatingDocuments,
+    isAllDocumentsPreviewOpen,
+    isLoadingAllDocumentsPreview,
+    isPendingReasonModalOpen,
+    isPendingDocumentsModalOpen,
+    pendingReasonDraft,
+    pendingDocumentsDraft,
+    commentDraft,
+    hasPendingUpdates,
     goBack,
     startEditing,
     cancelEditing,
     updateEditDraft,
     saveProposal,
     changeProposalStatus,
+    closePendingReasonModal,
+    confirmPendingReason,
+    setPendingReasonDraft,
     downloadAll,
     renameDocument,
     deleteDocument,
     viewDocument,
+    openAllDocumentsPreview,
     closeDocumentPreview,
+    closeAllDocumentsPreview,
     addDocuments,
+    openPendingDocumentsModal,
+    closePendingDocumentsModal,
+    stagePendingDocuments,
+    removePendingDocument,
+    addComment,
+    setCommentDraft,
+    resendForAnalysis,
   } = useProposalDetailPage()
+  const shouldHighlightComments = canBrokerHandlePending
+  const canResendForAnalysis =
+    canBrokerHandlePending &&
+    (hasPendingUpdates || pendingDocumentsDraft.length > 0)
 
   if (status === 'loading' || !proposal) {
     if (status === 'error') {
@@ -84,12 +115,36 @@ export default function ProposalDetailPage() {
 
   return (
     <div className="mx-auto max-w-[1200px] animate-fade-up">
+      <PendingReasonModal
+        isOpen={isPendingReasonModalOpen}
+        isSaving={isSavingStatus}
+        value={pendingReasonDraft}
+        onChange={setPendingReasonDraft}
+        onClose={closePendingReasonModal}
+        onConfirm={confirmPendingReason}
+      />
+
+      <PendingDocumentsUploadModal
+        isOpen={isPendingDocumentsModalOpen}
+        isSaving={false}
+        onClose={closePendingDocumentsModal}
+        onSave={stagePendingDocuments}
+      />
+
       {documentPreview ? (
         <ProposalDocumentPreviewModal
           fileName={documentPreview.fileName}
           kind={documentPreview.kind}
           url={documentPreview.url}
           onClose={closeDocumentPreview}
+        />
+      ) : null}
+
+      {isAllDocumentsPreviewOpen ? (
+        <ProposalAllDocumentsPreviewModal
+          documents={allDocumentsPreview}
+          isLoading={isLoadingAllDocumentsPreview}
+          onClose={closeAllDocumentsPreview}
         />
       ) : null}
 
@@ -110,6 +165,33 @@ export default function ProposalDetailPage() {
           onChangeStatus={changeProposalStatus}
         />
       </div>
+
+      {shouldHighlightComments ? (
+        <div className="mb-6">
+          <ProposalCommentsSection
+            pendingReason={proposal.pendingReason}
+            comments={proposal.comments}
+            emphasized
+            pendingDocuments={pendingDocumentsDraft.map((file) => ({
+              file,
+              key: `${file.name}-${file.size}-${file.lastModified}`,
+            }))}
+            commentDraft={commentDraft}
+            isSavingComment={isSavingComment}
+            isUploadingPendingDocuments={isUpdatingDocuments}
+            isResending={isSavingStatus}
+            canAddComment={isAdmin || canBrokerHandlePending}
+            canUploadPendingDocuments={canBrokerHandlePending}
+            canResend={canResendForAnalysis}
+            hasPendingUpdates={hasPendingUpdates}
+            onCommentDraftChange={setCommentDraft}
+            onAddComment={addComment}
+            onUploadPendingDocuments={openPendingDocumentsModal}
+            onRemovePendingDocument={removePendingDocument}
+            onResend={resendForAnalysis}
+          />
+        </div>
+      ) : null}
 
       {isEditing && editDraft ? (
         <ProposalEditForm
@@ -149,6 +231,30 @@ export default function ProposalDetailPage() {
               {proposal.additionalInfo || 'Nenhuma informação adicional registrada.'}
             </p>
           </section>
+
+          {!shouldHighlightComments ? (
+            <ProposalCommentsSection
+              pendingReason={proposal.pendingReason}
+              comments={proposal.comments}
+              pendingDocuments={pendingDocumentsDraft.map((file) => ({
+                file,
+                key: `${file.name}-${file.size}-${file.lastModified}`,
+              }))}
+              commentDraft={commentDraft}
+              isSavingComment={isSavingComment}
+              isUploadingPendingDocuments={isUpdatingDocuments}
+              isResending={isSavingStatus}
+              canAddComment={isAdmin || canBrokerHandlePending}
+              canUploadPendingDocuments={canBrokerHandlePending}
+              canResend={canResendForAnalysis}
+              hasPendingUpdates={hasPendingUpdates}
+              onCommentDraftChange={setCommentDraft}
+              onAddComment={addComment}
+              onUploadPendingDocuments={openPendingDocumentsModal}
+              onRemovePendingDocument={removePendingDocument}
+              onResend={resendForAnalysis}
+            />
+          ) : null}
         </div>
 
         <div className="lg:col-span-2">
@@ -158,6 +264,7 @@ export default function ProposalDetailPage() {
             onRename={renameDocument}
             onDelete={deleteDocument}
             onView={viewDocument}
+            onViewAll={openAllDocumentsPreview}
             onFilesSelected={addDocuments}
           />
         </div>

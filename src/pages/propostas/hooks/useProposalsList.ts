@@ -22,6 +22,8 @@ export function useProposalsList() {
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [movingProposalId, setMovingProposalId] = useState<string | null>(null)
+  const [pendingMoveProposalId, setPendingMoveProposalId] = useState<string | null>(null)
+  const [pendingReasonDraft, setPendingReasonDraft] = useState('')
   const [error, setError] = useState<string | null>(null)
   const { statusOptions, isLoadingStatuses } = useProposalStatuses()
 
@@ -93,8 +95,14 @@ export function useProposalsList() {
 
   const visibleCount = items.length
 
-  const moveProposal = useCallback(
-    async (proposalId: string, status: ProposalStatus) => {
+  const moveProposalInternal = useCallback(
+    async (
+      proposalId: string,
+      status: ProposalStatus,
+      options?: {
+        pendingReason?: string
+      },
+    ) => {
       if (!brokerUserId || movingProposalId) {
         return
       }
@@ -114,7 +122,11 @@ export function useProposalsList() {
       )
 
       try {
-        await updateProposalStatus(proposalId, { brokerUserId, status })
+        await updateProposalStatus(proposalId, {
+          brokerUserId,
+          status,
+          pendingReason: options?.pendingReason,
+        })
         toast.success('Situação da proposta atualizada.')
       } catch (moveError) {
         setItems((currentItems) =>
@@ -134,6 +146,43 @@ export function useProposalsList() {
     [brokerUserId, items, movingProposalId],
   )
 
+  const moveProposal = useCallback(
+    async (proposalId: string, status: ProposalStatus) => {
+      if (status === 'pendente') {
+        setPendingMoveProposalId(proposalId)
+        setPendingReasonDraft('')
+        return
+      }
+
+      await moveProposalInternal(proposalId, status)
+    },
+    [moveProposalInternal],
+  )
+
+  const closePendingReasonModal = useCallback(() => {
+    setPendingMoveProposalId(null)
+    setPendingReasonDraft('')
+  }, [])
+
+  const confirmPendingReasonMove = useCallback(async () => {
+    const pendingReason = pendingReasonDraft.trim()
+
+    if (!pendingMoveProposalId) {
+      return
+    }
+
+    if (!pendingReason) {
+      toast.error('Informe o motivo da pendência antes de continuar.')
+      return
+    }
+
+    await moveProposalInternal(pendingMoveProposalId, 'pendente', {
+      pendingReason,
+    })
+    setPendingMoveProposalId(null)
+    setPendingReasonDraft('')
+  }, [moveProposalInternal, pendingMoveProposalId, pendingReasonDraft])
+
   return {
     query,
     setQuery,
@@ -146,7 +195,12 @@ export function useProposalsList() {
     statusOptions,
     isLoadingStatuses,
     error,
+    isPendingReasonModalOpen: pendingMoveProposalId !== null,
+    pendingReasonDraft,
     refetch: loadProposals,
     moveProposal,
+    setPendingReasonDraft,
+    closePendingReasonModal,
+    confirmPendingReasonMove,
   }
 }

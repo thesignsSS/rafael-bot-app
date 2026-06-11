@@ -36,9 +36,14 @@ export type ProposalEditDraft = {
 }
 
 export type ProposalDocumentPreview = {
+  id: string
   fileName: string
   kind: ProposalDocumentKind
   url: string
+}
+
+function fileKey(file: File) {
+  return `${file.name}-${file.size}-${file.lastModified}`
 }
 
 function downloadBlob(blob: Blob, filename: string) {
@@ -61,10 +66,25 @@ export function useProposalDetailPage() {
   const [editDraft, setEditDraft] = useState<ProposalEditDraft | null>(null)
   const [isSavingProposal, setIsSavingProposal] = useState(false)
   const [isSavingStatus, setIsSavingStatus] = useState(false)
+  const [isSavingComment, setIsSavingComment] = useState(false)
   const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false)
+  const [isPendingReasonModalOpen, setIsPendingReasonModalOpen] = useState(false)
+  const [isPendingDocumentsModalOpen, setIsPendingDocumentsModalOpen] = useState(false)
+  const [pendingReasonDraft, setPendingReasonDraft] = useState('')
+  const [pendingDocumentsDraft, setPendingDocumentsDraft] = useState<File[]>([])
+  const [commentDraft, setCommentDraft] = useState('')
+  const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
   const [documentPreview, setDocumentPreview] =
     useState<ProposalDocumentPreview | null>(null)
+  const [allDocumentsPreview, setAllDocumentsPreview] = useState<
+    ProposalDocumentPreview[]
+  >([])
+  const [isAllDocumentsPreviewOpen, setIsAllDocumentsPreviewOpen] = useState(false)
+  const [isLoadingAllDocumentsPreview, setIsLoadingAllDocumentsPreview] =
+    useState(false)
   const hasHandledMissingProposal = useRef(false)
+  const normalizedStatus = normalizeProposalStatus(proposal?.status)
+  const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
 
   const pageTitle = proposal
     ? `Proposta ${proposal.proposalCode} | Rafael Bot`
@@ -99,6 +119,13 @@ export function useProposalDetailPage() {
       additionalInfo: proposal.additionalInfo,
     })
   }, [isEditing, proposal])
+
+  useEffect(() => {
+    setPendingReasonDraft(proposal?.pendingReason ?? '')
+    setPendingDocumentsDraft([])
+    setCommentDraft('')
+    setHasPendingUpdates(false)
+  }, [proposal?.id, proposal?.pendingReason, normalizedStatus])
 
   const requireProposalContext = useCallback(() => {
     if (!proposalId || !brokerUserId) {
@@ -180,6 +207,9 @@ export function useProposalDetailPage() {
       })
 
       await refetch()
+      if (canBrokerHandlePending) {
+        setHasPendingUpdates(true)
+      }
       setIsEditing(false)
       toast.success('Proposta atualizada com sucesso.')
     } catch (saveError) {
@@ -193,7 +223,7 @@ export function useProposalDetailPage() {
     }
   }, [editDraft, proposal, refetch, requireProposalContext])
 
-  const changeProposalStatus = useCallback(
+  const updateProposalStatusWithPayload = useCallback(
     async (nextStatus: ProposalStatus) => {
       if (!proposal || normalizeProposalStatus(proposal.status) === nextStatus) {
         return
@@ -220,6 +250,54 @@ export function useProposalDetailPage() {
     },
     [proposal, refetch, requireProposalContext],
   )
+
+  const changeProposalStatus = useCallback(
+    async (nextStatus: ProposalStatus) => {
+      if (nextStatus === 'pendente' && isAdmin) {
+        setPendingReasonDraft(proposal?.pendingReason ?? '')
+        setIsPendingReasonModalOpen(true)
+        return
+      }
+
+      await updateProposalStatusWithPayload(nextStatus)
+    },
+    [isAdmin, proposal?.pendingReason, updateProposalStatusWithPayload],
+  )
+
+  const closePendingReasonModal = useCallback(() => {
+    setIsPendingReasonModalOpen(false)
+    setPendingReasonDraft(proposal?.pendingReason ?? '')
+  }, [proposal?.pendingReason])
+
+  const confirmPendingReason = useCallback(async () => {
+    const pendingReason = pendingReasonDraft.trim()
+
+    if (!pendingReason) {
+      toast.error('Informe o motivo da pendência antes de continuar.')
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsSavingStatus(true)
+      await updateProposalStatus(context.proposalId, {
+        brokerUserId: context.brokerUserId,
+        status: 'pendente',
+        pendingReason,
+      })
+      await refetch()
+      setIsPendingReasonModalOpen(false)
+      toast.success('Proposta movida para pendente.')
+    } catch (statusError) {
+      toast.error(
+        statusError instanceof Error
+          ? statusError.message
+          : 'Não foi possível atualizar a situação da proposta.',
+      )
+    } finally {
+      setIsSavingStatus(false)
+    }
+  }, [pendingReasonDraft, refetch, requireProposalContext])
 
   const downloadAll = useCallback(async () => {
     try {
@@ -260,6 +338,9 @@ export function useProposalDetailPage() {
           displayName,
         )
         await refetch()
+        if (canBrokerHandlePending) {
+          setHasPendingUpdates(true)
+        }
         toast.success('Documento renomeado com sucesso.')
       } catch (renameError) {
         toast.error(
@@ -293,6 +374,9 @@ export function useProposalDetailPage() {
           context.brokerUserId,
         )
         await refetch()
+        if (canBrokerHandlePending) {
+          setHasPendingUpdates(true)
+        }
         toast.success('Documento excluído com sucesso.')
       } catch (deleteError) {
         toast.error(
@@ -319,6 +403,7 @@ export function useProposalDetailPage() {
         )
 
         setDocumentPreview({
+          id: documentId,
           fileName:
             document?.displayName ??
             document?.originalFilename ??
@@ -340,6 +425,59 @@ export function useProposalDetailPage() {
     [proposal?.documents, requireProposalContext],
   )
 
+  const openAllDocumentsPreview = useCallback(async () => {
+    if (!proposal?.documents.length) {
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsAllDocumentsPreviewOpen(true)
+      setIsLoadingAllDocumentsPreview(true)
+
+      const previewDocuments = await Promise.all(
+        proposal.documents.map(async (document) => {
+          const result = await viewProposalDocument(
+            context.proposalId,
+            document.id,
+            context.brokerUserId,
+          )
+
+          return {
+            id: document.id,
+            fileName:
+              document.displayName ||
+              document.originalFilename ||
+              result.filename,
+            kind: inferDocumentKindFromContent(
+              document.contentType,
+              document.filename || result.filename,
+            ),
+            url: result.url,
+          } satisfies ProposalDocumentPreview
+        }),
+      )
+
+      setAllDocumentsPreview(previewDocuments)
+    } catch (viewError) {
+      setIsAllDocumentsPreviewOpen(false)
+      setAllDocumentsPreview([])
+      toast.error(
+        viewError instanceof Error
+          ? viewError.message
+          : 'Não foi possível carregar os documentos.',
+      )
+    } finally {
+      setIsLoadingAllDocumentsPreview(false)
+    }
+  }, [proposal?.documents, requireProposalContext])
+
+  const closeAllDocumentsPreview = useCallback(() => {
+    setIsAllDocumentsPreviewOpen(false)
+    setAllDocumentsPreview([])
+    setIsLoadingAllDocumentsPreview(false)
+  }, [])
+
   const addDocuments = useCallback(
     async (selectedFiles: File[]) => {
       if (selectedFiles.length === 0) {
@@ -356,6 +494,9 @@ export function useProposalDetailPage() {
           documents,
         )
         await refetch()
+        if (canBrokerHandlePending) {
+          setHasPendingUpdates(true)
+        }
         toast.success(
           selectedFiles.length === 1
             ? 'Documento enviado com sucesso.'
@@ -378,6 +519,131 @@ export function useProposalDetailPage() {
     setDocumentPreview(null)
   }, [])
 
+  const openPendingDocumentsModal = useCallback(() => {
+    setIsPendingDocumentsModalOpen(true)
+  }, [])
+
+  const closePendingDocumentsModal = useCallback(() => {
+    setIsPendingDocumentsModalOpen(false)
+  }, [])
+
+  const stagePendingDocuments = useCallback(async (selectedFiles: File[]) => {
+      if (selectedFiles.length === 0) {
+        return
+      }
+
+      setPendingDocumentsDraft((currentFiles) => {
+        const currentKeys = new Set(currentFiles.map(fileKey))
+        const nextFiles = selectedFiles.filter(
+          (file) => !currentKeys.has(fileKey(file)),
+        )
+
+        return [...currentFiles, ...nextFiles]
+      })
+      setIsPendingDocumentsModalOpen(false)
+      toast.success(
+        selectedFiles.length === 1
+          ? 'Documento pendente adicionado.'
+          : `${selectedFiles.length} documentos pendentes adicionados.`,
+      )
+    }, [])
+
+  const removePendingDocument = useCallback((targetFile: File) => {
+    setPendingDocumentsDraft((currentFiles) =>
+      currentFiles.filter((file) => fileKey(file) !== fileKey(targetFile)),
+    )
+  }, [])
+
+  const addComment = useCallback(async () => {
+    const message = commentDraft.trim()
+
+    if (!message) {
+      toast.error('Escreva um comentário antes de enviar.')
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsSavingComment(true)
+      await updateProposal(context.proposalId, {
+        brokerUserId: context.brokerUserId,
+        brokerPhone: proposal?.brokerPhone ?? '',
+        clientName: proposal?.client.name ?? '',
+        clientCpf: proposal?.client.cpf ?? '',
+        clientEmail: proposal?.client.email ?? '',
+        clientPhone: proposal?.client.phone ?? '',
+        propertyType: proposal?.property.type ?? 'Novo',
+        propertyCity: proposal?.property.city ?? '',
+        propertyState: proposal?.property.state ?? '',
+        additionalInfo: proposal?.additionalInfo ?? '',
+        formData: proposal?.formData ?? {},
+        commentMessage: message,
+      })
+      await refetch()
+      setCommentDraft('')
+      if (canBrokerHandlePending) {
+        setHasPendingUpdates(true)
+      }
+      toast.success('Comentário adicionado.')
+    } catch (commentError) {
+      toast.error(
+        commentError instanceof Error
+          ? commentError.message
+          : 'Não foi possível adicionar o comentário.',
+      )
+    } finally {
+      setIsSavingComment(false)
+    }
+  }, [canBrokerHandlePending, commentDraft, proposal, refetch, requireProposalContext])
+
+  const resendForAnalysis = useCallback(async () => {
+    const canResendNow = hasPendingUpdates || pendingDocumentsDraft.length > 0
+
+    if (!canBrokerHandlePending || !canResendNow) {
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsSavingStatus(true)
+
+      if (pendingDocumentsDraft.length > 0) {
+        const documents = await filesToSubmissionDocuments(pendingDocumentsDraft)
+        await uploadProposalDocuments(
+          context.proposalId,
+          context.brokerUserId,
+          documents,
+        )
+      }
+
+      await updateProposalStatus(context.proposalId, {
+        brokerUserId: context.brokerUserId,
+        status: 'em_analise',
+        commentMessage: commentDraft.trim() || undefined,
+      })
+      await refetch()
+      setCommentDraft('')
+      setPendingDocumentsDraft([])
+      setHasPendingUpdates(false)
+      toast.success('Proposta reenviada para análise.')
+    } catch (statusError) {
+      toast.error(
+        statusError instanceof Error
+          ? statusError.message
+          : 'Não foi possível reenviar a proposta para análise.',
+      )
+    } finally {
+      setIsSavingStatus(false)
+    }
+  }, [
+    canBrokerHandlePending,
+    commentDraft,
+    hasPendingUpdates,
+    pendingDocumentsDraft,
+    refetch,
+    requireProposalContext,
+  ])
+
   return {
     status,
     proposal,
@@ -386,24 +652,47 @@ export function useProposalDetailPage() {
     refetch,
     isEditing,
     isAdmin,
+    canBrokerHandlePending,
     editDraft,
     documentPreview,
     isSavingProposal,
     isSavingStatus,
+    isSavingComment,
     statusOptions,
     isLoadingStatuses,
     isUpdatingDocuments,
+    allDocumentsPreview,
+    isAllDocumentsPreviewOpen,
+    isLoadingAllDocumentsPreview,
+    isPendingReasonModalOpen,
+    isPendingDocumentsModalOpen,
+    pendingReasonDraft,
+    pendingDocumentsDraft,
+    commentDraft,
+    hasPendingUpdates,
     goBack,
     startEditing,
     cancelEditing,
     updateEditDraft,
     saveProposal,
     changeProposalStatus,
+    closePendingReasonModal,
+    confirmPendingReason,
+    setPendingReasonDraft,
     downloadAll,
     renameDocument,
     deleteDocument,
     viewDocument,
+    openAllDocumentsPreview,
     closeDocumentPreview,
+    closeAllDocumentsPreview,
     addDocuments,
+    openPendingDocumentsModal,
+    closePendingDocumentsModal,
+    stagePendingDocuments,
+    removePendingDocument,
+    addComment,
+    setCommentDraft,
+    resendForAnalysis,
   }
 }

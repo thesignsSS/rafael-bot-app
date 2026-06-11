@@ -9,6 +9,7 @@ type ProposalDocumentsSectionProps = {
   onRename: (documentId: string) => void
   onDelete: (documentId: string) => void
   onView: (documentId: string) => void
+  onViewAll: () => void
   onFilesSelected: (files: File[]) => void
 }
 
@@ -18,6 +19,7 @@ export function ProposalDocumentsSection({
   onRename,
   onDelete,
   onView,
+  onViewAll,
   onFilesSelected,
 }: ProposalDocumentsSectionProps) {
   const fileLabel = documents.length === 1 ? '1 Arquivo' : `${documents.length} Arquivos`
@@ -31,9 +33,21 @@ export function ProposalDocumentsSection({
             Documentos Enviados
           </h3>
         </div>
-        <span className="rounded bg-surface-container-high px-2 py-1 text-label-sm font-medium text-on-surface-variant">
-          {fileLabel}
-        </span>
+        <div className="flex items-center gap-3">
+          {documents.length > 0 ? (
+            <button
+              type="button"
+              onClick={onViewAll}
+              disabled={isBusy}
+              className="rounded-lg border border-outline px-3 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Ver todos
+            </button>
+          ) : null}
+          <span className="rounded bg-surface-container-high px-2 py-1 text-label-sm font-medium text-on-surface-variant">
+            {fileLabel}
+          </span>
+        </div>
       </div>
 
       {documents.length > 0 ? (

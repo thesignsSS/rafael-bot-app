@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { Icon } from '../../../../components/ui/Icon'
 import type { ProposalDocumentKind } from '../../types/proposal-detail'
 
@@ -15,6 +15,8 @@ export function ProposalDocumentPreviewModal({
   url,
   onClose,
 }: ProposalDocumentPreviewModalProps) {
+  const [isLoading, setIsLoading] = useState(true)
+
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -32,8 +34,12 @@ export function ProposalDocumentPreviewModal({
     }
   }, [onClose])
 
+  useEffect(() => {
+    setIsLoading(true)
+  }, [fileName, kind, url])
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/55 p-4 backdrop-blur-[2px]">
+    <div className="fixed inset-0 z-50 overflow-y-auto bg-[#131b2e]/55 backdrop-blur-[2px]">
       <button
         type="button"
         aria-label="Fechar visualização"
@@ -41,8 +47,9 @@ export function ProposalDocumentPreviewModal({
         className="absolute inset-0 cursor-default"
       />
 
-      <div className="relative z-10 flex h-[min(88vh,860px)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.28)]">
-        <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-4">
+      <div className="flex min-h-full items-start justify-center p-4 sm:p-6">
+        <div className="relative z-10 my-4 flex max-h-[calc(100vh-2rem)] w-full max-w-6xl flex-col overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.28)]">
+          <div className="flex items-center justify-between border-b border-outline-variant bg-surface-container-low px-5 py-4">
           <div className="min-w-0">
             <h3 className="truncate text-headline-md font-semibold text-on-surface">
               {fileName}
@@ -70,24 +77,38 @@ export function ProposalDocumentPreviewModal({
               <Icon name="close" size={20} />
             </button>
           </div>
-        </div>
+          </div>
 
-        <div className="min-h-0 flex-1 bg-surface">
-          {kind === 'image' ? (
-            <div className="flex h-full items-center justify-center overflow-auto bg-surface-container-low p-6">
-              <img
-                src={url}
-                alt={fileName}
-                className="max-h-full w-auto max-w-full rounded-lg border border-outline-variant bg-white object-contain shadow-[0px_1px_3px_rgba(0,0,0,0.05)]"
-              />
-            </div>
-          ) : (
-            <iframe
-              title={fileName}
-              src={url}
-              className="h-full w-full bg-white"
-            />
-          )}
+          <div className="relative min-h-0 flex-1 bg-surface">
+            {isLoading ? (
+              <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-surface/90">
+                <Icon name="sync" size={30} className="animate-spin text-primary" />
+                <p className="text-body-md text-on-surface-variant">
+                  Carregando documento...
+                </p>
+              </div>
+            ) : null}
+
+            {kind === 'image' ? (
+              <div className="flex h-full items-center justify-center overflow-auto bg-surface-container-low p-6">
+                <img
+                  src={url}
+                  alt={fileName}
+                  onLoad={() => setIsLoading(false)}
+                  className="h-auto max-w-full rounded-lg border border-outline-variant bg-white object-contain shadow-[0px_1px_3px_rgba(0,0,0,0.05)]"
+                />
+              </div>
+            ) : (
+              <div className="h-full overflow-auto bg-surface-container-low p-4">
+                <iframe
+                  title={fileName}
+                  src={url}
+                  onLoad={() => setIsLoading(false)}
+                  className="h-full min-h-[920px] w-full rounded-lg border border-outline-variant bg-white"
+                />
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
