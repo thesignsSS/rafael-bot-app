@@ -173,6 +173,13 @@ The shape language is consistent and "Rounded," using a base radius of 8px (0.5r
 ### Cards
 - Used for grouping related form sections. Always white with a 1px border and the "Surface" shadow level.
 
+### Kanban de Propostas
+- Use operational columns from the backend status endpoint. The default order is `Em análise`, `Pendente`, `Condicionado`, `Reprovado` and `Aprovado`.
+- Columns use `surface-container-low` with 1px `outline-variant` border and compact internal spacing to support scanning.
+- Cards use `surface-container-lowest`, 8px radius, subtle border and soft shadow. Keep metadata dense: proposal code, client, broker, property type, creation date and document count.
+- Status color is functional, not decorative: primary blue for analysis, amber for pending, sky blue for conditioned, error container red for rejected and restrained green for approved.
+- Drag affordances only appear when the user can move cards. Read-only users should see the same board without drag handles or movement states.
+
 ### Progress Indicators
 - Use horizontal steps with icons to show workflow progression, utilizing the primary blue for completed or active states.
 

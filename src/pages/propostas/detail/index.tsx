@@ -1,10 +1,13 @@
+import { ProposalBrokerCard } from '../components/detail/ProposalBrokerCard'
 import { ProposalClientCard } from '../components/detail/ProposalClientCard'
 import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
+import { ProposalStatusControl } from '../components/detail/ProposalStatusControl'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
+import { normalizeProposalStatus } from '../types/proposal-status'
 
 export default function ProposalDetailPage() {
   const {
@@ -14,15 +17,19 @@ export default function ProposalDetailPage() {
     error,
     refetch,
     isEditing,
+    isAdmin,
     editDraft,
     documentPreview,
     isSavingProposal,
+    isSavingStatus,
+    statusOptions,
     isUpdatingDocuments,
     goBack,
     startEditing,
     cancelEditing,
     updateEditDraft,
     saveProposal,
+    changeProposalStatus,
     downloadAll,
     renameDocument,
     deleteDocument,
@@ -94,6 +101,16 @@ export default function ProposalDetailPage() {
         onDownloadAll={downloadAll}
       />
 
+      <div className="mb-6">
+        <ProposalStatusControl
+          status={normalizeProposalStatus(proposal.status)}
+          statusOptions={statusOptions}
+          canChangeStatus={isAdmin}
+          isSaving={isSavingStatus}
+          onChangeStatus={changeProposalStatus}
+        />
+      </div>
+
       {isEditing && editDraft ? (
         <ProposalEditForm
           draft={editDraft}
@@ -106,6 +123,11 @@ export default function ProposalDetailPage() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-1">
+          <ProposalBrokerCard
+            name={proposal.brokerName}
+            phone={proposal.brokerPhone}
+          />
+
           <ProposalClientCard
             name={proposal.client.name}
             cpf={proposal.client.cpf}

@@ -1,4 +1,4 @@
-import type { ChangeEvent } from 'react'
+import { useState, type ChangeEvent, type DragEvent } from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import {
   fileKey,
@@ -11,14 +11,45 @@ import { FormSection } from './FormSection'
 type DocumentsSectionProps = {
   extraFiles: File[]
   onExtraFileChange: (event: ChangeEvent<HTMLInputElement>) => void
+  onExtraFilesDrop: (files: File[]) => void
   onRemoveExtraFile: (file: File) => void
 }
 
 export function DocumentsSection({
   extraFiles,
   onExtraFileChange,
+  onExtraFilesDrop,
   onRemoveExtraFile,
 }: DocumentsSectionProps) {
+  const [isDraggingFiles, setIsDraggingFiles] = useState(false)
+
+  const handleDragEnter = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault()
+    setIsDraggingFiles(true)
+  }
+
+  const handleDragOver = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault()
+    event.dataTransfer.dropEffect = 'copy'
+    setIsDraggingFiles(true)
+  }
+
+  const handleDragLeave = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault()
+
+    if (event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      return
+    }
+
+    setIsDraggingFiles(false)
+  }
+
+  const handleDrop = (event: DragEvent<HTMLLabelElement>) => {
+    event.preventDefault()
+    setIsDraggingFiles(false)
+    onExtraFilesDrop(Array.from(event.dataTransfer.files ?? []))
+  }
+
   return (
     <FormSection
       icon="drive_folder_upload"
@@ -28,11 +59,25 @@ export function DocumentsSection({
     >
       <label
         htmlFor="extra-documents"
-        className="flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed border-primary/30 bg-[#fbfcff] px-6 py-8 text-center transition-colors hover:border-primary hover:bg-blue-50/50"
+        onDragEnter={handleDragEnter}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={`flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-6 py-8 text-center transition-colors ${
+          isDraggingFiles
+            ? 'border-primary bg-blue-50'
+            : 'border-primary/30 bg-[#fbfcff] hover:border-primary hover:bg-blue-50/50'
+        }`}
       >
-        <Icon name="cloud_upload" size={42} className="text-primary" />
+        <Icon
+          name={isDraggingFiles ? 'file_download_done' : 'cloud_upload'}
+          size={42}
+          className="text-primary"
+        />
         <span className="mt-3 text-label-md font-bold">
-          Arraste e solte os arquivos aqui
+          {isDraggingFiles
+            ? 'Solte os arquivos para adicionar'
+            : 'Arraste e solte os arquivos aqui'}
         </span>
         <span className="mt-1 text-body-md text-on-surface-variant">
           ou clique para selecionar

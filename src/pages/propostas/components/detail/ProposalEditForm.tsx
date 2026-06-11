@@ -32,6 +32,11 @@ export function ProposalEditForm({
 
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
         <EditField
+          label="WhatsApp do corretor"
+          value={draft.brokerPhone}
+          onChange={(value) => onChange('brokerPhone', value)}
+        />
+        <EditField
           label="Nome do cliente"
           value={draft.clientName}
           onChange={(value) => onChange('clientName', value)}

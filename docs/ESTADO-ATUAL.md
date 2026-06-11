@@ -15,7 +15,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de p
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
 | **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase, `currentUserProfile`, `role`, `isAdmin`, `isCorretor`) |
 | **Permissionamento** | perfil atual carregado de `GET /api/me`; guards em `ProtectedRoute` com `allowedRoles` opcional |
-| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoints HTTP do bot para perfil atual, criação, listagem e detalhe de propostas; recuperação ainda stub |
+| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoints HTTP do bot para perfil atual, criação, listagem, detalhe e situação de propostas; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
 | **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY` (ver `.env.example`) |
@@ -129,18 +129,22 @@ flowchart LR
 
 ### `/propostas` (protegida)
 
-- Tela "Minhas Propostas" com listagem em tabela (código, corretor, cliente, tipo de imóvel, data e quantidade de documentos).
-- Dados consumidos de `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=10&search=<texto>`.
-- Busca por cliente, corretor ou código da proposta via parâmetro `search`; paginação server-side com `page` e `pageSize`.
+- Tela "Minhas Propostas" com quadro kanban de propostas agrupadas por situação. As colunas vêm de `GET /api/proposals/statuses`; o fallback local usa `Em análise`, `Pendente`, `Condicionado`, `Reprovado` e `Aprovado`.
+- Dados consumidos de `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>`; o frontend busca os lotes necessários para montar todas as colunas do quadro.
+- Busca por cliente, corretor ou código da proposta via parâmetro `search`.
 - Exibe loading, erro, estado vazio e total de itens retornado pelo backend.
 - Layout compartilhado via `DashboardLayout` (sidebar com navegação, header com título por rota, footer).
 - Botão "Nova Proposta" redireciona para `/`.
-- Linhas da tabela navegam para `/propostas/:proposalId`.
+- Cards do kanban navegam para `/propostas/:proposalId`.
+- Apenas administradores podem arrastar cards entre colunas. Corretores visualizam o mesmo quadro, mas sem drag and drop.
+- Mudança de coluna atualiza a situação da proposta via `PATCH /api/proposals/:proposalId` com payload mínimo de status.
 
 ### `/propostas/:proposalId` (protegida)
 
 - Consome `GET /api/proposals/:proposalId?brokerUserId=<uuid>`.
 - Cabeçalho com código da proposta e corretor.
+- Exibe badge de situação da proposta.
+- Administradores podem alterar a situação da proposta na tela de detalhe; corretores apenas visualizam a situação.
 - Cards de dados do cliente, dados do imóvel e informações adicionais.
 - Lista de documentos enviados com nome, tamanho e data de upload.
 - Edição da proposta via PATCH; documentos com visualizar, renomear, excluir, upload adicional e baixar tudo em zip.
@@ -259,10 +263,66 @@ Payload esperado:
 
 Resposta esperada: `ok: true`, `proposalId`, `proposalCode` e `savedClient` indicando se o cliente foi persistido em `public.broker_clients`. Quando `savedClient === false`, o frontend exibe aviso de envio parcial; quando há `proposalId`, navega para o detalhe da proposta.
 
+## Contrato de propostas
+
+### Status disponíveis
+
+O frontend chama `GET /api/proposals/statuses` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY` para montar as colunas do kanban e as opções do seletor no detalhe.
+
+Resposta esperada:
+
+```json
+{
+  "items": [
+    { "value": "em_analise", "label": "Em análise" },
+    { "value": "pendente", "label": "Pendente" },
+    { "value": "condicionado", "label": "Condicionado" },
+    { "value": "reprovado", "label": "Reprovado" },
+    { "value": "aprovado", "label": "Aprovado" }
+  ]
+}
+```
+
+O frontend também aceita, por compatibilidade, uma resposta no formato `{ "statuses": [...] }` ou um array direto, mas o contrato preferido é `{ "items": [...] }`.
+
+### Listagem
+
+O frontend chama `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY`.
+
+Cada item da resposta deve incluir a situação quando disponível:
+
+```ts
+type ProposalListItem = {
+  id: string
+  proposalCode: string
+  clientName: string
+  brokerName: string
+  propertyType: 'Novo' | 'Usado'
+  createdAt: string
+  documentsCount: number
+  status?: 'em_analise' | 'pendente' | 'condicionado' | 'reprovado' | 'aprovado'
+}
+```
+
+Quando `status` não vem do backend, o frontend trata a proposta como `em_analise` para compatibilidade.
+
+### Alteração de situação
+
+Administradores podem alterar a situação pelo kanban ou pelo detalhe da proposta. O frontend envia `PATCH /api/proposals/:proposalId`:
+
+```json
+{
+  "brokerUserId": "uuid-do-usuario-logado",
+  "status": "aprovado"
+}
+```
+
+Valores aceitos pelo frontend: `em_analise`, `pendente`, `condicionado`, `reprovado` e `aprovado`. O backend deve aplicar a regra de permissão para permitir essa mutação apenas para admin.
+
 Listagem:
 
 ```http
-GET /api/proposals?brokerUserId=<uuid>&page=1&pageSize=10&search=texto
+GET /api/proposals?brokerUserId=<uuid>&page=1&pageSize=100&search=texto
 ```
 
 Detalhe:
@@ -278,6 +338,14 @@ PATCH /api/proposals/:proposalId
 ```
 
 Payload: `brokerUserId`, dados do cliente, dados do imóvel, `additionalInfo` e `formData` atualizado.
+
+Situação:
+
+```http
+PATCH /api/proposals/:proposalId
+```
+
+Payload: `brokerUserId` e `status` (`em_analise`, `pendente`, `condicionado`, `reprovado` ou `aprovado`).
 
 Documentos:
 

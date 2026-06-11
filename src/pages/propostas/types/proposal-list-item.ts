@@ -1,4 +1,5 @@
 import type { PropertyType } from '../../home/types/proposal'
+import type { ProposalStatus } from './proposal-status'
 
 export type ProposalListItem = {
   id: string
@@ -8,6 +9,7 @@ export type ProposalListItem = {
   propertyType: PropertyType
   createdAt: string
   documentsCount: number
+  status?: ProposalStatus
 }
 
 export type ProposalsListResponse = {

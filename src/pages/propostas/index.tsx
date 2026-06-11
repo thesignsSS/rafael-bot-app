@@ -1,11 +1,12 @@
 import { ProposalsActionHeader } from './components/ProposalsActionHeader'
-import { ProposalsPagination } from './components/ProposalsPagination'
-import { ProposalsTable } from './components/ProposalsTable'
+import { ProposalsKanbanBoard } from './components/ProposalsKanbanBoard'
 import { ProposalsToolbar } from './components/ProposalsToolbar'
 import { useProposalsList } from './hooks/useProposalsList'
 import { useProposalsListPage } from './hooks/useProposalsListPage'
+import { useAuth } from '../../contexts/auth-context'
 
 export default function PropostasPage() {
+  const { isAdmin } = useAuth()
   const { goToNewProposal, goToProposalDetail } = useProposalsListPage()
   const list = useProposalsList()
 
@@ -19,26 +20,17 @@ export default function PropostasPage() {
         onQueryChange={list.setQuery}
       />
 
-      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
-        <ProposalsTable
-          items={list.items}
-          isEmpty={!list.isLoading && list.totalCount === 0}
-          isLoading={list.isLoading}
-          error={list.error}
-          onSelectProposal={goToProposalDetail}
-        />
-        <ProposalsPagination
-          visibleCount={list.visibleCount}
-          totalCount={list.totalCount}
-          page={list.page}
-          pageNumbers={list.pageNumbers}
-          hasPrev={list.hasPrev}
-          hasNext={list.hasNext}
-          onPrevPage={list.prevPage}
-          onNextPage={list.nextPage}
-          onGoToPage={list.goToPage}
-        />
-      </div>
+      <ProposalsKanbanBoard
+        items={list.items}
+        isEmpty={!list.isLoading && list.totalCount === 0}
+        isLoading={list.isLoading}
+        error={list.error}
+        canMoveCards={isAdmin}
+        statusOptions={list.statusOptions}
+        movingProposalId={list.movingProposalId}
+        onSelectProposal={goToProposalDetail}
+        onMoveProposal={list.moveProposal}
+      />
     </div>
   )
 }

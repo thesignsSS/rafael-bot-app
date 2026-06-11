@@ -1,4 +1,4 @@
-import { useCallback, useState, type ChangeEvent } from 'react'
+import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
@@ -17,10 +17,23 @@ import {
 import type { PropertyType } from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
 
+const PROPOSAL_DRAFT_STORAGE_KEY = 'proposal-form-draft'
+
+type ProposalFormDraft = {
+  clientName: string
+  clientCpf: string
+  clientPhone: string
+  clientEmail: string
+  brokerPhone: string
+  propertyType: PropertyType
+  propertyState: string
+  city: string
+  additionalInfo: string
+}
+
 export function useProposalForm() {
   const navigate = useNavigate()
   const { currentUserProfile } = useAuth()
-  const cityCombobox = useCityCombobox()
 
   const [clientName, setClientName] = useState('')
   const [clientCpf, setClientCpf] = useState('')
@@ -29,10 +42,14 @@ export function useProposalForm() {
   const [clientPhoneError, setClientPhoneError] = useState('')
   const [clientEmail, setClientEmail] = useState('')
   const [emailError, setEmailError] = useState('')
+  const [brokerPhone, setBrokerPhone] = useState('')
   const [propertyType, setPropertyType] = useState<PropertyType>('Novo')
+  const [propertyState, setPropertyState] = useState('')
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [additionalInfo, setAdditionalInfo] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const hasHydratedDraftRef = useRef(false)
+  const cityCombobox = useCityCombobox(propertyState)
 
   const handleClientCpfChange = useCallback(
     (value: string) => {
@@ -82,32 +99,34 @@ export function useProposalForm() {
     return error === null
   }, [clientPhone])
 
+  const addExtraFiles = useCallback((selectedFiles: File[]) => {
+    const unsupportedFiles = selectedFiles.filter((file) => !isSupportedFile(file))
+    const supportedFiles = selectedFiles.filter(isSupportedFile)
+
+    if (unsupportedFiles.length > 0) {
+      toast.error(
+        `Arquivo(s) com extensão não suportada: ${unsupportedFiles
+          .map((file) => file.name)
+          .join(', ')}`,
+      )
+    }
+
+    setExtraFiles((currentFiles) => {
+      const currentFileKeys = new Set(currentFiles.map(fileKey))
+      const newFiles = supportedFiles.filter(
+        (file) => !currentFileKeys.has(fileKey(file)),
+      )
+
+      return [...currentFiles, ...newFiles]
+    })
+  }, [])
+
   const handleExtraFileChange = useCallback(
     (event: ChangeEvent<HTMLInputElement>) => {
-      const selectedFiles = Array.from(event.target.files ?? [])
-      const unsupportedFiles = selectedFiles.filter((file) => !isSupportedFile(file))
-      const supportedFiles = selectedFiles.filter(isSupportedFile)
-
-      if (unsupportedFiles.length > 0) {
-        toast.error(
-          `Arquivo(s) com extensão não suportada: ${unsupportedFiles
-            .map((file) => file.name)
-            .join(', ')}`,
-        )
-      }
-
-      setExtraFiles((currentFiles) => {
-        const currentFileKeys = new Set(currentFiles.map(fileKey))
-        const newFiles = supportedFiles.filter(
-          (file) => !currentFileKeys.has(fileKey(file)),
-        )
-
-        return [...currentFiles, ...newFiles]
-      })
-
+      addExtraFiles(Array.from(event.target.files ?? []))
       event.target.value = ''
     },
-    [],
+    [addExtraFiles],
   )
 
   const removeExtraFile = useCallback((fileToRemove: File) => {
@@ -116,7 +135,93 @@ export function useProposalForm() {
     )
   }, [])
 
-  const { validateCity } = cityCombobox
+  const { validateCity, validateState } = cityCombobox
+
+  useEffect(() => {
+    if (hasHydratedDraftRef.current) {
+      return
+    }
+
+    hasHydratedDraftRef.current = true
+
+    const rawDraft = sessionStorage.getItem(PROPOSAL_DRAFT_STORAGE_KEY)
+
+    if (!rawDraft) {
+      return
+    }
+
+    try {
+      const draft = JSON.parse(rawDraft) as Partial<ProposalFormDraft>
+
+      if (typeof draft.clientName === 'string') {
+        setClientName(draft.clientName)
+      }
+
+      if (typeof draft.clientCpf === 'string') {
+        setClientCpf(draft.clientCpf)
+      }
+
+      if (typeof draft.clientPhone === 'string') {
+        setClientPhone(draft.clientPhone)
+      }
+
+      if (typeof draft.clientEmail === 'string') {
+        setClientEmail(draft.clientEmail)
+      }
+
+      if (typeof draft.brokerPhone === 'string') {
+        setBrokerPhone(draft.brokerPhone)
+      }
+
+      if (draft.propertyType === 'Novo' || draft.propertyType === 'Usado') {
+        setPropertyType(draft.propertyType)
+      }
+
+      if (typeof draft.propertyState === 'string') {
+        setPropertyState(draft.propertyState)
+      }
+
+      if (typeof draft.city === 'string' && draft.city.trim()) {
+        cityCombobox.restoreCity(draft.city)
+      }
+
+      if (typeof draft.additionalInfo === 'string') {
+        setAdditionalInfo(draft.additionalInfo)
+      }
+    } catch {
+      sessionStorage.removeItem(PROPOSAL_DRAFT_STORAGE_KEY)
+    }
+  }, [cityCombobox])
+
+  useEffect(() => {
+    if (!hasHydratedDraftRef.current) {
+      return
+    }
+
+    const draft: ProposalFormDraft = {
+      clientName,
+      clientCpf,
+      clientPhone,
+      clientEmail,
+      brokerPhone,
+      propertyType,
+      propertyState,
+      city: cityCombobox.city,
+      additionalInfo,
+    }
+
+    sessionStorage.setItem(PROPOSAL_DRAFT_STORAGE_KEY, JSON.stringify(draft))
+  }, [
+    additionalInfo,
+    brokerPhone,
+    cityCombobox.city,
+    clientCpf,
+    clientEmail,
+    clientName,
+    clientPhone,
+    propertyState,
+    propertyType,
+  ])
 
   const handleSubmit = useCallback(async () => {
     if (isSubmitting) {
@@ -140,6 +245,11 @@ export function useProposalForm() {
 
     if (!validateClientEmail()) {
       toast.error('Revise o e-mail do cliente antes de enviar.')
+      return
+    }
+
+    if (!validateState()) {
+      toast.error('Selecione o estado do imóvel antes de enviar.')
       return
     }
 
@@ -178,15 +288,18 @@ export function useProposalForm() {
       const submission = await submitProposalToBot({
         brokerUserId: user.id,
         brokerName,
+        brokerPhone: brokerPhone.trim(),
         clientName: clientName.trim(),
         formData: {
+          'Nome do Corretor': brokerName,
+          'WhatsApp do Corretor': brokerPhone.trim(),
           'Nome do Cliente Completo': clientName.trim(),
           'CPF do Cliente': clientCpf.trim(),
           'Telefone do Cliente': clientPhone.trim(),
           'E-mail do Cliente': clientEmail.trim(),
           'Tipo do Imóvel': propertyType,
           'Município do Imóvel': cityCombobox.city,
-          'UF do Imóvel': 'CE',
+          'UF do Imóvel': propertyState,
           'Informações Adicionais': additionalInfo.trim(),
         },
         documents,
@@ -210,6 +323,7 @@ export function useProposalForm() {
         )
       }
 
+      sessionStorage.removeItem(PROPOSAL_DRAFT_STORAGE_KEY)
       navigate(`/propostas/${submission.proposalId}`)
     } catch (error) {
       console.error('Falha ao enviar proposta para o bot:', error)
@@ -228,12 +342,15 @@ export function useProposalForm() {
     clientPhone,
     clientEmail,
     propertyType,
+    propertyState,
+    brokerPhone,
     additionalInfo,
     extraFiles,
     cityCombobox.city,
     validateClientCpf,
     validateClientPhone,
     validateClientEmail,
+    validateState,
     validateCity,
     currentUserProfile?.fullName,
     navigate,
@@ -251,8 +368,12 @@ export function useProposalForm() {
     clientPhoneError,
     clientEmail,
     emailError,
+    brokerPhone,
+    setBrokerPhone,
     propertyType,
     setPropertyType,
+    propertyState,
+    setPropertyState,
     extraFiles,
     additionalInfo,
     setAdditionalInfo,
@@ -266,6 +387,7 @@ export function useProposalForm() {
     validateClientPhone,
     validateClientEmail,
     handleExtraFileChange,
+    addExtraFiles,
     removeExtraFile,
     handleSubmit,
     ...cityCombobox,

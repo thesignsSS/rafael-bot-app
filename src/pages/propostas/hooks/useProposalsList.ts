@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
-import { fetchProposals } from '../lib/proposalsApi'
+import { fetchProposals, updateProposalStatus } from '../lib/proposalsApi'
 import type { ProposalListItem } from '../types/proposal-list-item'
+import {
+  normalizeProposalStatus,
+  type ProposalStatus,
+} from '../types/proposal-status'
+import { useProposalStatuses } from './useProposalStatuses'
 
-const PAGE_SIZE = 10
+const PAGE_SIZE = 100
 const SEARCH_DEBOUNCE_MS = 300
 
 export function useProposalsList() {
@@ -12,11 +18,12 @@ export function useProposalsList() {
 
   const [query, setQuery] = useState('')
   const [debouncedQuery, setDebouncedQuery] = useState('')
-  const [page, setPage] = useState(1)
   const [items, setItems] = useState<ProposalListItem[]>([])
   const [totalCount, setTotalCount] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
+  const [movingProposalId, setMovingProposalId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const { statusOptions, isLoadingStatuses } = useProposalStatuses()
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -25,10 +32,6 @@ export function useProposalsList() {
 
     return () => window.clearTimeout(timeout)
   }, [query])
-
-  useEffect(() => {
-    setPage(1)
-  }, [debouncedQuery, brokerUserId])
 
   const loadProposals = useCallback(async () => {
     if (isAuthLoading) {
@@ -47,15 +50,30 @@ export function useProposalsList() {
       setIsLoading(true)
       setError(null)
 
-      const response = await fetchProposals({
+      const firstPage = await fetchProposals({
         brokerUserId,
-        page,
+        page: 1,
         pageSize: PAGE_SIZE,
         search: debouncedQuery,
       })
 
-      setItems(response.items)
-      setTotalCount(response.total)
+      const allItems = [...firstPage.items]
+      const total = firstPage.total
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+      for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
+        const response = await fetchProposals({
+          brokerUserId,
+          page: nextPage,
+          pageSize: PAGE_SIZE,
+          search: debouncedQuery,
+        })
+
+        allItems.push(...response.items)
+      }
+
+      setItems(allItems)
+      setTotalCount(total)
     } catch (requestError) {
       setItems([])
       setTotalCount(0)
@@ -67,65 +85,68 @@ export function useProposalsList() {
     } finally {
       setIsLoading(false)
     }
-  }, [brokerUserId, debouncedQuery, isAuthLoading, page])
+  }, [brokerUserId, debouncedQuery, isAuthLoading])
 
   useEffect(() => {
     void loadProposals()
   }, [loadProposals])
 
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
-
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages)
-    }
-  }, [page, totalPages])
-
   const visibleCount = items.length
-  const hasPrev = page > 1
-  const hasNext = page < totalPages
 
-  const goToPage = useCallback(
-    (nextPage: number) => {
-      setPage(Math.min(Math.max(nextPage, 1), totalPages))
+  const moveProposal = useCallback(
+    async (proposalId: string, status: ProposalStatus) => {
+      if (!brokerUserId || movingProposalId) {
+        return
+      }
+
+      const proposal = items.find((item) => item.id === proposalId)
+      const previousStatus = normalizeProposalStatus(proposal?.status)
+
+      if (!proposal || previousStatus === status) {
+        return
+      }
+
+      setMovingProposalId(proposalId)
+      setItems((currentItems) =>
+        currentItems.map((item) =>
+          item.id === proposalId ? { ...item, status } : item,
+        ),
+      )
+
+      try {
+        await updateProposalStatus(proposalId, { brokerUserId, status })
+        toast.success('Situação da proposta atualizada.')
+      } catch (moveError) {
+        setItems((currentItems) =>
+          currentItems.map((item) =>
+            item.id === proposalId ? { ...item, status: previousStatus } : item,
+          ),
+        )
+        toast.error(
+          moveError instanceof Error
+            ? moveError.message
+            : 'Não foi possível atualizar a situação da proposta.',
+        )
+      } finally {
+        setMovingProposalId(null)
+      }
     },
-    [totalPages],
+    [brokerUserId, items, movingProposalId],
   )
-
-  const prevPage = useCallback(() => {
-    setPage((current) => Math.max(current - 1, 1))
-  }, [])
-
-  const nextPage = useCallback(() => {
-    setPage((current) => Math.min(current + 1, totalPages))
-  }, [totalPages])
-
-  const pageNumbers = useMemo(() => {
-    const maxVisible = 3
-    let start = Math.max(1, page - 1)
-    const end = Math.min(totalPages, start + maxVisible - 1)
-    start = Math.max(1, end - maxVisible + 1)
-
-    return Array.from({ length: end - start + 1 }, (_, index) => start + index)
-  }, [page, totalPages])
 
   return {
     query,
     setQuery,
-    page,
-    totalPages,
     totalSent: totalCount,
     totalCount,
     visibleCount,
     items,
     isLoading,
+    movingProposalId,
+    statusOptions,
+    isLoadingStatuses,
     error,
     refetch: loadProposals,
-    goToPage,
-    prevPage,
-    nextPage,
-    hasPrev,
-    hasNext,
-    pageNumbers,
+    moveProposal,
   }
 }

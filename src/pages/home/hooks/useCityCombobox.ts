@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { normalizeSearchText } from '../lib/proposalUtils'
-import { validateCityValue } from '../lib/proposalValidation'
-import { useCearaCities } from './useCearaCities'
+import { validateCityValue, validateStateValue } from '../lib/proposalValidation'
+import { useCitiesByState } from './useCitiesByState'
 
-export function useCityCombobox() {
-  const { cities, isLoading, error: citiesError } = useCearaCities()
+export function useCityCombobox(selectedState: string) {
+  const { cities, isLoading, error: citiesError } = useCitiesByState(selectedState)
   const [city, setCity] = useState('')
   const [citySearch, setCitySearch] = useState('')
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const [cityError, setCityError] = useState('')
+  const [stateError, setStateError] = useState('')
   const comboboxRef = useRef<HTMLDivElement>(null)
+  const previousStateRef = useRef(selectedState)
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -25,6 +27,24 @@ export function useCityCombobox() {
 
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
+
+  useEffect(() => {
+    if (previousStateRef.current === selectedState) {
+      return
+    }
+
+    const previousState = previousStateRef.current
+    previousStateRef.current = selectedState
+
+    if (!previousState) {
+      return
+    }
+
+    setCity('')
+    setCitySearch('')
+    setCityError('')
+    setIsDropdownOpen(false)
+  }, [selectedState])
 
   const filteredCities = useMemo(() => {
     const normalizedSearch = normalizeSearchText(citySearch.trim())
@@ -45,19 +65,36 @@ export function useCityCombobox() {
     setIsDropdownOpen(false)
   }, [])
 
+  const restoreCity = useCallback((cityName: string) => {
+    setCity(cityName)
+    setCitySearch(cityName)
+    setCityError('')
+    setIsDropdownOpen(false)
+  }, [])
+
   const handleCitySearchChange = useCallback(
     (value: string) => {
+      if (!selectedState.trim()) {
+        setStateError(validateStateValue(selectedState) ?? '')
+        return
+      }
+
       setCitySearch(value)
       setCity('')
       setCityError('')
       setIsDropdownOpen(true)
     },
-    [],
+    [selectedState],
   )
 
   const openCityDropdown = useCallback(() => {
+    if (!selectedState.trim()) {
+      setStateError(validateStateValue(selectedState) ?? '')
+      return
+    }
+
     setIsDropdownOpen(true)
-  }, [])
+  }, [selectedState])
 
   const toggleCityDropdown = useCallback(() => {
     setIsDropdownOpen((currentState) => !currentState)
@@ -69,12 +106,19 @@ export function useCityCombobox() {
     return error === null
   }, [city])
 
+  const validateState = useCallback(() => {
+    const error = validateStateValue(selectedState)
+    setStateError(error ?? '')
+    return error === null
+  }, [selectedState])
+
   const cityLabel = city || 'Selecione o município'
 
   return {
     city,
     citySearch,
     cityError,
+    stateError,
     citiesError,
     isLoadingCities: isLoading,
     isCityDropdownOpen: isDropdownOpen,
@@ -82,9 +126,11 @@ export function useCityCombobox() {
     comboboxRef,
     cityLabel,
     selectCity,
+    restoreCity,
     handleCitySearchChange,
     openCityDropdown,
     toggleCityDropdown,
     validateCity,
+    validateState,
   }
 }

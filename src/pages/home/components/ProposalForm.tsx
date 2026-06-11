@@ -1,6 +1,7 @@
 import { Icon } from '../../../components/ui/Icon'
 import { useProposalForm } from '../hooks/useProposalForm'
 import { AdditionalInfoSection } from './AdditionalInfoSection'
+import { BrokerDataSection } from './BrokerDataSection'
 import { ClientDataSection } from './ClientDataSection'
 import { DocumentsSection } from './DocumentsSection'
 import { PropertyDataSection } from './PropertyDataSection'
@@ -27,6 +28,11 @@ export function ProposalForm() {
       </section>
 
       <div className="space-y-6">
+        <BrokerDataSection
+          brokerPhone={form.brokerPhone}
+          onBrokerPhoneChange={form.setBrokerPhone}
+        />
+
         <ClientDataSection
           clientName={form.clientName}
           clientCpf={form.clientCpf}
@@ -46,6 +52,8 @@ export function ProposalForm() {
 
         <PropertyDataSection
           propertyType={form.propertyType}
+          propertyState={form.propertyState}
+          stateError={form.stateError}
           city={form.city}
           citySearch={form.citySearch}
           cityError={form.cityError}
@@ -55,6 +63,7 @@ export function ProposalForm() {
           filteredCities={form.filteredCities}
           comboboxRef={form.comboboxRef}
           onPropertyTypeChange={form.setPropertyType}
+          onPropertyStateChange={form.setPropertyState}
           onCitySearchChange={form.handleCitySearchChange}
           onOpenCityDropdown={form.openCityDropdown}
           onToggleCityDropdown={form.toggleCityDropdown}
@@ -64,6 +73,7 @@ export function ProposalForm() {
         <DocumentsSection
           extraFiles={form.extraFiles}
           onExtraFileChange={form.handleExtraFileChange}
+          onExtraFilesDrop={form.addExtraFiles}
           onRemoveExtraFile={form.removeExtraFile}
         />
 
@@ -76,6 +86,7 @@ export function ProposalForm() {
           clientLabel={form.clientLabel}
           emailLabel={form.emailLabel}
           propertyType={form.propertyType}
+          stateLabel={form.propertyState}
           cityLabel={form.cityLabel}
           hasClientName={Boolean(form.clientName.trim())}
           hasClientEmail={Boolean(form.clientEmail.trim())}

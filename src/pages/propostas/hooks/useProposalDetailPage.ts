@@ -11,13 +11,20 @@ import {
   downloadProposalZip,
   renameProposalDocument,
   updateProposal,
+  updateProposalStatus,
   uploadProposalDocuments,
   viewProposalDocument,
 } from '../lib/proposalsApi'
 import type { ProposalDocumentKind } from '../types/proposal-detail'
+import {
+  normalizeProposalStatus,
+  type ProposalStatus,
+} from '../types/proposal-status'
 import { useProposalDetail } from './useProposalDetail'
+import { useProposalStatuses } from './useProposalStatuses'
 
 export type ProposalEditDraft = {
+  brokerPhone: string
   clientName: string
   clientCpf: string
   clientEmail: string
@@ -46,12 +53,14 @@ function downloadBlob(blob: Blob, filename: string) {
 export function useProposalDetailPage() {
   const navigate = useNavigate()
   const { proposalId } = useParams<{ proposalId: string }>()
-  const { user } = useAuth()
+  const { user, isAdmin } = useAuth()
   const brokerUserId = user?.id ?? null
   const { status, proposal, error, refetch } = useProposalDetail(proposalId)
+  const { statusOptions, isLoadingStatuses } = useProposalStatuses()
   const [isEditing, setIsEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<ProposalEditDraft | null>(null)
   const [isSavingProposal, setIsSavingProposal] = useState(false)
+  const [isSavingStatus, setIsSavingStatus] = useState(false)
   const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false)
   const [documentPreview, setDocumentPreview] =
     useState<ProposalDocumentPreview | null>(null)
@@ -79,6 +88,7 @@ export function useProposalDetailPage() {
     }
 
     setEditDraft({
+      brokerPhone: proposal.brokerPhone,
       clientName: proposal.client.name,
       clientCpf: proposal.client.cpf,
       clientEmail: proposal.client.email,
@@ -108,6 +118,7 @@ export function useProposalDetailPage() {
     }
 
     setEditDraft({
+      brokerPhone: proposal.brokerPhone,
       clientName: proposal.client.name,
       clientCpf: proposal.client.cpf,
       clientEmail: proposal.client.email,
@@ -145,6 +156,7 @@ export function useProposalDetailPage() {
 
       await updateProposal(context.proposalId, {
         brokerUserId: context.brokerUserId,
+        brokerPhone: editDraft.brokerPhone.trim(),
         clientName: editDraft.clientName.trim(),
         clientCpf: editDraft.clientCpf.trim(),
         clientEmail: editDraft.clientEmail.trim(),
@@ -155,6 +167,7 @@ export function useProposalDetailPage() {
         additionalInfo: editDraft.additionalInfo.trim(),
         formData: {
           ...proposal.formData,
+          'WhatsApp do Corretor': editDraft.brokerPhone.trim(),
           'Nome do Cliente Completo': editDraft.clientName.trim(),
           'CPF do Cliente': editDraft.clientCpf.trim(),
           'E-mail do Cliente': editDraft.clientEmail.trim(),
@@ -179,6 +192,34 @@ export function useProposalDetailPage() {
       setIsSavingProposal(false)
     }
   }, [editDraft, proposal, refetch, requireProposalContext])
+
+  const changeProposalStatus = useCallback(
+    async (nextStatus: ProposalStatus) => {
+      if (!proposal || normalizeProposalStatus(proposal.status) === nextStatus) {
+        return
+      }
+
+      try {
+        const context = requireProposalContext()
+        setIsSavingStatus(true)
+        await updateProposalStatus(context.proposalId, {
+          brokerUserId: context.brokerUserId,
+          status: nextStatus,
+        })
+        await refetch()
+        toast.success('Situação da proposta atualizada.')
+      } catch (statusError) {
+        toast.error(
+          statusError instanceof Error
+            ? statusError.message
+            : 'Não foi possível atualizar a situação da proposta.',
+        )
+      } finally {
+        setIsSavingStatus(false)
+      }
+    },
+    [proposal, refetch, requireProposalContext],
+  )
 
   const downloadAll = useCallback(async () => {
     try {
@@ -344,15 +385,20 @@ export function useProposalDetailPage() {
     error,
     refetch,
     isEditing,
+    isAdmin,
     editDraft,
     documentPreview,
     isSavingProposal,
+    isSavingStatus,
+    statusOptions,
+    isLoadingStatuses,
     isUpdatingDocuments,
     goBack,
     startEditing,
     cancelEditing,
     updateEditDraft,
     saveProposal,
+    changeProposalStatus,
     downloadAll,
     renameDocument,
     deleteDocument,

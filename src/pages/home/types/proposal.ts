@@ -13,6 +13,7 @@ export type FormSubmissionDocument = {
 export type SubmitFormPayload = {
   brokerUserId: string
   brokerName: string
+  brokerPhone?: string
   clientName: string
   formData: Record<string, unknown>
   documents: FormSubmissionDocument[]

@@ -1,11 +1,14 @@
 import type { RefObject } from 'react'
 import { Icon } from '../../../components/ui/Icon'
+import { brazilianStates } from '../lib/proposalUtils'
 import type { IbgeCity, PropertyType } from '../types/proposal'
 import { Field } from './Field'
 import { FormSection } from './FormSection'
 
 type PropertyDataSectionProps = {
   propertyType: PropertyType
+  propertyState: string
+  stateError: string
   city: string
   citySearch: string
   cityError: string
@@ -15,6 +18,7 @@ type PropertyDataSectionProps = {
   filteredCities: IbgeCity[]
   comboboxRef: RefObject<HTMLDivElement | null>
   onPropertyTypeChange: (type: PropertyType) => void
+  onPropertyStateChange: (value: string) => void
   onCitySearchChange: (value: string) => void
   onOpenCityDropdown: () => void
   onToggleCityDropdown: () => void
@@ -23,6 +27,8 @@ type PropertyDataSectionProps = {
 
 export function PropertyDataSection({
   propertyType,
+  propertyState,
+  stateError,
   city,
   citySearch,
   cityError,
@@ -32,6 +38,7 @@ export function PropertyDataSection({
   filteredCities,
   comboboxRef,
   onPropertyTypeChange,
+  onPropertyStateChange,
   onCitySearchChange,
   onOpenCityDropdown,
   onToggleCityDropdown,
@@ -39,7 +46,7 @@ export function PropertyDataSection({
 }: PropertyDataSectionProps) {
   return (
     <FormSection icon="home" title="Dados do Imóvel">
-      <div className="grid gap-5 md:grid-cols-[1fr_1.4fr]">
+      <div className="grid gap-5 md:grid-cols-[1fr_0.6fr_1.4fr]">
         <Field label="Tipo do Imóvel" required>
           <div className="grid grid-cols-2 gap-3">
             {(['Novo', 'Usado'] as PropertyType[]).map((type) => (
@@ -69,6 +76,23 @@ export function PropertyDataSection({
             ))}
           </div>
         </Field>
+        <Field label="Estado do Imóvel" required error={stateError}>
+          <select
+            value={propertyState}
+            onChange={(event) => onPropertyStateChange(event.target.value)}
+            aria-invalid={stateError ? true : undefined}
+            className={`proposal-input ${
+              stateError ? 'proposal-input-error' : ''
+            }`}
+          >
+            <option value="">Selecione o estado</option>
+            {brazilianStates.map((state) => (
+              <option key={state.code} value={state.code}>
+                {state.name} ({state.code})
+              </option>
+            ))}
+          </select>
+        </Field>
         <Field label="Município do Imóvel" required error={cityError}>
           <div ref={comboboxRef} className="relative">
             <input
@@ -76,8 +100,11 @@ export function PropertyDataSection({
               value={citySearch}
               onChange={(event) => onCitySearchChange(event.target.value)}
               onFocus={onOpenCityDropdown}
+              disabled={!propertyState}
               placeholder={
-                isLoadingCities
+                !propertyState
+                  ? 'Selecione o estado primeiro'
+                  : isLoadingCities
                   ? 'Carregando municípios...'
                   : 'Busque o município'
               }
@@ -93,6 +120,7 @@ export function PropertyDataSection({
             <button
               type="button"
               onClick={onToggleCityDropdown}
+              disabled={!propertyState}
               className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-outline transition-colors hover:text-primary"
               aria-label="Abrir lista de municípios"
             >
@@ -114,7 +142,7 @@ export function PropertyDataSection({
                 <div className="max-h-64 overflow-y-auto py-2">
                   {isLoadingCities ? (
                     <p className="px-4 py-3 text-body-md text-on-surface-variant">
-                      Carregando municípios do Ceará...
+                      Carregando municípios...
                     </p>
                   ) : citiesError ? (
                     <p className="px-4 py-3 text-body-md text-error">

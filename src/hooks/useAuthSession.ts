@@ -12,6 +12,7 @@ import {
   parseUserRole,
 } from '../lib/auth/roles'
 import { supabase } from '../lib/supabase'
+import type { AuthChangeEvent } from '@supabase/supabase-js'
 
 function buildFallbackProfile(user: User): CurrentUserProfile {
   const role = parseUserRole(user)
@@ -36,8 +37,14 @@ export function useAuthSession(): AuthContextValue {
   const [isLoading, setIsLoading] = useState(true)
   const sessionRef = useRef<Session | null>(null)
   const requestIdRef = useRef(0)
+  const profileCacheRef = useRef(new Map<string, CurrentUserProfile>())
 
-  const loadProfileForSession = useCallback(async (nextSession: Session | null) => {
+  const loadProfileForSession = useCallback(async (
+    nextSession: Session | null,
+    options?: {
+      force?: boolean
+    },
+  ) => {
     requestIdRef.current += 1
     const requestId = requestIdRef.current
 
@@ -51,15 +58,26 @@ export function useAuthSession(): AuthContextValue {
       return
     }
 
+    const userId = nextSession.user.id
+    const cachedProfile = profileCacheRef.current.get(userId)
+
+    if (cachedProfile && !options?.force) {
+      setCurrentUserProfile(cachedProfile)
+      setProfileError(null)
+      setIsLoading(false)
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      const profile = await fetchCurrentUserProfile(nextSession.user.id)
+      const profile = await fetchCurrentUserProfile(userId)
 
       if (requestId !== requestIdRef.current) {
         return
       }
 
+      profileCacheRef.current.set(userId, profile)
       setCurrentUserProfile(profile)
       setProfileError(null)
     } catch (error) {
@@ -68,7 +86,9 @@ export function useAuthSession(): AuthContextValue {
       }
 
       if (error instanceof CurrentUserProfileNotFoundError) {
-        setCurrentUserProfile(buildFallbackProfile(nextSession.user))
+        const fallbackProfile = buildFallbackProfile(nextSession.user)
+        profileCacheRef.current.set(userId, fallbackProfile)
+        setCurrentUserProfile(fallbackProfile)
         setProfileError(null)
       } else {
         setCurrentUserProfile(null)
@@ -92,7 +112,22 @@ export function useAuthSession(): AuthContextValue {
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    } = supabase.auth.onAuthStateChange((event: AuthChangeEvent, nextSession) => {
+      const currentUserId = sessionRef.current?.user?.id ?? null
+      const nextUserId = nextSession?.user?.id ?? null
+      const isSameUser = currentUserId !== null && currentUserId === nextUserId
+
+      if (
+        isSameUser &&
+        (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') &&
+        profileCacheRef.current.has(nextUserId)
+      ) {
+        sessionRef.current = nextSession
+        setSession(nextSession)
+        setIsLoading(false)
+        return
+      }
+
       void loadProfileForSession(nextSession)
     })
 
@@ -100,10 +135,22 @@ export function useAuthSession(): AuthContextValue {
   }, [loadProfileForSession])
 
   const refreshProfile = useCallback(async () => {
-    await loadProfileForSession(sessionRef.current)
+    const currentUserId = sessionRef.current?.user?.id
+
+    if (currentUserId) {
+      profileCacheRef.current.delete(currentUserId)
+    }
+
+    await loadProfileForSession(sessionRef.current, { force: true })
   }, [loadProfileForSession])
 
   const signOut = useCallback(async () => {
+    const currentUserId = sessionRef.current?.user?.id
+
+    if (currentUserId) {
+      profileCacheRef.current.delete(currentUserId)
+    }
+
     await supabase.auth.signOut()
   }, [])
 

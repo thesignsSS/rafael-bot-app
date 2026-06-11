@@ -1,4 +1,5 @@
 import type { PropertyType } from '../../home/types/proposal'
+import type { ProposalStatus } from './proposal-status'
 
 export type ProposalDocumentKind = 'pdf' | 'image'
 
@@ -17,7 +18,9 @@ export type ProposalDetail = {
   id: string
   proposalCode: string
   brokerName: string
+  brokerPhone: string
   createdAt: string
+  status?: ProposalStatus
   client: {
     name: string
     cpf: string
@@ -36,6 +39,7 @@ export type ProposalDetail = {
 
 export type UpdateProposalPayload = {
   brokerUserId: string
+  brokerPhone: string
   clientName: string
   clientCpf: string
   clientEmail: string
@@ -45,6 +49,11 @@ export type UpdateProposalPayload = {
   propertyState: string
   additionalInfo: string
   formData: Record<string, unknown>
+}
+
+export type UpdateProposalStatusPayload = {
+  brokerUserId: string
+  status: ProposalStatus
 }
 
 export type ViewProposalDocumentResponse = {

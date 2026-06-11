@@ -42,6 +42,14 @@ export function validateCityValue(city: string): string | null {
   return null
 }
 
+export function validateStateValue(state: string): string | null {
+  if (!state.trim()) {
+    return 'Selecione o estado do imóvel.'
+  }
+
+  return null
+}
+
 export function isSupportedFile(file: File) {
   const extension = getFileExtension(file.name)
 

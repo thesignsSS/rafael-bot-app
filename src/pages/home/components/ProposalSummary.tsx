@@ -7,6 +7,7 @@ type ProposalSummaryProps = {
   clientLabel: string
   emailLabel: string
   propertyType: PropertyType
+  stateLabel: string
   cityLabel: string
   hasClientName: boolean
   hasClientEmail: boolean
@@ -20,6 +21,7 @@ export function ProposalSummary({
   clientLabel,
   emailLabel,
   propertyType,
+  stateLabel,
   cityLabel,
   hasClientName,
   hasClientEmail,
@@ -40,6 +42,7 @@ export function ProposalSummary({
             muted={!hasClientEmail || hasEmailError}
           />
           <SummaryRow label="Tipo do imóvel" value={propertyType} />
+          <SummaryRow label="Estado" value={stateLabel} />
           <SummaryRow label="Município" value={cityLabel} muted={!hasCity} />
         </dl>
       </div>

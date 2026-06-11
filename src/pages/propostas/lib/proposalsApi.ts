@@ -1,10 +1,16 @@
 import type {
   ProposalDetail,
+  UpdateProposalStatusPayload,
   UpdateProposalPayload,
   ViewProposalDocumentResponse,
 } from '../types/proposal-detail'
 import type { ProposalsListResponse } from '../types/proposal-list-item'
 import type { FormSubmissionDocument } from '../../home/types/proposal'
+import {
+  DEFAULT_PROPOSAL_STATUS_OPTIONS,
+  normalizeProposalStatusOptions,
+  type ProposalStatusOption,
+} from '../types/proposal-status'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
 const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
@@ -87,9 +93,38 @@ export async function fetchProposalDetail(
   return parseApiResponse<ProposalDetail>(response)
 }
 
+export async function fetchProposalStatuses(): Promise<ProposalStatusOption[]> {
+  const response = await fetch(`${getProposalsApiUrl()}/statuses`, {
+    headers: getRequestHeaders(),
+  })
+
+  if (!response.ok) {
+    return DEFAULT_PROPOSAL_STATUS_OPTIONS
+  }
+
+  const data = (await response.json().catch(() => null)) as unknown
+
+  return normalizeProposalStatusOptions(data)
+}
+
 export async function updateProposal(
   proposalId: string,
   payload: UpdateProposalPayload,
+): Promise<void> {
+  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}`, {
+    method: 'PATCH',
+    headers: getJsonRequestHeaders(),
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
+}
+
+export async function updateProposalStatus(
+  proposalId: string,
+  payload: UpdateProposalStatusPayload,
 ): Promise<void> {
   const response = await fetch(`${getProposalsApiUrl()}/${proposalId}`, {
     method: 'PATCH',
