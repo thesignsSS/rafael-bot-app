@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  normalizeProposalStatus,
   type ProposalStatus,
   type ProposalStatusOption,
   getProposalStatusLabel,
@@ -54,7 +55,7 @@ export function ProposalStatusControl({
           <select
             value={selectedStatus}
             onChange={(event) =>
-              setSelectedStatus(event.target.value as ProposalStatus)
+              setSelectedStatus(normalizeProposalStatus(event.target.value))
             }
             disabled={isSaving}
             className="h-10 rounded-lg border border-outline-variant bg-surface px-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
@@ -68,7 +69,7 @@ export function ProposalStatusControl({
 
           <button
             type="button"
-            onClick={() => onChangeStatus(selectedStatus)}
+            onClick={() => onChangeStatus(normalizeProposalStatus(selectedStatus))}
             disabled={!hasChanged || isSaving}
             className="h-10 rounded-lg bg-primary px-4 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container active:scale-95 disabled:cursor-not-allowed disabled:bg-outline-variant disabled:text-on-surface-variant disabled:active:scale-100"
           >

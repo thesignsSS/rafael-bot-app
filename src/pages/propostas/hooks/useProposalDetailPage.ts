@@ -247,13 +247,15 @@ export function useProposalDetailPage() {
 
   const changeProposalStatus = useCallback(
     async (nextStatus: ProposalStatus) => {
-      if (nextStatus === 'pendente' && isAdmin) {
+      const normalizedNextStatus = normalizeProposalStatus(nextStatus)
+
+      if (normalizedNextStatus === 'pendente' && isAdmin) {
         setPendingReasonDraft(proposal?.pendingReason ?? '')
         setIsPendingReasonModalOpen(true)
         return
       }
 
-      await updateProposalStatusWithPayload(nextStatus)
+      await updateProposalStatusWithPayload(normalizedNextStatus)
     },
     [isAdmin, proposal?.pendingReason, updateProposalStatusWithPayload],
   )
