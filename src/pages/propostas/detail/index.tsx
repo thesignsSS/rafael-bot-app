@@ -1,4 +1,3 @@
-import { ProposalAllDocumentsPreviewModal } from '../components/detail/ProposalAllDocumentsPreviewModal'
 import { PendingReasonModal } from '../components/detail/PendingReasonModal'
 import { PendingDocumentsUploadModal } from '../components/detail/PendingDocumentsUploadModal'
 import { ProposalBrokerCard } from '../components/detail/ProposalBrokerCard'
@@ -25,14 +24,11 @@ export default function ProposalDetailPage() {
     canBrokerHandlePending,
     editDraft,
     documentPreview,
-    allDocumentsPreview,
     isSavingProposal,
     isSavingStatus,
     isSavingComment,
     statusOptions,
     isUpdatingDocuments,
-    isAllDocumentsPreviewOpen,
-    isLoadingAllDocumentsPreview,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     pendingReasonDraft,
@@ -54,7 +50,6 @@ export default function ProposalDetailPage() {
     viewDocument,
     openAllDocumentsPreview,
     closeDocumentPreview,
-    closeAllDocumentsPreview,
     addDocuments,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
@@ -137,14 +132,6 @@ export default function ProposalDetailPage() {
           kind={documentPreview.kind}
           url={documentPreview.url}
           onClose={closeDocumentPreview}
-        />
-      ) : null}
-
-      {isAllDocumentsPreviewOpen ? (
-        <ProposalAllDocumentsPreviewModal
-          documents={allDocumentsPreview}
-          isLoading={isLoadingAllDocumentsPreview}
-          onClose={closeAllDocumentsPreview}
         />
       ) : null}
 

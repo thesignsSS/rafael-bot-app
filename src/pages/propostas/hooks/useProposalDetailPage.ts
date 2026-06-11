@@ -76,12 +76,6 @@ export function useProposalDetailPage() {
   const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
   const [documentPreview, setDocumentPreview] =
     useState<ProposalDocumentPreview | null>(null)
-  const [allDocumentsPreview, setAllDocumentsPreview] = useState<
-    ProposalDocumentPreview[]
-  >([])
-  const [isAllDocumentsPreviewOpen, setIsAllDocumentsPreviewOpen] = useState(false)
-  const [isLoadingAllDocumentsPreview, setIsLoadingAllDocumentsPreview] =
-    useState(false)
   const hasHandledMissingProposal = useRef(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
   const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
@@ -425,58 +419,14 @@ export function useProposalDetailPage() {
     [proposal?.documents, requireProposalContext],
   )
 
-  const openAllDocumentsPreview = useCallback(async () => {
+  const openAllDocumentsPreview = useCallback(() => {
     if (!proposal?.documents.length) {
       return
     }
 
-    try {
-      const context = requireProposalContext()
-      setIsAllDocumentsPreviewOpen(true)
-      setIsLoadingAllDocumentsPreview(true)
-
-      const previewDocuments = await Promise.all(
-        proposal.documents.map(async (document) => {
-          const result = await viewProposalDocument(
-            context.proposalId,
-            document.id,
-            context.brokerUserId,
-          )
-
-          return {
-            id: document.id,
-            fileName:
-              document.displayName ||
-              document.originalFilename ||
-              result.filename,
-            kind: inferDocumentKindFromContent(
-              document.contentType,
-              document.filename || result.filename,
-            ),
-            url: result.url,
-          } satisfies ProposalDocumentPreview
-        }),
-      )
-
-      setAllDocumentsPreview(previewDocuments)
-    } catch (viewError) {
-      setIsAllDocumentsPreviewOpen(false)
-      setAllDocumentsPreview([])
-      toast.error(
-        viewError instanceof Error
-          ? viewError.message
-          : 'Não foi possível carregar os documentos.',
-      )
-    } finally {
-      setIsLoadingAllDocumentsPreview(false)
-    }
-  }, [proposal?.documents, requireProposalContext])
-
-  const closeAllDocumentsPreview = useCallback(() => {
-    setIsAllDocumentsPreviewOpen(false)
-    setAllDocumentsPreview([])
-    setIsLoadingAllDocumentsPreview(false)
-  }, [])
+    const documentsUrl = `/propostas/${proposal.id}/documentos`
+    window.open(documentsUrl, '_blank', 'noopener,noreferrer')
+  }, [proposal?.documents.length, proposal?.id])
 
   const addDocuments = useCallback(
     async (selectedFiles: File[]) => {
@@ -661,9 +611,6 @@ export function useProposalDetailPage() {
     statusOptions,
     isLoadingStatuses,
     isUpdatingDocuments,
-    allDocumentsPreview,
-    isAllDocumentsPreviewOpen,
-    isLoadingAllDocumentsPreview,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     pendingReasonDraft,
@@ -685,7 +632,6 @@ export function useProposalDetailPage() {
     viewDocument,
     openAllDocumentsPreview,
     closeDocumentPreview,
-    closeAllDocumentsPreview,
     addDocuments,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
