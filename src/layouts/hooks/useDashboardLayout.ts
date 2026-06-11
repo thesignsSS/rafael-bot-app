@@ -22,7 +22,7 @@ function resolveRouteTitle(pathname: string, isAdmin: boolean): string {
 }
 
 export function useDashboardLayout() {
-  const { user, isAdmin, signOut } = useAuth()
+  const { currentUserProfile, user, isAdmin, signOut } = useAuth()
   const navigate = useNavigate()
   const { pathname } = useLocation()
   const { isOpen: isSidebarOpen, open: openSidebar, close: closeSidebar } =
@@ -46,6 +46,7 @@ export function useDashboardLayout() {
 
   return {
     title,
+    currentUserProfile,
     user,
     isAdmin,
     handleSignOut,

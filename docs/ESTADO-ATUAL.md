@@ -1,6 +1,6 @@
 # Estado atual do bot-rafael-app
 
-Documentação do projeto na versão **0.0.0**. Última revisão: permissionamento (admin/corretor), auth Supabase e propostas com escopo por perfil.
+Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de perfil atual via `/api/me`, integração real de propostas com backend, auth Supabase e permissionamento.
 
 ## Resumo
 
@@ -13,9 +13,9 @@ Documentação do projeto na versão **0.0.0**. Última revisão: permissionamen
 | **Auth** | Supabase (`signInWithPassword`, `signUp`, `resetPasswordForEmail`, `updateUser`, sessão em localStorage, `AuthProvider`) |
 | **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
-| **Estado global** | `AuthProvider` + `useAuth` (sessão, `role`, `isAdmin`, `isCorretor`) |
-| **Permissionamento** | `app_metadata.role` (`admin` \| `corretor`); guards em `ProtectedRoute` com `allowedRoles` opcional |
-| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoint HTTP do bot para envio da proposta; recuperação ainda stub |
+| **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase, `currentUserProfile`, `role`, `isAdmin`, `isCorretor`) |
+| **Permissionamento** | perfil atual carregado de `GET /api/me`; guards em `ProtectedRoute` com `allowedRoles` opcional |
+| **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoints HTTP do bot para perfil atual, criação, listagem e detalhe de propostas; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
 | **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY` (ver `.env.example`) |
@@ -66,7 +66,7 @@ bot-rafael-app/
 │   │   └── DashboardLayout.tsx
 │   ├── pages/
 │   │   ├── home/            # Rota protegida: Nova Proposta
-│   │   ├── propostas/       # Listagem de propostas (mock local)
+│   │   ├── propostas/       # Listagem e detalhe de propostas via backend
 │   │   ├── login/
 │   │   ├── cadastro/        # signUp integrado
 │   │   ├── recuperar-senha/ # resetPasswordForEmail
@@ -100,13 +100,14 @@ flowchart LR
 
 1. `index.html` carrega `/src/main.tsx`.
 2. `AuthProvider` resolve sessão via `getSession` + `onAuthStateChange`.
-3. Enquanto carrega, exibe spinner fullscreen.
-4. Rotas protegidas (`/`) redirecionam para `/login` sem sessão.
-5. Rotas de convidado (`/login`, etc.) redirecionam para `/` se já logado.
-6. `/redefinir-senha` valida token manualmente; sem token válido não cria sessão.
-7. Login chama `signInWithPassword`; erro → toast genérico em PT; sucesso → `/`.
-8. Cadastro chama `signUp` com `user_metadata.full_name`; sessão → `/`; sem sessão → tela de confirmação de e-mail.
-9. Recuperação: `resetPasswordForEmail` → e-mail com link Supabase → `/redefinir-senha` (validação manual do token) → `updateUser` → `signOut` → `/login` com toast de sucesso.
+3. Com sessão válida, chama `GET /api/me?userId=<user.id>` com `x-api-key` para reconstruir `currentUserProfile`.
+4. Enquanto sessão/perfil carregam, exibe spinner fullscreen.
+5. Rotas protegidas (`/`) redirecionam para `/login` sem sessão.
+6. Rotas de convidado (`/login`, etc.) redirecionam para `/` se já logado.
+7. `/redefinir-senha` valida token manualmente; sem token válido não cria sessão.
+8. Login chama `signInWithPassword`; erro → toast genérico em PT; sucesso → `/`.
+9. Cadastro chama `signUp` com `user_metadata.full_name`; sessão → `/`; sem sessão → tela de confirmação de e-mail.
+10. Recuperação: `resetPasswordForEmail` → e-mail com link Supabase → `/redefinir-senha` (validação manual do token) → `updateUser` → `signOut` → `/login` com toast de sucesso.
 
 ## Comportamento da UI atual
 
@@ -120,16 +121,31 @@ flowchart LR
 - Campo aberto de informações adicionais com limite de 10.000 caracteres.
 - Resumo da proposta atualizado em tela e validação básica antes de enviar.
 - Envio converte os anexos para base64 sem prefixo Data URL e faz `POST` para o endpoint do bot configurado em `VITE_FORM_SUBMISSION_API_URL`.
+- O submit consulta o usuário autenticado no Supabase no momento do envio e inclui `brokerUserId` (`user.id`) no payload.
+- `formData` inclui os campos principais para persistência do cliente: `CPF do Cliente`, `E-mail do Cliente` e `Telefone do Cliente`.
 - Arquivos aceitos no envio: `pdf`, `doc`, `docx`, `xls`, `xlsx`, `jpeg`, `jpg`, `png`, `txt`.
-- Feedback de envio: botão em loading, toast de sucesso quando a API retorna `ok: true`, e erro amigável para falhas de validação, autorização, endpoint ou servidor.
+- Feedback de envio: botão em loading, toast de sucesso completo quando a API retorna `ok: true` e `savedClient !== false`; aviso quando arquivos foram enviados mas `savedClient === false`; erro amigável para falhas de validação, autorização, endpoint ou servidor.
+- Após criação bem-sucedida, redireciona para `/propostas/:proposalId`.
 
 ### `/propostas` (protegida)
 
-- Tela "Minhas Propostas" com listagem em tabela (ID, cliente, tipo de imóvel, data).
-- Dados mockados em `src/pages/propostas/mocks/proposals.mock.ts` (128 itens; busca e paginação client-side).
-- Busca por nome do cliente ou ID da proposta; paginação de 4 itens por página.
+- Tela "Minhas Propostas" com listagem em tabela (código, corretor, cliente, tipo de imóvel, data e quantidade de documentos).
+- Dados consumidos de `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=10&search=<texto>`.
+- Busca por cliente, corretor ou código da proposta via parâmetro `search`; paginação server-side com `page` e `pageSize`.
+- Exibe loading, erro, estado vazio e total de itens retornado pelo backend.
 - Layout compartilhado via `DashboardLayout` (sidebar com navegação, header com título por rota, footer).
 - Botão "Nova Proposta" redireciona para `/`.
+- Linhas da tabela navegam para `/propostas/:proposalId`.
+
+### `/propostas/:proposalId` (protegida)
+
+- Consome `GET /api/proposals/:proposalId?brokerUserId=<uuid>`.
+- Cabeçalho com código da proposta e corretor.
+- Cards de dados do cliente, dados do imóvel e informações adicionais.
+- Lista de documentos enviados com nome, tamanho e data de upload.
+- Edição da proposta via PATCH; documentos com visualizar, renomear, excluir, upload adicional e baixar tudo em zip.
+- Mutações de proposta/documentos fazem refetch do detalhe após sucesso.
+- Exibe loading, erro e redireciona para `/propostas` quando a proposta não é encontrada.
 
 ### `/login`
 
@@ -188,18 +204,105 @@ VITE_FORM_SUBMISSION_API_KEY=sua-api-key-do-bot
 
 No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
 
+## Contrato do perfil atual
+
+O frontend chama `GET /api/me?userId=<uuid>` logo após restaurar a sessão Supabase, no refresh da página e sempre que precisa reconstruir o estado global de autorização.
+
+Headers:
+
+```http
+x-api-key: <VITE_FORM_SUBMISSION_API_KEY>
+```
+
+Shape usado no estado global:
+
+```ts
+type CurrentUserProfile = {
+  id: string
+  fullName: string
+  role: 'admin' | 'broker'
+  isAdmin: boolean
+}
+```
+
+Se o backend responder "Perfil não encontrado", o frontend aplica fallback local com os dados do usuário autenticado para não quebrar a UI.
+
+## Contrato de envio ao bot
+
+O frontend envia `POST` para `VITE_FORM_SUBMISSION_API_URL` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY`.
+
+Payload esperado:
+
+```json
+{
+  "brokerUserId": "uuid-do-auth-user",
+  "brokerName": "Nome do corretor",
+  "clientName": "Nome do cliente",
+  "formData": {
+    "Nome do Cliente Completo": "Nome do cliente",
+    "CPF do Cliente": "07050796352",
+    "E-mail do Cliente": "cliente@email.com",
+    "Telefone do Cliente": "85999999999",
+    "Tipo do Imóvel": "Novo",
+    "Município do Imóvel": "Fortaleza",
+    "UF do Imóvel": "CE",
+    "Informações Adicionais": "texto livre"
+  },
+  "documents": [
+    {
+      "filename": "rg.pdf",
+      "contentBase64": "..."
+    }
+  ]
+}
+```
+
+Resposta esperada: `ok: true`, `proposalId`, `proposalCode` e `savedClient` indicando se o cliente foi persistido em `public.broker_clients`. Quando `savedClient === false`, o frontend exibe aviso de envio parcial; quando há `proposalId`, navega para o detalhe da proposta.
+
+Listagem:
+
+```http
+GET /api/proposals?brokerUserId=<uuid>&page=1&pageSize=10&search=texto
+```
+
+Detalhe:
+
+```http
+GET /api/proposals/:proposalId?brokerUserId=<uuid>
+```
+
+Edição da proposta:
+
+```http
+PATCH /api/proposals/:proposalId
+```
+
+Payload: `brokerUserId`, dados do cliente, dados do imóvel, `additionalInfo` e `formData` atualizado.
+
+Documentos:
+
+| Ação | Endpoint |
+|------|----------|
+| Upload adicional | `POST /api/proposals/:proposalId/documents` |
+| Renomear | `PATCH /api/proposals/:proposalId/documents/:documentId` |
+| Excluir | `DELETE /api/proposals/:proposalId/documents/:documentId?brokerUserId=<uuid>` |
+| Visualizar | `GET /api/proposals/:proposalId/documents/:documentId/view?brokerUserId=<uuid>` |
+| Baixar zip | `GET /api/proposals/:proposalId/download?brokerUserId=<uuid>` |
+
+Após editar, enviar, renomear ou excluir documentos, o frontend faz refetch do detalhe para refletir o estado persistido.
+
 ## Permissionamento
 
 ### Perfis e fonte da verdade
 
-| Perfil | Valor em `app_metadata.role` | Comportamento padrão |
+| Perfil | Valor retornado em `/api/me` | Comportamento padrão |
 |--------|------------------------------|----------------------|
-| Corretor | `corretor` | Signup público; fallback se role ausente |
-| Administrador | `admin` | Criado manualmente no Supabase Dashboard |
+| Corretor | `broker` | Visão padrão de corretor |
+| Administrador | `admin` | Visão administrativa |
 
-Lógica pura em `src/lib/auth/roles.ts`: `parseUserRole`, `hasRouteAccess`, helpers `isAdminRole` / `isCorretorRole`.
+Lógica pura em `src/lib/auth/roles.ts`: `parseUserRole`, `hasRouteAccess`, helpers `isAdminRole` / `isCorretorRole`. O parser também entende `corretor` como alias legado para compatibilidade com dados antigos.
 
-O contexto de auth expõe `role`, `isAdmin` e `isCorretor` via `useAuth()`.
+O contexto de auth expõe `currentUserProfile`, `role`, `isAdmin`, `isCorretor`, `profileError` e `refreshProfile` via `useAuth()`.
 
 ### Proteção de rotas (`ProtectedRoute`)
 
@@ -209,8 +312,8 @@ Um único guard cobre autenticação e restrição por grupo:
 |---------|--------------|-------------|
 | Só autenticação | `<ProtectedRoute />` | Qualquer usuário logado |
 | Só admin | `<ProtectedRoute allowedRoles={['admin']} />` | Administradores |
-| Só corretor | `<ProtectedRoute allowedRoles={['corretor']} />` | Corretores |
-| Vários grupos | `<ProtectedRoute allowedRoles={['admin', 'corretor']} />` | União dos grupos |
+| Só corretor | `<ProtectedRoute allowedRoles={['broker']} />` | Corretores |
+| Vários grupos | `<ProtectedRoute allowedRoles={['admin', 'broker']} />` | União dos grupos |
 | Grupo futuro | Estender `UserRole` em `roles.ts` + `allowedRoles` na rota | Conforme definido |
 
 Acesso negado por role: redirect para `/` com toast "Sem permissão" (`usePermissionDeniedToast` no dashboard).
@@ -219,12 +322,12 @@ Exemplos comentados em `src/routes/AppRoutes.tsx`. Rotas `/admin/*` ainda não e
 
 **Fase 2:** itens de sidebar/nav devem usar `hasRouteAccess` para ocultar links inacessíveis.
 
-### Escopo de propostas (mock)
+### Escopo de propostas
 
-- Campo `ownerId` em cada proposta mock.
-- **Admin:** vê todas as propostas; título da tela "Todas as Propostas".
-- **Corretor:** vê subset simulado via `resolveMockOwnerId(userId)` até integração com Supabase (então filtrar por `ownerId === user.id`).
-- Badge "Administrador" no header quando `isAdmin`.
+- O frontend envia `brokerUserId` (`user.id`) nas consultas de listagem e detalhe.
+- O backend é a fonte de verdade para filtrar propostas por usuário e permissões.
+- O layout usa `currentUserProfile` para montar visão de corretor ou administrador no bootstrap e após refresh.
+- Badge "Administrador" no header quando `isAdmin`; regras de dados devem continuar protegidas no backend.
 
 ### Promover usuário a admin
 
@@ -270,7 +373,6 @@ Guards de rota são **UX no frontend**. Ao integrar dados reais, reforçar permi
 
 - Rota dedicada de confirmação de e-mail
 - Links reais para Termos de Uso / Política de Privacidade
-- Integração da listagem com API/Supabase (hoje usa mock local com `ownerId` simulado)
 - Rotas `/admin/*` e gestão de usuários
 - Proxy backend para manter a API key do bot fora do bundle em produção
 - Testes (Vitest)

@@ -1,33 +1,67 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
+import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
-import { inferDocumentKind } from '../lib/proposalDetailUtils'
-import type { ProposalDocument } from '../types/proposal-detail'
+import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
+import type { PropertyType } from '../../home/types/proposal'
+import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
+import {
+  deleteProposalDocument,
+  downloadProposalZip,
+  renameProposalDocument,
+  updateProposal,
+  uploadProposalDocuments,
+  viewProposalDocument,
+} from '../lib/proposalsApi'
+import type { ProposalDocumentKind } from '../types/proposal-detail'
 import { useProposalDetail } from './useProposalDetail'
 
-function createDocumentId() {
-  return `doc-${crypto.randomUUID()}`
+export type ProposalEditDraft = {
+  clientName: string
+  clientCpf: string
+  clientEmail: string
+  clientPhone: string
+  propertyType: PropertyType
+  propertyCity: string
+  propertyState: string
+  additionalInfo: string
+}
+
+export type ProposalDocumentPreview = {
+  fileName: string
+  kind: ProposalDocumentKind
+  url: string
+}
+
+function downloadBlob(blob: Blob, filename: string) {
+  const url = URL.createObjectURL(blob)
+  const anchor = document.createElement('a')
+  anchor.href = url
+  anchor.download = filename
+  anchor.click()
+  URL.revokeObjectURL(url)
 }
 
 export function useProposalDetailPage() {
   const navigate = useNavigate()
   const { proposalId } = useParams<{ proposalId: string }>()
-  const { status, proposal } = useProposalDetail(proposalId)
-  const [documents, setDocuments] = useState<ProposalDocument[]>([])
+  const { user } = useAuth()
+  const brokerUserId = user?.id ?? null
+  const { status, proposal, error, refetch } = useProposalDetail(proposalId)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editDraft, setEditDraft] = useState<ProposalEditDraft | null>(null)
+  const [isSavingProposal, setIsSavingProposal] = useState(false)
+  const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false)
+  const [documentPreview, setDocumentPreview] =
+    useState<ProposalDocumentPreview | null>(null)
   const hasHandledMissingProposal = useRef(false)
 
   const pageTitle = proposal
-    ? `Proposta #${proposal.id} | Rafael Bot`
+    ? `Proposta ${proposal.proposalCode} | Rafael Bot`
     : 'Detalhes da Proposta | Rafael Bot'
 
   useDocumentTitle(pageTitle)
-
-  useEffect(() => {
-    if (proposal) {
-      setDocuments(proposal.documents)
-    }
-  }, [proposal])
 
   useEffect(() => {
     if (status !== 'not_found' || hasHandledMissingProposal.current) {
@@ -39,84 +73,291 @@ export function useProposalDetailPage() {
     navigate('/propostas', { replace: true })
   }, [status, navigate])
 
+  useEffect(() => {
+    if (!proposal || isEditing) {
+      return
+    }
+
+    setEditDraft({
+      clientName: proposal.client.name,
+      clientCpf: proposal.client.cpf,
+      clientEmail: proposal.client.email,
+      clientPhone: proposal.client.phone,
+      propertyType: proposal.property.type,
+      propertyCity: proposal.property.city,
+      propertyState: proposal.property.state,
+      additionalInfo: proposal.additionalInfo,
+    })
+  }, [isEditing, proposal])
+
+  const requireProposalContext = useCallback(() => {
+    if (!proposalId || !brokerUserId) {
+      throw new Error('Sessão expirada. Faça login novamente para continuar.')
+    }
+
+    return { proposalId, brokerUserId }
+  }, [brokerUserId, proposalId])
+
   const goBack = useCallback(() => {
     navigate('/propostas')
   }, [navigate])
 
-  const downloadAll = useCallback(() => {
+  const startEditing = useCallback(() => {
     if (!proposal) {
       return
     }
 
-    toast.success(`Preparando download de ${documents.length} arquivos da proposta #${proposal.id}.`)
-  }, [proposal, documents.length])
-
-  const renameDocument = useCallback((documentId: string) => {
-    const document = documents.find((item) => item.id === documentId)
-
-    if (!document) {
-      return
-    }
-
-    toast.info(`Renomear "${document.name}" estará disponível em breve.`)
-  }, [documents])
-
-  const deleteDocument = useCallback((documentId: string) => {
-    setDocuments((current) => {
-      const document = current.find((item) => item.id === documentId)
-
-      if (document) {
-        toast.success(`"${document.name}" removido da proposta.`)
-      }
-
-      return current.filter((item) => item.id !== documentId)
+    setEditDraft({
+      clientName: proposal.client.name,
+      clientCpf: proposal.client.cpf,
+      clientEmail: proposal.client.email,
+      clientPhone: proposal.client.phone,
+      propertyType: proposal.property.type,
+      propertyCity: proposal.property.city,
+      propertyState: proposal.property.state,
+      additionalInfo: proposal.additionalInfo,
     })
+    setIsEditing(true)
+  }, [proposal])
+
+  const cancelEditing = useCallback(() => {
+    setIsEditing(false)
   }, [])
 
-  const viewDocument = useCallback((documentId: string) => {
-    const document = documents.find((item) => item.id === documentId)
+  const updateEditDraft = useCallback(
+    <Field extends keyof ProposalEditDraft>(
+      field: Field,
+      value: ProposalEditDraft[Field],
+    ) => {
+      setEditDraft((current) => (current ? { ...current, [field]: value } : current))
+    },
+    [],
+  )
 
-    if (!document) {
+  const saveProposal = useCallback(async () => {
+    if (!proposal || !editDraft) {
       return
     }
 
-    toast.info(`Visualização de "${document.name}" estará disponível em breve.`)
-  }, [documents])
+    try {
+      const context = requireProposalContext()
+      setIsSavingProposal(true)
 
-  const addDocuments = useCallback((selectedFiles: File[]) => {
-    if (selectedFiles.length === 0) {
-      return
+      await updateProposal(context.proposalId, {
+        brokerUserId: context.brokerUserId,
+        clientName: editDraft.clientName.trim(),
+        clientCpf: editDraft.clientCpf.trim(),
+        clientEmail: editDraft.clientEmail.trim(),
+        clientPhone: editDraft.clientPhone.trim(),
+        propertyType: editDraft.propertyType,
+        propertyCity: editDraft.propertyCity.trim(),
+        propertyState: editDraft.propertyState.trim(),
+        additionalInfo: editDraft.additionalInfo.trim(),
+        formData: {
+          ...proposal.formData,
+          'Nome do Cliente Completo': editDraft.clientName.trim(),
+          'CPF do Cliente': editDraft.clientCpf.trim(),
+          'E-mail do Cliente': editDraft.clientEmail.trim(),
+          'Telefone do Cliente': editDraft.clientPhone.trim(),
+          'Tipo do Imóvel': editDraft.propertyType,
+          'Município do Imóvel': editDraft.propertyCity.trim(),
+          'UF do Imóvel': editDraft.propertyState.trim(),
+          'Informações Adicionais': editDraft.additionalInfo.trim(),
+        },
+      })
+
+      await refetch()
+      setIsEditing(false)
+      toast.success('Proposta atualizada com sucesso.')
+    } catch (saveError) {
+      toast.error(
+        saveError instanceof Error
+          ? saveError.message
+          : 'Não foi possível atualizar a proposta.',
+      )
+    } finally {
+      setIsSavingProposal(false)
     }
+  }, [editDraft, proposal, refetch, requireProposalContext])
 
-    const uploadedAt = new Date().toISOString()
+  const downloadAll = useCallback(async () => {
+    try {
+      const context = requireProposalContext()
+      const { blob, filename } = await downloadProposalZip(
+        context.proposalId,
+        context.brokerUserId,
+      )
 
-    setDocuments((current) => [
-      ...current,
-      ...selectedFiles.map((file) => ({
-        id: createDocumentId(),
-        name: file.name,
-        kind: inferDocumentKind(file.name),
-        sizeBytes: file.size,
-        uploadedAt,
-      })),
-    ])
+      downloadBlob(blob, filename)
+    } catch (downloadError) {
+      toast.error(
+        downloadError instanceof Error
+          ? downloadError.message
+          : 'Não foi possível baixar os documentos.',
+      )
+    }
+  }, [requireProposalContext])
 
-    toast.success(
-      selectedFiles.length === 1
-        ? 'Documento adicionado à proposta.'
-        : `${selectedFiles.length} documentos adicionados à proposta.`,
-    )
+  const renameDocument = useCallback(
+    async (documentId: string) => {
+      const document = proposal?.documents.find((item) => item.id === documentId)
+      const currentName =
+        document?.displayName ?? document?.originalFilename ?? document?.filename ?? ''
+      const displayName = window.prompt('Novo nome do arquivo', currentName)?.trim()
+
+      if (!displayName || displayName === currentName) {
+        return
+      }
+
+      try {
+        const context = requireProposalContext()
+        setIsUpdatingDocuments(true)
+        await renameProposalDocument(
+          context.proposalId,
+          documentId,
+          context.brokerUserId,
+          displayName,
+        )
+        await refetch()
+        toast.success('Documento renomeado com sucesso.')
+      } catch (renameError) {
+        toast.error(
+          renameError instanceof Error
+            ? renameError.message
+            : 'Não foi possível renomear o documento.',
+        )
+      } finally {
+        setIsUpdatingDocuments(false)
+      }
+    },
+    [proposal?.documents, refetch, requireProposalContext],
+  )
+
+  const deleteDocument = useCallback(
+    async (documentId: string) => {
+      const document = proposal?.documents.find((item) => item.id === documentId)
+      const displayName =
+        document?.displayName ?? document?.originalFilename ?? document?.filename
+
+      if (!window.confirm(`Excluir "${displayName ?? 'documento'}"?`)) {
+        return
+      }
+
+      try {
+        const context = requireProposalContext()
+        setIsUpdatingDocuments(true)
+        await deleteProposalDocument(
+          context.proposalId,
+          documentId,
+          context.brokerUserId,
+        )
+        await refetch()
+        toast.success('Documento excluído com sucesso.')
+      } catch (deleteError) {
+        toast.error(
+          deleteError instanceof Error
+            ? deleteError.message
+            : 'Não foi possível excluir o documento.',
+        )
+      } finally {
+        setIsUpdatingDocuments(false)
+      }
+    },
+    [proposal?.documents, refetch, requireProposalContext],
+  )
+
+  const viewDocument = useCallback(
+    async (documentId: string) => {
+      try {
+        const context = requireProposalContext()
+        const document = proposal?.documents.find((item) => item.id === documentId)
+        const result = await viewProposalDocument(
+          context.proposalId,
+          documentId,
+          context.brokerUserId,
+        )
+
+        setDocumentPreview({
+          fileName:
+            document?.displayName ??
+            document?.originalFilename ??
+            result.filename,
+          kind: inferDocumentKindFromContent(
+            document?.contentType ?? 'application/pdf',
+            document?.filename ?? result.filename,
+          ),
+          url: result.url,
+        })
+      } catch (viewError) {
+        toast.error(
+          viewError instanceof Error
+            ? viewError.message
+            : 'Não foi possível visualizar o documento.',
+        )
+      }
+    },
+    [proposal?.documents, requireProposalContext],
+  )
+
+  const addDocuments = useCallback(
+    async (selectedFiles: File[]) => {
+      if (selectedFiles.length === 0) {
+        return
+      }
+
+      try {
+        const context = requireProposalContext()
+        setIsUpdatingDocuments(true)
+        const documents = await filesToSubmissionDocuments(selectedFiles)
+        await uploadProposalDocuments(
+          context.proposalId,
+          context.brokerUserId,
+          documents,
+        )
+        await refetch()
+        toast.success(
+          selectedFiles.length === 1
+            ? 'Documento enviado com sucesso.'
+            : `${selectedFiles.length} documentos enviados com sucesso.`,
+        )
+      } catch (uploadError) {
+        toast.error(
+          uploadError instanceof Error
+            ? uploadError.message
+            : 'Não foi possível enviar os documentos.',
+        )
+      } finally {
+        setIsUpdatingDocuments(false)
+      }
+    },
+    [refetch, requireProposalContext],
+  )
+
+  const closeDocumentPreview = useCallback(() => {
+    setDocumentPreview(null)
   }, [])
 
   return {
     status,
     proposal,
-    documents,
+    documents: proposal?.documents ?? [],
+    error,
+    refetch,
+    isEditing,
+    editDraft,
+    documentPreview,
+    isSavingProposal,
+    isUpdatingDocuments,
     goBack,
+    startEditing,
+    cancelEditing,
+    updateEditDraft,
+    saveProposal,
     downloadAll,
     renameDocument,
     deleteDocument,
     viewDocument,
+    closeDocumentPreview,
     addDocuments,
   }
 }

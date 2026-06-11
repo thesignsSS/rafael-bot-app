@@ -11,6 +11,7 @@ export type FormSubmissionDocument = {
 }
 
 export type SubmitFormPayload = {
+  brokerUserId: string
   brokerName: string
   clientName: string
   formData: Record<string, unknown>
@@ -19,6 +20,9 @@ export type SubmitFormPayload = {
 
 export type SubmitFormResponse = {
   ok: boolean
+  proposalId?: string
+  proposalCode?: string
+  savedClient?: boolean
   uploadedFiles?: number
   locations?: string[]
   error?: string

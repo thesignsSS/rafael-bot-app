@@ -1,23 +1,22 @@
-import {
-  formatCreatedAt,
-  formatProposalId,
-} from '../lib/proposalListUtils'
+import { formatCreatedAt } from '../lib/proposalListUtils'
 import type { ProposalListItem } from '../types/proposal-list-item'
 
 type ProposalsTableProps = {
   items: ProposalListItem[]
   isEmpty: boolean
-  showOwnerColumn?: boolean
+  isLoading?: boolean
+  error?: string | null
   onSelectProposal: (proposalId: string) => void
 }
 
 export function ProposalsTable({
   items,
   isEmpty,
-  showOwnerColumn = false,
+  isLoading = false,
+  error = null,
   onSelectProposal,
 }: ProposalsTableProps) {
-  const columnCount = showOwnerColumn ? 5 : 4
+  const columnCount = 6
   return (
     <div className="overflow-x-auto">
       <table className="w-full border-collapse text-left">
@@ -26,11 +25,9 @@ export function ProposalsTable({
             <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
               ID da Proposta
             </th>
-            {showOwnerColumn ? (
-              <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
-                Corretor
-              </th>
-            ) : null}
+            <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
+              Corretor
+            </th>
             <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
               Nome do Cliente
             </th>
@@ -40,10 +37,31 @@ export function ProposalsTable({
             <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
               Data de Criação
             </th>
+            <th className="px-6 py-4 text-label-md font-semibold text-on-surface">
+              Documentos
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-outline-variant">
-          {isEmpty ? (
+          {isLoading ? (
+            <tr>
+              <td
+                colSpan={columnCount}
+                className="px-6 py-12 text-center text-body-md text-on-surface-variant"
+              >
+                Carregando propostas...
+              </td>
+            </tr>
+          ) : error ? (
+            <tr>
+              <td
+                colSpan={columnCount}
+                className="px-6 py-12 text-center text-body-md text-error"
+              >
+                {error}
+              </td>
+            </tr>
+          ) : isEmpty ? (
             <tr>
               <td
                 colSpan={columnCount}
@@ -68,13 +86,11 @@ export function ProposalsTable({
                 className="cursor-pointer transition-colors hover:bg-surface-container focus-visible:bg-surface-container focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-primary"
               >
                 <td className="px-6 py-4 text-body-md font-medium text-primary">
-                  {formatProposalId(proposal.id)}
+                  {proposal.proposalCode}
                 </td>
-                {showOwnerColumn ? (
-                  <td className="px-6 py-4 text-body-md text-on-surface">
-                    {proposal.ownerName}
-                  </td>
-                ) : null}
+                <td className="px-6 py-4 text-body-md text-on-surface">
+                  {proposal.brokerName}
+                </td>
                 <td className="px-6 py-4 text-body-md text-on-surface">
                   {proposal.clientName}
                 </td>
@@ -83,6 +99,9 @@ export function ProposalsTable({
                 </td>
                 <td className="px-6 py-4 text-body-md text-on-surface-variant">
                   {formatCreatedAt(proposal.createdAt)}
+                </td>
+                <td className="px-6 py-4 text-body-md text-on-surface-variant">
+                  {proposal.documentsCount}
                 </td>
               </tr>
             ))

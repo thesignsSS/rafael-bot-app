@@ -1,33 +1,54 @@
-import { useMemo } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useAuth } from '../../../contexts/auth-context'
-import { getProposalDetailForUser } from '../mocks/proposal-detail.mock'
+import { fetchProposalDetail } from '../lib/proposalsApi'
+import type { ProposalDetail } from '../types/proposal-detail'
 
-export type ProposalDetailStatus = 'loading' | 'ready' | 'not_found'
+export type ProposalDetailStatus = 'loading' | 'ready' | 'not_found' | 'error'
 
 export function useProposalDetail(proposalId: string | undefined) {
-  const { user, isAdmin, isLoading: isAuthLoading } = useAuth()
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const brokerUserId = user?.id ?? null
 
-  const status: ProposalDetailStatus = useMemo(() => {
-    if (isAuthLoading || !proposalId) {
-      return 'loading'
+  const [status, setStatus] = useState<ProposalDetailStatus>('loading')
+  const [proposal, setProposal] = useState<ProposalDetail | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const loadProposal = useCallback(async () => {
+    if (isAuthLoading) {
+      return
     }
 
-    const detail = getProposalDetailForUser(
-      proposalId,
-      user?.id ?? null,
-      isAdmin,
-    )
-
-    return detail ? 'ready' : 'not_found'
-  }, [isAuthLoading, proposalId, user?.id, isAdmin])
-
-  const proposal = useMemo(() => {
-    if (!proposalId || status !== 'ready') {
-      return null
+    if (!proposalId || !brokerUserId) {
+      setProposal(null)
+      setError('Sessão expirada. Faça login novamente para consultar a proposta.')
+      setStatus('error')
+      return
     }
 
-    return getProposalDetailForUser(proposalId, user?.id ?? null, isAdmin)
-  }, [proposalId, status, user?.id, isAdmin])
+    try {
+      setStatus('loading')
+      setError(null)
 
-  return { status, proposal }
+      const detail = await fetchProposalDetail(proposalId, brokerUserId)
+
+      setProposal(detail)
+      setStatus('ready')
+    } catch (requestError) {
+      setProposal(null)
+
+      const message =
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar a proposta.'
+
+      setError(message)
+      setStatus(message === 'Proposta não encontrada.' ? 'not_found' : 'error')
+    }
+  }, [brokerUserId, isAuthLoading, proposalId])
+
+  useEffect(() => {
+    void loadProposal()
+  }, [loadProposal])
+
+  return { status, proposal, error, refetch: loadProposal }
 }

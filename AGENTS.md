@@ -156,14 +156,14 @@ interface ImportMetaEnv {
 - Repositório **single-package** (não é monorepo).
 - `tsconfig.json` referencia `tsconfig.app.json` (src) e `tsconfig.node.json` (vite.config.ts).
 - Rotas em `src/routes/AppRoutes.tsx`; guards em `src/components/auth/`; sessão em `AuthProvider`.
-- Permissionamento: `app_metadata.role` (`admin` | `corretor`); leitura em `src/lib/auth/roles.ts`; guards via `ProtectedRoute` com `allowedRoles` opcional.
+- Permissionamento: perfil atual carregado de `GET /api/me`; normalização em `src/lib/auth/roles.ts`; guards via `ProtectedRoute` com `allowedRoles` opcional.
 - Design system: [DESIGN.md](DESIGN.md); tokens em `src/index.css`.
 - Ao implementar o bot: documentar endpoints e contratos em `docs/ESTADO-ATUAL.md`.
 
 ## Auth e permissionamento
 
-- **Roles** ficam em `user.app_metadata.role` (`raw_app_meta_data` no Postgres). **Não** usar `user_metadata` para autorização — o usuário pode alterá-lo pelo cliente.
-- Fallback no frontend: role ausente ou inválida → `corretor`.
+- Sessão vem do Supabase, mas o frontend usa `GET /api/me?userId=<uuid>` com `x-api-key` para montar o perfil atual usado no layout e nas permissões.
+- `src/lib/auth/roles.ts` normaliza roles legadas (`corretor`) para o formato atual (`broker`) quando necessário.
 - Promover usuário a admin (Supabase **SQL Editor**; trocar o e-mail):
 
 ```sql

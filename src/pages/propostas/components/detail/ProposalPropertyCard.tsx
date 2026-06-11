@@ -4,12 +4,14 @@ import { ProposalInfoField } from './ProposalInfoField'
 
 type ProposalPropertyCardProps = {
   propertyType: PropertyType
-  location: string
+  city: string
+  state: string
 }
 
 export function ProposalPropertyCard({
   propertyType,
-  location,
+  city,
+  state,
 }: ProposalPropertyCardProps) {
   return (
     <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
@@ -22,7 +24,8 @@ export function ProposalPropertyCard({
 
       <div className="space-y-4">
         <ProposalInfoField label="Status do Imóvel" value={propertyType} />
-        <ProposalInfoField label="Localização" value={location} />
+        <ProposalInfoField label="Município" value={city} />
+        <ProposalInfoField label="UF" value={state} />
       </div>
     </section>
   )

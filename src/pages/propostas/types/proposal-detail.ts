@@ -1,32 +1,54 @@
 import type { PropertyType } from '../../home/types/proposal'
 
-export type ProposalStatus = 'Enviada' | 'Em análise' | 'Finalizada'
-
 export type ProposalDocumentKind = 'pdf' | 'image'
 
 export type ProposalDocument = {
   id: string
-  name: string
-  kind: ProposalDocumentKind
+  filename: string
+  originalFilename: string
+  displayName?: string
+  contentType: string
   sizeBytes: number
   uploadedAt: string
+  storageLocation: string
 }
 
 export type ProposalDetail = {
   id: string
-  status: ProposalStatus
-  ownerId: string
-  ownerName: string
+  proposalCode: string
+  brokerName: string
   createdAt: string
   client: {
     name: string
     cpf: string
     phone: string
+    email: string
   }
   property: {
     type: PropertyType
-    location: string
-    buildingName: string
+    city: string
+    state: string
   }
+  additionalInfo: string
+  formData: Record<string, unknown>
   documents: ProposalDocument[]
+}
+
+export type UpdateProposalPayload = {
+  brokerUserId: string
+  clientName: string
+  clientCpf: string
+  clientEmail: string
+  clientPhone: string
+  propertyType: PropertyType
+  propertyCity: string
+  propertyState: string
+  additionalInfo: string
+  formData: Record<string, unknown>
+}
+
+export type ViewProposalDocumentResponse = {
+  ok: boolean
+  url: string
+  filename: string
 }

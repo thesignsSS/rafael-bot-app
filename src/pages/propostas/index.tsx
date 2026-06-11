@@ -1,4 +1,3 @@
-import { useAuth } from '../../contexts/auth-context'
 import { ProposalsActionHeader } from './components/ProposalsActionHeader'
 import { ProposalsPagination } from './components/ProposalsPagination'
 import { ProposalsTable } from './components/ProposalsTable'
@@ -7,7 +6,6 @@ import { useProposalsList } from './hooks/useProposalsList'
 import { useProposalsListPage } from './hooks/useProposalsListPage'
 
 export default function PropostasPage() {
-  const { isAdmin } = useAuth()
   const { goToNewProposal, goToProposalDetail } = useProposalsListPage()
   const list = useProposalsList()
 
@@ -24,8 +22,9 @@ export default function PropostasPage() {
       <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
         <ProposalsTable
           items={list.items}
-          isEmpty={list.totalCount === 0}
-          showOwnerColumn={isAdmin}
+          isEmpty={!list.isLoading && list.totalCount === 0}
+          isLoading={list.isLoading}
+          error={list.error}
           onSelectProposal={goToProposalDetail}
         />
         <ProposalsPagination

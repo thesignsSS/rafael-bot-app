@@ -37,7 +37,6 @@ export async function submitProposalToBot(payload: SubmitFormPayload) {
   if (!formSubmissionApiUrl) {
     throw new Error('URL de envio do formulário não configurada.')
   }
-  console.log('formSubmissionApiUrl', formSubmissionApiKey)
 
   if (!formSubmissionApiKey) {
     throw new Error('Chave de API de envio do formulário não configurada.')

@@ -1,20 +1,34 @@
 import type { User } from '@supabase/supabase-js'
 
-export const KNOWN_ROLES = ['admin', 'corretor'] as const
+export const KNOWN_ROLES = ['admin', 'broker'] as const
 
 export type UserRole = (typeof KNOWN_ROLES)[number]
 
-export const DEFAULT_ROLE: UserRole = 'corretor'
+export const DEFAULT_ROLE: UserRole = 'broker'
 
-const isKnownRole = (value: unknown): value is UserRole =>
-  typeof value === 'string' &&
-  (KNOWN_ROLES as readonly string[]).includes(value)
+const ROLE_ALIASES: Record<string, UserRole> = {
+  admin: 'admin',
+  broker: 'broker',
+  corretor: 'broker',
+}
 
-export function parseUserRole(user: User | null): UserRole {
-  const rawRole = user?.app_metadata?.role
+function normalizeRole(value: unknown): UserRole | null {
+  if (typeof value !== 'string') {
+    return null
+  }
 
-  if (isKnownRole(rawRole)) {
-    return rawRole
+  return ROLE_ALIASES[value] ?? null
+}
+
+export function parseUserRole(input: User | null | string | null): UserRole {
+  const rawRole = typeof input === 'string' || input === null
+    ? input
+    : input?.app_metadata?.role
+
+  const normalizedRole = normalizeRole(rawRole)
+
+  if (normalizedRole) {
+    return normalizedRole
   }
 
   return DEFAULT_ROLE
@@ -35,6 +49,10 @@ export function isAdminRole(role: UserRole): boolean {
   return role === 'admin'
 }
 
+export function isBrokerRole(role: UserRole): boolean {
+  return role === 'broker'
+}
+
 export function isCorretorRole(role: UserRole): boolean {
-  return role === 'corretor'
+  return isBrokerRole(role)
 }

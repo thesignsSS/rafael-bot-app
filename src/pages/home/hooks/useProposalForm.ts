@@ -1,6 +1,8 @@
 import { useCallback, useState, type ChangeEvent } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
+import { supabase } from '../../../lib/supabase'
 import { fileKey } from '../lib/proposalUtils'
 import {
   isSupportedFile,
@@ -16,7 +18,8 @@ import type { PropertyType } from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
 
 export function useProposalForm() {
-  const { user } = useAuth()
+  const navigate = useNavigate()
+  const { currentUserProfile } = useAuth()
   const cityCombobox = useCityCombobox()
 
   const [clientName, setClientName] = useState('')
@@ -152,34 +155,62 @@ export function useProposalForm() {
       return
     }
 
-    const brokerName =
-      typeof user?.user_metadata.full_name === 'string'
-        ? user.user_metadata.full_name
-        : user?.email ?? 'Corretor'
-
     try {
       setIsSubmitting(true)
 
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser()
+
+      if (userError || !user) {
+        throw new Error('Sessão expirada. Faça login novamente para enviar a proposta.')
+      }
+
+      const brokerName =
+        currentUserProfile?.fullName ||
+        (typeof user.user_metadata.full_name === 'string'
+          ? user.user_metadata.full_name
+          : user.email ?? 'Corretor')
+
       const documents = await filesToSubmissionDocuments(extraFiles)
 
-      await submitProposalToBot({
+      const submission = await submitProposalToBot({
+        brokerUserId: user.id,
         brokerName,
         clientName: clientName.trim(),
         formData: {
           'Nome do Cliente Completo': clientName.trim(),
           'CPF do Cliente': clientCpf.trim(),
           'Telefone do Cliente': clientPhone.trim(),
-          'E-mail': clientEmail.trim(),
+          'E-mail do Cliente': clientEmail.trim(),
           'Tipo do Imóvel': propertyType,
           'Município do Imóvel': cityCombobox.city,
+          'UF do Imóvel': 'CE',
           'Informações Adicionais': additionalInfo.trim(),
         },
         documents,
       })
 
-      toast.success(
-        'Arquivos enviados com sucesso. O bot já recebeu os dados e enviará a confirmação no WhatsApp.',
-      )
+      if (!submission.proposalId) {
+        throw new Error('Proposta criada sem identificador para abrir o detalhe.')
+      }
+
+      if (submission.savedClient === false) {
+        toast.warning(
+          'Arquivos enviados com sucesso, mas o cadastro do cliente não foi persistido.',
+        )
+      } else {
+        const proposalLabel = submission.proposalCode
+          ? ` ${submission.proposalCode}`
+          : ''
+
+        toast.success(
+          `Proposta${proposalLabel} enviada com sucesso. Arquivos recebidos e cliente cadastrado.`,
+        )
+      }
+
+      navigate(`/propostas/${submission.proposalId}`)
     } catch (error) {
       console.error('Falha ao enviar proposta para o bot:', error)
       toast.error(
@@ -199,12 +230,13 @@ export function useProposalForm() {
     propertyType,
     additionalInfo,
     extraFiles,
-    user,
     cityCombobox.city,
     validateClientCpf,
     validateClientPhone,
     validateClientEmail,
     validateCity,
+    currentUserProfile?.fullName,
+    navigate,
   ])
 
   const clientLabel = clientName.trim() || 'Ainda não informado'

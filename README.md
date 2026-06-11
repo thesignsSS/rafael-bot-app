@@ -39,11 +39,11 @@ tsconfig.json      # referências app + node
 
 ## Variáveis de ambiente
 
-Copie `.env.example` para `.env` e preencha `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY` (obrigatório para dev).
+Copie `.env.example` para `.env` e preencha `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` e `VITE_FORM_SUBMISSION_API_KEY` (obrigatórios para auth e integração com propostas).
 
 ## Permissionamento (dev)
 
-Perfis **admin** e **corretor** vêm de `app_metadata.role` no Supabase Auth (não use `user_metadata` para roles). Detalhes em [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md#permissionamento).
+Sessão continua vindo do Supabase, mas o perfil atual usado no layout e nas permissões é reconstruído via `GET /api/me?userId=<uuid>` com a API key do bot. Detalhes em [docs/ESTADO-ATUAL.md](docs/ESTADO-ATUAL.md#permissionamento).
 
 ### Promover usuário a administrador
 
@@ -70,6 +70,7 @@ Depois da alteração, faça **logout e login** no app para o JWT carregar o nov
 - Login/cadastro/recuperação de senha com Supabase
 - Rota protegida com formulário de proposta imobiliária
 - Busca de municípios do Ceará via API pública do IBGE
+- Criação, listagem e detalhe de propostas via backend do bot
 - Envio da proposta e anexos para o servidor do bot via `VITE_FORM_SUBMISSION_API_URL`
 - TypeScript em modo `strict`
 - Sem testes configurados

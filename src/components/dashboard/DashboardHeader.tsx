@@ -1,9 +1,11 @@
 import type { User } from '@supabase/supabase-js'
+import type { CurrentUserProfile } from '../../lib/current-user-profile'
 import { Icon } from '../ui/Icon'
 import { useUserMenu } from './hooks/useUserMenu'
 
 type DashboardHeaderProps = {
   title: string
+  currentUserProfile: CurrentUserProfile | null
   user: User | null
   isAdmin?: boolean
   onSignOut: () => void
@@ -12,6 +14,7 @@ type DashboardHeaderProps = {
 
 export function DashboardHeader({
   title,
+  currentUserProfile,
   user,
   isAdmin = false,
   onSignOut,
@@ -20,7 +23,7 @@ export function DashboardHeader({
   const { isOpen, menuRef, toggleMenu, closeMenu } = useUserMenu()
 
   const displayName =
-    user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
+    currentUserProfile?.fullName ?? user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
 
   const handleSignOut = () => {
     closeMenu()

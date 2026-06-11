@@ -7,6 +7,7 @@ import { useDashboardLayout } from './hooks/useDashboardLayout'
 export function DashboardLayout() {
   const {
     title,
+    currentUserProfile,
     user,
     isAdmin,
     handleSignOut,
@@ -22,6 +23,7 @@ export function DashboardLayout() {
       <div className="lg:pl-60">
         <DashboardHeader
           title={title}
+          currentUserProfile={currentUserProfile}
           user={user}
           isAdmin={isAdmin}
           onSignOut={handleSignOut}

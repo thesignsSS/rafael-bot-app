@@ -1,17 +1,17 @@
 import { Icon } from '../../../../components/ui/Icon'
-import { formatProposalId } from '../../lib/proposalListUtils'
-
 type ProposalDetailHeaderProps = {
-  proposalId: string
-  ownerName: string
+  proposalCode: string
+  brokerName: string
   onBack: () => void
+  onEdit: () => void
   onDownloadAll: () => void
 }
 
 export function ProposalDetailHeader({
-  proposalId,
-  ownerName,
+  proposalCode,
+  brokerName,
   onBack,
+  onEdit,
   onDownloadAll,
 }: ProposalDetailHeaderProps) {
   return (
@@ -29,14 +29,21 @@ export function ProposalDetailHeader({
         </div>
 
         <h2 className="text-headline-xl font-bold tracking-tight text-on-surface">
-          Proposta {formatProposalId(proposalId)}
+          Proposta {proposalCode}
         </h2>
         <p className="text-body-md text-on-surface-variant">
-          Corretor: <span className="font-medium text-on-surface">{ownerName}</span>
+          Corretor: <span className="font-medium text-on-surface">{brokerName}</span>
         </p>
       </div>
 
       <div className="flex flex-wrap gap-3">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low active:scale-95"
+        >
+          Editar proposta
+        </button>
         <button
           type="button"
           onClick={onDownloadAll}

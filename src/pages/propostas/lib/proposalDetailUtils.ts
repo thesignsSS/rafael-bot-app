@@ -7,6 +7,17 @@ export function inferDocumentKind(fileName: string): ProposalDocumentKind {
   return IMAGE_EXTENSIONS.has(extension) ? 'image' : 'pdf'
 }
 
+export function inferDocumentKindFromContent(
+  contentType: string,
+  fileName: string,
+): ProposalDocumentKind {
+  if (contentType.startsWith('image/')) {
+    return 'image'
+  }
+
+  return inferDocumentKind(fileName)
+}
+
 export function formatFileSize(bytes: number): string {
   if (bytes >= 1_048_576) {
     return `${(bytes / 1_048_576).toFixed(1)} MB`

@@ -2,15 +2,21 @@ import { useRef, type ChangeEvent, type DragEvent } from 'react'
 import { Icon } from '../../../../components/ui/Icon'
 
 type ProposalDocumentUploadProps = {
+  isBusy?: boolean
   onFilesSelected: (files: File[]) => void
 }
 
 export function ProposalDocumentUpload({
+  isBusy = false,
   onFilesSelected,
 }: ProposalDocumentUploadProps) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const openFilePicker = () => {
+    if (isBusy) {
+      return
+    }
+
     inputRef.current?.click()
   }
 
@@ -24,6 +30,10 @@ export function ProposalDocumentUpload({
 
   const handleDrop = (event: DragEvent<HTMLDivElement>) => {
     event.preventDefault()
+
+    if (isBusy) {
+      return
+    }
 
     const files = Array.from(event.dataTransfer.files)
 
@@ -43,6 +53,7 @@ export function ProposalDocumentUpload({
         type="file"
         accept=".pdf,.jpg,.jpeg,.png"
         multiple
+        disabled={isBusy}
         className="sr-only"
         onChange={handleFileChange}
       />
@@ -59,7 +70,9 @@ export function ProposalDocumentUpload({
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className="group flex cursor-pointer flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-outline bg-white/50 py-6 transition-colors hover:bg-primary-container/5"
+        className={`group flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-outline bg-white/50 py-6 transition-colors hover:bg-primary-container/5 ${
+          isBusy ? 'cursor-wait opacity-60' : 'cursor-pointer'
+        }`}
       >
         <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary-container/10 text-primary transition-transform group-hover:scale-110">
           <Icon name="upload_file" size={28} />
@@ -67,7 +80,7 @@ export function ProposalDocumentUpload({
 
         <div className="text-center">
           <p className="text-label-md font-bold text-on-surface">
-            Clique para enviar novos documentos
+            {isBusy ? 'Enviando documentos...' : 'Clique para enviar novos documentos'}
           </p>
           <p className="text-body-sm text-on-surface-variant">
             Arraste e solte arquivos PDF, JPG ou PNG

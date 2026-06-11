@@ -1,70 +1,85 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useAuth } from '../../../contexts/auth-context'
-import { getProposalsForUser } from '../mocks/proposals.mock'
-import { normalizeProposalSearch } from '../lib/proposalListUtils'
+import { fetchProposals } from '../lib/proposalsApi'
 import type { ProposalListItem } from '../types/proposal-list-item'
 
-const PAGE_SIZE = 4
-
-const filterProposals = (
-  proposals: ProposalListItem[],
-  query: string,
-): ProposalListItem[] => {
-  const normalizedQuery = normalizeProposalSearch(query)
-
-  if (!normalizedQuery) {
-    return proposals
-  }
-
-  return proposals.filter((proposal) => {
-    const normalizedId = normalizeProposalSearch(proposal.id)
-    const normalizedClientName = normalizeProposalSearch(proposal.clientName)
-    const normalizedOwnerName = normalizeProposalSearch(proposal.ownerName)
-
-    return (
-      normalizedId.includes(normalizedQuery) ||
-      normalizedClientName.includes(normalizedQuery) ||
-      normalizedOwnerName.includes(normalizedQuery)
-    )
-  })
-}
+const PAGE_SIZE = 10
+const SEARCH_DEBOUNCE_MS = 300
 
 export function useProposalsList() {
-  const { user, isAdmin } = useAuth()
-  const userId = user?.id ?? null
+  const { user, isLoading: isAuthLoading } = useAuth()
+  const brokerUserId = user?.id ?? null
 
   const [query, setQuery] = useState('')
+  const [debouncedQuery, setDebouncedQuery] = useState('')
   const [page, setPage] = useState(1)
+  const [items, setItems] = useState<ProposalListItem[]>([])
+  const [totalCount, setTotalCount] = useState(0)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const scopedProposals = useMemo(
-    () => getProposalsForUser(userId, isAdmin),
-    [userId, isAdmin],
-  )
+  useEffect(() => {
+    const timeout = window.setTimeout(() => {
+      setDebouncedQuery(query)
+    }, SEARCH_DEBOUNCE_MS)
 
-  const totalSent = scopedProposals.length
-
-  const filteredItems = useMemo(
-    () => filterProposals(scopedProposals, query),
-    [scopedProposals, query],
-  )
-
-  const totalCount = filteredItems.length
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
+    return () => window.clearTimeout(timeout)
+  }, [query])
 
   useEffect(() => {
     setPage(1)
-  }, [query, userId, isAdmin])
+  }, [debouncedQuery, brokerUserId])
+
+  const loadProposals = useCallback(async () => {
+    if (isAuthLoading) {
+      return
+    }
+
+    if (!brokerUserId) {
+      setItems([])
+      setTotalCount(0)
+      setError('Sessão expirada. Faça login novamente para consultar propostas.')
+      setIsLoading(false)
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      setError(null)
+
+      const response = await fetchProposals({
+        brokerUserId,
+        page,
+        pageSize: PAGE_SIZE,
+        search: debouncedQuery,
+      })
+
+      setItems(response.items)
+      setTotalCount(response.total)
+    } catch (requestError) {
+      setItems([])
+      setTotalCount(0)
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : 'Não foi possível carregar as propostas.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [brokerUserId, debouncedQuery, isAuthLoading, page])
+
+  useEffect(() => {
+    void loadProposals()
+  }, [loadProposals])
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE))
 
   useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages)
     }
   }, [page, totalPages])
-
-  const items = useMemo(() => {
-    const start = (page - 1) * PAGE_SIZE
-    return filteredItems.slice(start, start + PAGE_SIZE)
-  }, [filteredItems, page])
 
   const visibleCount = items.length
   const hasPrev = page > 1
@@ -99,10 +114,13 @@ export function useProposalsList() {
     setQuery,
     page,
     totalPages,
-    totalSent,
+    totalSent: totalCount,
     totalCount,
     visibleCount,
     items,
+    isLoading,
+    error,
+    refetch: loadProposals,
     goToPage,
     prevPage,
     nextPage,
