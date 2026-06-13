@@ -1,4 +1,5 @@
 import { Icon } from '../../../components/ui/Icon'
+import { formatBrazilianPhone } from '../../../lib/phone'
 import { Field } from './Field'
 import { FormSection } from './FormSection'
 
@@ -18,8 +19,12 @@ export function BrokerDataSection({
           <div className="relative">
             <input
               value={brokerPhone}
-              onChange={(event) => onBrokerPhoneChange(event.target.value)}
+              onChange={(event) =>
+                onBrokerPhoneChange(formatBrazilianPhone(event.target.value))
+              }
               placeholder="(85) 99999-9999"
+              inputMode="tel"
+              maxLength={15}
               className="proposal-input pr-12"
             />
             <Icon

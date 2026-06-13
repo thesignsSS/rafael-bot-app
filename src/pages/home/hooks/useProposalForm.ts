@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
+import { formatBrazilianPhone } from '../../../lib/phone'
 import { supabase } from '../../../lib/supabase'
 import { fileKey } from '../lib/proposalUtils'
 import {
@@ -170,7 +171,7 @@ export function useProposalForm() {
       }
 
       if (typeof draft.brokerPhone === 'string') {
-        setBrokerPhone(draft.brokerPhone)
+        setBrokerPhone(formatBrazilianPhone(draft.brokerPhone))
       }
 
       if (draft.propertyType === 'Novo' || draft.propertyType === 'Usado') {

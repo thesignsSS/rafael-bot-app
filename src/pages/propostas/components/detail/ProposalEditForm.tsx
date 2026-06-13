@@ -1,4 +1,6 @@
+import type { InputHTMLAttributes } from 'react'
 import type { PropertyType } from '../../../home/types/proposal'
+import { formatBrazilianPhone } from '../../../../lib/phone'
 import type { ProposalEditDraft } from '../../hooks/useProposalDetailPage'
 
 type ProposalEditFormProps = {
@@ -34,7 +36,11 @@ export function ProposalEditForm({
         <EditField
           label="WhatsApp do corretor"
           value={draft.brokerPhone}
-          onChange={(value) => onChange('brokerPhone', value)}
+          onChange={(value) =>
+            onChange('brokerPhone', formatBrazilianPhone(value))
+          }
+          inputMode="tel"
+          maxLength={15}
         />
         <EditField
           label="Nome do cliente"
@@ -123,9 +129,11 @@ type EditFieldProps = {
   label: string
   value: string
   onChange: (value: string) => void
+  inputMode?: InputHTMLAttributes<HTMLInputElement>['inputMode']
+  maxLength?: number
 }
 
-function EditField({ label, value, onChange }: EditFieldProps) {
+function EditField({ label, value, onChange, inputMode, maxLength }: EditFieldProps) {
   return (
     <label className="flex flex-col gap-1">
       <span className="text-label-sm font-medium text-on-surface-variant">
@@ -135,6 +143,8 @@ function EditField({ label, value, onChange }: EditFieldProps) {
         type="text"
         value={value}
         onChange={(event) => onChange(event.target.value)}
+        inputMode={inputMode}
+        maxLength={maxLength}
         className="h-10 rounded-lg border border-outline-variant bg-surface px-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
       />
     </label>

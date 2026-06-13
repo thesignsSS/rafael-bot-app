@@ -1,4 +1,5 @@
 import { Icon } from '../../../../components/ui/Icon'
+import { formatBrazilianPhone } from '../../../../lib/phone'
 import { ProposalInfoField } from './ProposalInfoField'
 
 type ProposalBrokerCardProps = {
@@ -18,7 +19,7 @@ export function ProposalBrokerCard({ name, phone }: ProposalBrokerCardProps) {
 
       <div className="space-y-4">
         <ProposalInfoField label="Nome" value={name} />
-        <ProposalInfoField label="WhatsApp" value={phone} />
+        <ProposalInfoField label="WhatsApp" value={formatBrazilianPhone(phone)} />
       </div>
     </section>
   )

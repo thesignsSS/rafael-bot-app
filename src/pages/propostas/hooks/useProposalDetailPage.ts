@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
+import { formatBrazilianPhone } from '../../../lib/phone'
 import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
 import type { PropertyType } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
@@ -106,7 +107,7 @@ export function useProposalDetailPage() {
     }
 
     setEditDraft({
-      brokerPhone: proposal.brokerPhone,
+      brokerPhone: formatBrazilianPhone(proposal.brokerPhone),
       clientName: proposal.client.name,
       clientCpf: proposal.client.cpf,
       clientEmail: proposal.client.email,
@@ -143,7 +144,7 @@ export function useProposalDetailPage() {
     }
 
     setEditDraft({
-      brokerPhone: proposal.brokerPhone,
+      brokerPhone: formatBrazilianPhone(proposal.brokerPhone),
       clientName: proposal.client.name,
       clientCpf: proposal.client.cpf,
       clientEmail: proposal.client.email,
