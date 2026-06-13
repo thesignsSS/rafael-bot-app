@@ -9,6 +9,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/propostas': 'Minhas Propostas',
   '/perfil': 'Meu Perfil',
   '/admin': 'Gerenciar Perfis',
+  '/admin/whatsapp': 'Bot do WhatsApp',
 }
 
 function resolveRouteTitle(pathname: string, isAdmin: boolean): string {

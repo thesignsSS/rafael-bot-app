@@ -3,6 +3,7 @@ import { GuestRoute } from '../components/auth/GuestRoute'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import AdminPage from '../pages/admin'
+import AdminWhatsAppPage from '../pages/admin/whatsapp'
 import CadastroPage from '../pages/cadastro'
 import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
@@ -33,6 +34,7 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute allowedRoles={['admin']} />}>
         <Route element={<DashboardLayout />}>
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/admin/whatsapp" element={<AdminWhatsAppPage />} />
         </Route>
       </Route>
 

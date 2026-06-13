@@ -48,12 +48,20 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
           onNavigate={onNavigate}
         />
         {isAdmin ? (
-          <SidebarNavItem
-            icon="manage_accounts"
-            label="Gerenciar Perfis"
-            to="/admin"
-            onNavigate={onNavigate}
-          />
+          <>
+            <SidebarNavItem
+              icon="manage_accounts"
+              label="Gerenciar Perfis"
+              to="/admin"
+              onNavigate={onNavigate}
+            />
+            <SidebarNavItem
+              icon="smartphone"
+              label="Bot do WhatsApp"
+              to="/admin/whatsapp"
+              onNavigate={onNavigate}
+            />
+          </>
         ) : null}
         <SidebarNavButton icon="history" label="Histórico" />
         <SidebarNavButton icon="help" label="Ajuda" />
