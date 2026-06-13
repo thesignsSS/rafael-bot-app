@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../../components/ui/Icon'
 import { useAuth } from '../../../contexts/auth-context'
@@ -23,10 +23,78 @@ function DocumentPreview({
   document: ProposalDocumentPreview
 }) {
   const [isLoading, setIsLoading] = useState(true)
+  const [imageScale, setImageScale] = useState(1)
+  const [imageRotation, setImageRotation] = useState(0)
+  const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 })
+  const [isDraggingImage, setIsDraggingImage] = useState(false)
+  const dragStateRef = useRef<{
+    startX: number
+    startY: number
+    originX: number
+    originY: number
+  } | null>(null)
 
   useEffect(() => {
     setIsLoading(true)
+    setImageScale(1)
+    setImageRotation(0)
+    setImageOffset({ x: 0, y: 0 })
+    setIsDraggingImage(false)
+    dragStateRef.current = null
   }, [document.id, document.url])
+
+  useEffect(() => {
+    if (imageScale <= 1 && (imageOffset.x !== 0 || imageOffset.y !== 0)) {
+      setImageOffset({ x: 0, y: 0 })
+    }
+  }, [imageOffset.x, imageOffset.y, imageScale])
+
+  useEffect(() => {
+    if (!isDraggingImage) {
+      return
+    }
+
+    const handleMouseMove = (event: MouseEvent) => {
+      const dragState = dragStateRef.current
+
+      if (!dragState) {
+        return
+      }
+
+      setImageOffset({
+        x: dragState.originX + (event.clientX - dragState.startX),
+        y: dragState.originY + (event.clientY - dragState.startY),
+      })
+    }
+
+    const handleMouseUp = () => {
+      setIsDraggingImage(false)
+      dragStateRef.current = null
+    }
+
+    window.addEventListener('mousemove', handleMouseMove)
+    window.addEventListener('mouseup', handleMouseUp)
+
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove)
+      window.removeEventListener('mouseup', handleMouseUp)
+    }
+  }, [isDraggingImage])
+
+  function handleImageMouseDown(event: React.MouseEvent<HTMLDivElement>) {
+    if (imageScale <= 1) {
+      return
+    }
+
+    event.preventDefault()
+    dragStateRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      originX: imageOffset.x,
+      originY: imageOffset.y,
+    }
+    setIsDraggingImage(true)
+  }
 
   return (
     <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
@@ -57,14 +125,93 @@ function DocumentPreview({
         ) : null}
 
         {document.kind === 'image' ? (
-          <div className="flex max-h-[calc(100dvh-180px)] justify-center overflow-auto rounded-lg border border-outline-variant bg-white p-3">
-            <img
-              src={document.url}
-              alt={document.fileName}
-              onLoad={() => setIsLoading(false)}
-              className="h-auto max-w-full object-contain"
-            />
-          </div>
+          <>
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3">
+              <p className="text-body-sm text-on-surface-variant">
+                Ajuste a visualização da imagem com zoom, giro e reset.
+              </p>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImageScale((current) => Math.max(0.5, current - 0.1))}
+                  className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
+                  aria-label="Diminuir zoom"
+                  title="Diminuir zoom"
+                >
+                  <Icon name="zoom_out" size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageScale((current) => Math.min(3, current + 0.1))}
+                  className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
+                  aria-label="Aumentar zoom"
+                  title="Aumentar zoom"
+                >
+                  <Icon name="zoom_in" size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageRotation((current) => current - 90)}
+                  className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
+                  aria-label="Girar para a esquerda"
+                  title="Girar para a esquerda"
+                >
+                  <Icon name="rotate_90_degrees_ccw" size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageRotation((current) => current + 90)}
+                  className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
+                  aria-label="Girar para a direita"
+                  title="Girar para a direita"
+                >
+                  <Icon name="rotate_90_degrees_cw" size={18} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setImageScale(1)
+                    setImageRotation(0)
+                    setImageOffset({ x: 0, y: 0 })
+                  }}
+                  className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
+                  aria-label="Resetar visualização"
+                  title="Resetar visualização"
+                >
+                  <Icon name="restart_alt" size={18} />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex max-h-[calc(100dvh-180px)] justify-center overflow-auto rounded-lg border border-outline-variant bg-white p-3">
+              <div
+                onMouseDown={handleImageMouseDown}
+                className={`flex items-center justify-center ${
+                  imageScale > 1
+                    ? isDraggingImage
+                      ? 'cursor-grabbing'
+                      : 'cursor-grab'
+                    : 'cursor-default'
+                }`}
+                style={{
+                  transform: `translate(${imageOffset.x}px, ${imageOffset.y}px)`,
+                }}
+              >
+                <img
+                  src={document.url}
+                  alt={document.fileName}
+                  onLoad={() => setIsLoading(false)}
+                  draggable={false}
+                  className="h-auto max-w-full select-none object-contain transition-transform duration-200"
+                  style={{
+                    transform: `scale(${imageScale}) rotate(${imageRotation}deg)`,
+                    transformOrigin: 'center center',
+                  }}
+                />
+              </div>
+            </div>
+          </>
         ) : (
           <iframe
             title={document.fileName}
