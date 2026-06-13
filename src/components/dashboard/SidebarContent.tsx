@@ -41,6 +41,12 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
           showIndicator={!isAdmin && hasPending}
           onNavigate={onNavigate}
         />
+        <SidebarNavItem
+          icon="person"
+          label="Meu Perfil"
+          to="/perfil"
+          onNavigate={onNavigate}
+        />
         <SidebarNavButton icon="history" label="Histórico" />
         <SidebarNavButton icon="help" label="Ajuda" />
       </nav>

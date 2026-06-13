@@ -7,6 +7,7 @@ import { usePermissionDeniedToast } from '../../hooks/usePermissionDeniedToast'
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Nova Proposta',
   '/propostas': 'Minhas Propostas',
+  '/perfil': 'Meu Perfil',
 }
 
 function resolveRouteTitle(pathname: string, isAdmin: boolean): string {
@@ -40,6 +41,10 @@ export function useDashboardLayout() {
     navigate('/login', { replace: true })
   }, [signOut, navigate])
 
+  const handleOpenProfile = useCallback(() => {
+    navigate('/perfil')
+  }, [navigate])
+
   useEffect(() => {
     closeSidebar()
   }, [pathname, closeSidebar])
@@ -49,6 +54,7 @@ export function useDashboardLayout() {
     currentUserProfile,
     user,
     isAdmin,
+    handleOpenProfile,
     handleSignOut,
     isSidebarOpen,
     openSidebar,

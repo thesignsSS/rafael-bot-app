@@ -5,6 +5,7 @@ import { DashboardLayout } from '../layouts/DashboardLayout'
 import CadastroPage from '../pages/cadastro'
 import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
+import PerfilPage from '../pages/perfil'
 import PropostasPage from '../pages/propostas'
 import ProposalDetailPage from '../pages/propostas/detail'
 import ProposalDocumentsPage from '../pages/propostas/documentos'
@@ -18,6 +19,7 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/propostas" element={<PropostasPage />} />
           <Route
             path="/propostas/:proposalId/documentos"

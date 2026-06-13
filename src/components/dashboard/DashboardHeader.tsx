@@ -9,6 +9,7 @@ type DashboardHeaderProps = {
   currentUserProfile: CurrentUserProfile | null
   user: User | null
   isAdmin?: boolean
+  onOpenProfile: () => void
   onSignOut: () => void
   onOpenSidebar: () => void
 }
@@ -18,6 +19,7 @@ export function DashboardHeader({
   currentUserProfile,
   user,
   isAdmin = false,
+  onOpenProfile,
   onSignOut,
   onOpenSidebar,
 }: DashboardHeaderProps) {
@@ -29,6 +31,11 @@ export function DashboardHeader({
   const handleSignOut = () => {
     closeMenu()
     onSignOut()
+  }
+
+  const handleOpenProfile = () => {
+    closeMenu()
+    onOpenProfile()
   }
 
   return (
@@ -78,6 +85,15 @@ export function DashboardHeader({
                 role="menu"
                 className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-40 overflow-hidden rounded-lg border border-outline-variant bg-white shadow-xl"
               >
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={handleOpenProfile}
+                  className="flex w-full items-center gap-2 px-4 py-3 text-left text-body-md text-on-surface transition-colors hover:bg-surface-container-low"
+                >
+                  <Icon name="person" size={18} className="text-on-surface-variant" />
+                  Meu perfil
+                </button>
                 <button
                   type="button"
                   role="menuitem"

@@ -10,6 +10,7 @@ export function DashboardLayout() {
     currentUserProfile,
     user,
     isAdmin,
+    handleOpenProfile,
     handleSignOut,
     isSidebarOpen,
     openSidebar,
@@ -26,6 +27,7 @@ export function DashboardLayout() {
           currentUserProfile={currentUserProfile}
           user={user}
           isAdmin={isAdmin}
+          onOpenProfile={handleOpenProfile}
           onSignOut={handleSignOut}
           onOpenSidebar={openSidebar}
         />

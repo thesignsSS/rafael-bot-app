@@ -77,6 +77,47 @@ function upsertMessageInList(currentItems: ChatMessageItem[], nextItem: ChatMess
   )
 }
 
+function playIncomingMessageSound() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const AudioContextConstructor =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
+  if (!AudioContextConstructor) {
+    return
+  }
+
+  try {
+    const audioContext = new AudioContextConstructor()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    const now = audioContext.currentTime
+
+    oscillator.type = 'sine'
+    oscillator.frequency.setValueAtTime(880, now)
+    oscillator.frequency.exponentialRampToValueAtTime(660, now + 0.16)
+
+    gainNode.gain.setValueAtTime(0.0001, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.05, now + 0.02)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.18)
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    oscillator.start(now)
+    oscillator.stop(now + 0.18)
+
+    oscillator.onended = () => {
+      void audioContext.close().catch(() => undefined)
+    }
+  } catch {
+    return
+  }
+}
+
 export function ChatWidget() {
   const { currentUserProfile } = useAuth()
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false)
@@ -257,6 +298,10 @@ export function ChatWidget() {
           return currentValue === payload.conversationId ? null : currentValue
         })
         return
+      }
+
+      if (payload.message.senderUserId !== currentUserId) {
+        playIncomingMessageSound()
       }
 
       setConversations((currentItems) =>
