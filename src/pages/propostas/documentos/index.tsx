@@ -91,8 +91,8 @@ export default function ProposalDocumentsPage() {
   >([])
   const brokerUserId = user?.id ?? null
   const pageTitle = proposal
-    ? `Documentos ${proposal.proposalCode} | Rafael Bot`
-    : 'Documentos da Proposta | Rafael Bot'
+    ? `Documentos ${proposal.proposalCode} | Effectus`
+    : 'Documentos da Proposta | Effectus'
 
   useDocumentTitle(pageTitle)
 

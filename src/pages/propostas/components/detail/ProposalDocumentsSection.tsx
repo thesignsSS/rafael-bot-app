@@ -7,6 +7,7 @@ type ProposalDocumentsSectionProps = {
   documents: ProposalDocument[]
   isBusy?: boolean
   onRename: (documentId: string) => void
+  onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
   onView: (documentId: string) => void
   onViewAll: () => void
@@ -17,6 +18,7 @@ export function ProposalDocumentsSection({
   documents,
   isBusy = false,
   onRename,
+  onDownload,
   onDelete,
   onView,
   onViewAll,
@@ -58,6 +60,7 @@ export function ProposalDocumentsSection({
               document={document}
               isBusy={isBusy}
               onRename={onRename}
+              onDownload={onDownload}
               onDelete={onDelete}
               onView={onView}
             />

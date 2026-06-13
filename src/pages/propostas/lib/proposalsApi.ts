@@ -213,6 +213,20 @@ export type DownloadProposalZipResponse = {
   filename: string
 }
 
+function extractFilenameFromDisposition(disposition: string | null) {
+  if (!disposition) {
+    return null
+  }
+
+  const utf8Match = disposition.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8Match?.[1]) {
+    return decodeURIComponent(utf8Match[1])
+  }
+
+  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i)
+  return filenameMatch?.[1] ?? null
+}
+
 export async function downloadProposalZip(
   proposalId: string,
   brokerUserId: string,
@@ -228,12 +242,37 @@ export async function downloadProposalZip(
     throw new Error(getProposalsErrorMessage(response.status))
   }
 
-  const disposition = response.headers.get('Content-Disposition') ?? ''
-  const filenameMatch = disposition.match(/filename="?([^"]+)"?/i)
+  return {
+    blob: await response.blob(),
+    filename:
+      extractFilenameFromDisposition(response.headers.get('Content-Disposition')) ??
+      `proposta-${proposalId}.zip`,
+  }
+}
+
+export async function downloadProposalDocument(
+  proposalId: string,
+  documentId: string,
+  brokerUserId: string,
+): Promise<DownloadProposalZipResponse> {
+  const url = new URL(
+    `${getProposalsApiUrl()}/${proposalId}/documents/${documentId}/download`,
+  )
+  url.searchParams.set('brokerUserId', brokerUserId)
+
+  const response = await fetch(url.toString(), {
+    headers: getRequestHeaders(),
+  })
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
 
   return {
     blob: await response.blob(),
-    filename: filenameMatch?.[1] ?? `proposta-${proposalId}.zip`,
+    filename:
+      extractFilenameFromDisposition(response.headers.get('Content-Disposition')) ??
+      `documento-${documentId}`,
   }
 }
 

@@ -6,6 +6,7 @@ type SidebarNavItemProps = {
   label: string
   to: string
   end?: boolean
+  showIndicator?: boolean
   onNavigate?: () => void
 }
 
@@ -14,6 +15,7 @@ export function SidebarNavItem({
   label,
   to,
   end = false,
+  showIndicator = false,
   onNavigate,
 }: SidebarNavItemProps) {
   return (
@@ -30,7 +32,16 @@ export function SidebarNavItem({
       }
     >
       <Icon name={icon} size={20} />
-      <span>{label}</span>
+      <span className="flex min-w-0 items-center gap-2">
+        <span>{label}</span>
+        {showIndicator ? (
+          <span
+            className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.14)] animate-gentle-pulse"
+            aria-label="Há proposta pendente"
+            title="Há proposta pendente"
+          />
+        ) : null}
+      </span>
     </NavLink>
   )
 }

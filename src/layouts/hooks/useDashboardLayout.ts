@@ -18,7 +18,7 @@ function resolveRouteTitle(pathname: string, isAdmin: boolean): string {
     return 'Todas as Propostas'
   }
 
-  return ROUTE_TITLES[pathname] ?? 'Rafael Bot'
+  return ROUTE_TITLES[pathname] ?? 'Effectus'
 }
 
 export function useDashboardLayout() {

@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import type { ProposalComment } from '../../types/proposal-detail'
 
 type PendingDocumentDraft = {
@@ -9,6 +10,8 @@ type ProposalCommentsSectionProps = {
   pendingReason: string
   comments: ProposalComment[]
   emphasized?: boolean
+  highlightedCommentId?: string | null
+  scrollToCommentId?: string | null
   pendingDocuments: PendingDocumentDraft[]
   commentDraft: string
   isSavingComment: boolean
@@ -68,6 +71,8 @@ export function ProposalCommentsSection({
   pendingReason,
   comments,
   emphasized = false,
+  highlightedCommentId = null,
+  scrollToCommentId = null,
   pendingDocuments,
   commentDraft,
   isSavingComment,
@@ -83,6 +88,19 @@ export function ProposalCommentsSection({
   onRemovePendingDocument,
   onResend,
 }: ProposalCommentsSectionProps) {
+  const scrollTargetRef = useRef<HTMLElement | null>(null)
+
+  useEffect(() => {
+    if (!scrollToCommentId || !scrollTargetRef.current) {
+      return
+    }
+
+    scrollTargetRef.current.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    })
+  }, [scrollToCommentId])
+
   return (
     <section
       className={`rounded-xl p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)] ${
@@ -111,12 +129,21 @@ export function ProposalCommentsSection({
         </div>
       ) : null}
 
-      <div className="mt-5 space-y-3">
+      <div
+        className={`mt-5 space-y-3 ${
+          comments.length > 5 ? 'max-h-[460px] overflow-y-auto pr-2' : ''
+        }`}
+      >
         {comments.length > 0 ? (
           comments.map((comment) => (
             <article
               key={comment.id}
-              className="rounded-xl border border-outline-variant bg-white p-4"
+              ref={comment.id === scrollToCommentId ? scrollTargetRef : null}
+              className={`rounded-xl border bg-white p-4 ${
+                comment.id === highlightedCommentId
+                  ? 'border-amber-300 bg-amber-50/70 shadow-[0px_10px_26px_rgba(245,158,11,0.12)] animate-pending-comment-glow'
+                  : 'border-outline-variant'
+              }`}
             >
               <div className="flex flex-wrap items-center gap-2">
                 <span className="text-label-md font-semibold text-on-surface">

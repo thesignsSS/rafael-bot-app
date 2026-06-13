@@ -12,7 +12,7 @@ export function AuthShell({ children }: AuthShellProps) {
       </main>
       <footer className="w-full py-6 text-center">
         <p className="text-body-sm text-secondary opacity-70">
-          © 2026 Rafael Bot. Todos os direitos reservados.
+          © 2026 Effectus. Todos os direitos reservados.
         </p>
       </footer>
     </div>

@@ -11,7 +11,7 @@ export function AuthHeader({ subtitle }: AuthHeaderProps) {
         <Icon name="robot_2" size={40} />
       </div>
       <h1 className="text-headline-xl font-bold tracking-tight text-primary">
-        Rafael Bot
+        Effectus
       </h1>
       <p className="text-body-md text-on-surface-variant">Documentos e Gestão</p>
       {subtitle ? (

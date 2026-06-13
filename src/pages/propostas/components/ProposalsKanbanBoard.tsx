@@ -14,6 +14,7 @@ type ProposalsKanbanBoardProps = {
   isLoading?: boolean
   error?: string | null
   canMoveCards: boolean
+  highlightOwnedPendingCards?: boolean
   statusOptions: ProposalStatusOption[]
   movingProposalId?: string | null
   onSelectProposal: (proposalId: string) => void
@@ -34,6 +35,7 @@ export function ProposalsKanbanBoard({
   isLoading = false,
   error = null,
   canMoveCards,
+  highlightOwnedPendingCards = false,
   statusOptions,
   movingProposalId = null,
   onSelectProposal,
@@ -159,6 +161,9 @@ export function ProposalsKanbanBoard({
               ) : (
                 column.items.map((proposal) => {
                   const isMoving = movingProposalId === proposal.id
+                  const isPendingOwnedHighlight =
+                    highlightOwnedPendingCards &&
+                    normalizeProposalStatus(proposal.status) === 'pendente'
 
                   return (
                     <div
@@ -195,7 +200,11 @@ export function ProposalsKanbanBoard({
                       }
                       className={`w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-4 text-left shadow-[0px_1px_3px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                         canMoveCards ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-                      } ${isMoving ? 'opacity-60' : ''}`}
+                      } ${isMoving ? 'opacity-60' : ''} ${
+                        isPendingOwnedHighlight
+                          ? 'border-amber-300 bg-amber-50/80 shadow-[0px_8px_24px_rgba(245,158,11,0.16)] animate-pending-card-glow'
+                          : ''
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="min-w-0">

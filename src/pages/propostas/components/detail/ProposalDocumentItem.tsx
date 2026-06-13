@@ -11,6 +11,7 @@ type ProposalDocumentItemProps = {
   document: ProposalDocument
   isBusy?: boolean
   onRename: (documentId: string) => void
+  onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
   onView: (documentId: string) => void
 }
@@ -19,6 +20,7 @@ export function ProposalDocumentItem({
   document,
   isBusy = false,
   onRename,
+  onDownload,
   onDelete,
   onView,
 }: ProposalDocumentItemProps) {
@@ -56,6 +58,15 @@ export function ProposalDocumentItem({
           className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary-container/20 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
         >
           <Icon name="edit" size={20} />
+        </button>
+        <button
+          type="button"
+          title="Baixar"
+          onClick={() => onDownload(document.id)}
+          disabled={isBusy}
+          className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary-container/20 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          <Icon name="download" size={20} />
         </button>
         <button
           type="button"

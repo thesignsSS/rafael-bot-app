@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
 
 export function useCadastroPage() {
-  useDocumentTitle('Rafael Bot - Cadastro')
+  useDocumentTitle('Effectus - Cadastro')
 
   const [pendingEmail, setPendingEmail] = useState<string | null>(null)
 

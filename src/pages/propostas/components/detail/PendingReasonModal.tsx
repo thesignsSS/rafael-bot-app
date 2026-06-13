@@ -1,3 +1,5 @@
+import { createPortal } from 'react-dom'
+
 type PendingReasonModalProps = {
   isOpen: boolean
   isSaving: boolean
@@ -19,7 +21,7 @@ export function PendingReasonModal({
     return null
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/55 p-4 backdrop-blur-[2px]">
       <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_20px_40px_rgba(0,0,0,0.18)]">
         <h3 className="text-headline-md font-semibold text-on-surface">
@@ -58,6 +60,7 @@ export function PendingReasonModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

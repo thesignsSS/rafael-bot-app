@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
+import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
@@ -10,7 +11,11 @@ type SidebarContentProps = {
 }
 
 export function SidebarContent({ onNavigate, trailingAction }: SidebarContentProps) {
-  const { isAdmin } = useAuth()
+  const { currentUserProfile, isAdmin } = useAuth()
+  const { hasPending } = usePendingProposalIndicator({
+    brokerUserId: currentUserProfile?.id,
+    enabled: !isAdmin,
+  })
 
   return (
     <>
@@ -20,7 +25,7 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
             <Icon name="robot_2" size={24} />
           </div>
           <div className="min-w-0">
-            <h1 className="text-headline-md font-bold text-on-surface">Rafael Bot</h1>
+            <h1 className="text-headline-md font-bold text-on-surface">Effectus</h1>
             <p className="text-body-sm text-on-surface-variant">Documentos</p>
           </div>
         </div>
@@ -33,6 +38,7 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
           icon="description"
           label={isAdmin ? 'Todas as Propostas' : 'Minhas Propostas'}
           to="/propostas"
+          showIndicator={!isAdmin && hasPending}
           onNavigate={onNavigate}
         />
         <SidebarNavButton icon="history" label="Histórico" />

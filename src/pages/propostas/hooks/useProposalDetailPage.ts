@@ -8,6 +8,7 @@ import type { PropertyType } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
 import {
   deleteProposalDocument,
+  downloadProposalDocument,
   downloadProposalZip,
   renameProposalDocument,
   updateProposal,
@@ -81,8 +82,8 @@ export function useProposalDetailPage() {
   const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
 
   const pageTitle = proposal
-    ? `Proposta ${proposal.proposalCode} | Rafael Bot`
-    : 'Detalhes da Proposta | Rafael Bot'
+    ? `Proposta ${proposal.proposalCode} | Effectus`
+    : 'Detalhes da Proposta | Effectus'
 
   useDocumentTitle(pageTitle)
 
@@ -349,6 +350,36 @@ export function useProposalDetailPage() {
       }
     },
     [proposal?.documents, refetch, requireProposalContext],
+  )
+
+  const downloadDocument = useCallback(
+    async (documentId: string) => {
+      try {
+        const context = requireProposalContext()
+        const document = proposal?.documents.find((item) => item.id === documentId)
+        const result = await downloadProposalDocument(
+          context.proposalId,
+          documentId,
+          context.brokerUserId,
+        )
+
+        downloadBlob(
+          result.blob,
+          result.filename ||
+            document?.displayName ||
+            document?.originalFilename ||
+            document?.filename ||
+            'documento',
+        )
+      } catch (downloadError) {
+        toast.error(
+          downloadError instanceof Error
+            ? downloadError.message
+            : 'Não foi possível baixar o documento.',
+        )
+      }
+    },
+    [proposal?.documents, requireProposalContext],
   )
 
   const deleteDocument = useCallback(
@@ -630,6 +661,7 @@ export function useProposalDetailPage() {
     setPendingReasonDraft,
     downloadAll,
     renameDocument,
+    downloadDocument,
     deleteDocument,
     viewDocument,
     openAllDocumentsPreview,

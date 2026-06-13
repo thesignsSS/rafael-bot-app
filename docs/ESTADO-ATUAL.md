@@ -1,4 +1,4 @@
-# Estado atual do bot-rafael-app
+# Estado atual do Effectus
 
 Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de perfil atual via `/api/me`, integração real de propostas com backend, auth Supabase e permissionamento.
 
@@ -6,7 +6,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de p
 
 | Aspecto | Situação atual |
 |---------|----------------|
-| **Propósito** | Frontend SPA para interface do bot Rafael; auth com Supabase e cadastro de proposta imobiliária |
+| **Propósito** | Frontend SPA do Effectus; auth com Supabase e cadastro de proposta imobiliária |
 | **Stack** | React 19, TypeScript 5.8, Vite 6, Tailwind CSS 4, ESLint 9 |
 | **Linguagem** | TypeScript (`.ts` / `.tsx`), modo `strict` |
 | **Roteamento** | `react-router-dom`: `/` e `/propostas` protegidas (layout dashboard); `/redefinir-senha` pública (valida token manualmente); `/login`, `/cadastro`, `/recuperar-senha` para convidados |
@@ -40,7 +40,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de p
 ## Estrutura de diretórios
 
 ```
-bot-rafael-app/
+effectus-app/
 ├── .env.example
 ├── DESIGN.md
 ├── docs/

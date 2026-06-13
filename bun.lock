@@ -3,7 +3,7 @@
   "configVersion": 0,
   "workspaces": {
     "": {
-      "name": "bot-rafael-app",
+      "name": "effectus-app",
       "dependencies": {
         "@supabase/supabase-js": "^2.106.2",
         "react": "^19.1.0",

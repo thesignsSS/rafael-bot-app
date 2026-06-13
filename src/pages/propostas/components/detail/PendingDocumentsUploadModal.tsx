@@ -1,4 +1,5 @@
 import { useMemo, useState, type DragEvent } from 'react'
+import { createPortal } from 'react-dom'
 import { Icon } from '../../../../components/ui/Icon'
 
 type PendingDocumentsUploadModalProps = {
@@ -89,7 +90,7 @@ export function PendingDocumentsUploadModal({
     setIsDragging(false)
   }
 
-  return (
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/55 p-4 backdrop-blur-[2px]">
       <div className="w-full max-w-2xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_20px_40px_rgba(0,0,0,0.18)]">
         <div className="flex items-start justify-between gap-4">
@@ -222,6 +223,7 @@ export function PendingDocumentsUploadModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

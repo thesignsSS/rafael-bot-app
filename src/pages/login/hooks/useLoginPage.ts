@@ -4,7 +4,7 @@ import { toast } from 'sonner'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
 
 export function useLoginPage() {
-  useDocumentTitle('Rafael Bot - Login')
+  useDocumentTitle('Effectus - Login')
 
   const location = useLocation()
   const navigate = useNavigate()

@@ -36,6 +36,7 @@ export default function PropostasPage() {
         isLoading={list.isLoading}
         error={list.error}
         canMoveCards={isAdmin}
+        highlightOwnedPendingCards={!isAdmin}
         statusOptions={list.statusOptions}
         movingProposalId={list.movingProposalId}
         onSelectProposal={goToProposalDetail}

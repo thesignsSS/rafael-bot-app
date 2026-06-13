@@ -4,7 +4,7 @@ Instruções para agentes de código que trabalham neste repositório. Formato c
 
 ## Project Overview
 
-**bot-rafael-app** é um frontend SPA para interface do bot “Rafael”. Auth via **Supabase** (e-mail/senha); rota `/` protegida com formulário de proposta imobiliária e envio HTTP para o servidor do bot.
+**Effectus** é um frontend SPA da plataforma. Auth via **Supabase** (e-mail/senha); rota `/` protegida com formulário de proposta imobiliária e envio HTTP para o servidor do bot.
 
 | Tecnologia | Uso |
 |------------|-----|

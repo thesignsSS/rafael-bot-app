@@ -1,3 +1,5 @@
+import { AssistantWidget } from './components/assistant/AssistantWidget'
+import { ChatWidget } from './components/chat/ChatWidget'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './contexts/AuthProvider'
 import { useAuth } from './contexts/auth-context'
@@ -56,6 +58,8 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <ChatWidget />
+      <AssistantWidget />
       <Toaster position="top-center" richColors />
     </AuthProvider>
   )

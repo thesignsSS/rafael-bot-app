@@ -7,7 +7,7 @@ export function useProposalsListPage() {
   const { isAdmin } = useAuth()
 
   useDocumentTitle(
-    isAdmin ? 'Todas as Propostas | Rafael Bot' : 'Minhas Propostas | Rafael Bot',
+    isAdmin ? 'Todas as Propostas | Effectus' : 'Minhas Propostas | Effectus',
   )
 
   const navigate = useNavigate()

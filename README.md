@@ -1,6 +1,6 @@
-# bot-rafael-app
+# Effectus
 
-Frontend SPA do Rafael Bot com [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), [Vite](https://vite.dev), [Tailwind CSS](https://tailwindcss.com) v4 e auth via Supabase.
+Frontend SPA do Effectus com [React](https://react.dev), [TypeScript](https://www.typescriptlang.org), [Vite](https://vite.dev), [Tailwind CSS](https://tailwindcss.com) v4 e auth via Supabase.
 
 ## Documentação
 
