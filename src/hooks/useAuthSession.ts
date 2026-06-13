@@ -26,6 +26,7 @@ function buildFallbackProfile(user: User): CurrentUserProfile {
     fullName,
     role,
     isAdmin: isAdminRole(role),
+    isActive: true,
   }
 }
 
@@ -74,6 +75,15 @@ export function useAuthSession(): AuthContextValue {
       const profile = await fetchCurrentUserProfile(userId)
 
       if (requestId !== requestIdRef.current) {
+        return
+      }
+
+      if (!profile.isActive) {
+        profileCacheRef.current.delete(userId)
+        setCurrentUserProfile(null)
+        setProfileError('Seu perfil está inativo. Entre em contato com um administrador.')
+        setIsLoading(false)
+        await supabase.auth.signOut()
         return
       }
 

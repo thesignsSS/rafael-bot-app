@@ -47,6 +47,14 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
           to="/perfil"
           onNavigate={onNavigate}
         />
+        {isAdmin ? (
+          <SidebarNavItem
+            icon="manage_accounts"
+            label="Gerenciar Perfis"
+            to="/admin"
+            onNavigate={onNavigate}
+          />
+        ) : null}
         <SidebarNavButton icon="history" label="Histórico" />
         <SidebarNavButton icon="help" label="Ajuda" />
       </nav>

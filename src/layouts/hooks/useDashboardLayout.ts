@@ -8,6 +8,7 @@ const ROUTE_TITLES: Record<string, string> = {
   '/': 'Nova Proposta',
   '/propostas': 'Minhas Propostas',
   '/perfil': 'Meu Perfil',
+  '/admin': 'Gerenciar Perfis',
 }
 
 function resolveRouteTitle(pathname: string, isAdmin: boolean): string {

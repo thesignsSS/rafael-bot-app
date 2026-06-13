@@ -8,6 +8,7 @@ export type CurrentUserProfile = {
   fullName: string
   role: UserRole
   isAdmin: boolean
+  isActive: boolean
 }
 
 type CurrentUserProfileApiResponse =
@@ -16,6 +17,7 @@ type CurrentUserProfileApiResponse =
       fullName: string
       role: string
       isAdmin: boolean
+      isActive: boolean
     }
   | {
       ok: false
@@ -77,6 +79,7 @@ export async function fetchCurrentUserProfile(
     fullName: data.fullName,
     role: parseUserRole(data.role),
     isAdmin: data.isAdmin,
+    isActive: data.isActive !== false,
   }
 }
 
