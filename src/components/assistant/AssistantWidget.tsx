@@ -2,13 +2,25 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/auth-context'
-import { sendAssistantMessage, type AssistantMessage } from '../../lib/assistant'
+import {
+  ASSISTANT_CONTEXT_EVENT,
+  ASSISTANT_OPEN_EVENT,
+  sendAssistantMessage,
+  type AssistantMessage,
+  type AssistantProposalContext,
+} from '../../lib/assistant'
 import { Icon } from '../ui/Icon'
 
 const QUICK_PROMPTS = [
   'Como funciona o envio de uma proposta?',
   'O que significa proposta pendente?',
   'Quais documentos eu preciso enviar?',
+]
+
+const PROPOSAL_QUICK_PROMPTS = [
+  'Me resume as pendências desta proposta.',
+  'Qual a melhor ordem para resolver isso?',
+  'O que falta para reenviar essa proposta?',
 ]
 
 const ROUTE_LABELS: Record<string, string> = {
@@ -43,12 +55,39 @@ function buildMessage(role: AssistantMessage['role'], content: string): Assistan
   }
 }
 
+function renderMessageContent(content: string) {
+  return content.split('\n').map((line, lineIndex) => (
+    <span key={`line-${lineIndex}`} className="block">
+      {renderInlineFormatting(line)}
+    </span>
+  ))
+}
+
+function renderInlineFormatting(content: string) {
+  const parts = content.split(/(\*\*[^*]+\*\*)/g)
+
+  return parts.map((part, index) => {
+    const boldMatch = part.match(/^\*\*([^*]+)\*\*$/)
+
+    if (boldMatch) {
+      return (
+        <strong key={`part-${index}`} className="font-semibold">
+          {boldMatch[1]}
+        </strong>
+      )
+    }
+
+    return <span key={`part-${index}`}>{part}</span>
+  })
+}
+
 export function AssistantWidget() {
   const { pathname } = useLocation()
   const { currentUserProfile } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isSending, setIsSending] = useState(false)
+  const [proposalContext, setProposalContext] = useState<AssistantProposalContext | null>(null)
   const routeLabel = useMemo(() => resolveRouteLabel(pathname), [pathname])
   const firstName = useMemo(
     () => getFirstName(currentUserProfile?.fullName),
@@ -64,6 +103,10 @@ export function AssistantWidget() {
   const [messages, setMessages] = useState<AssistantMessage[]>([
     buildMessage('assistant', welcomeMessage),
   ])
+  const quickPrompts = useMemo(
+    () => (proposalContext ? PROPOSAL_QUICK_PROMPTS : QUICK_PROMPTS),
+    [proposalContext],
+  )
 
   useEffect(() => {
     setMessages((currentMessages) => {
@@ -83,6 +126,40 @@ export function AssistantWidget() {
       return currentMessages
     })
   }, [welcomeMessage])
+
+  useEffect(() => {
+    const handleAssistantOpen = (event: Event) => {
+      const customEvent = event as CustomEvent<{ prompt?: string }>
+
+      setIsOpen(true)
+
+      if (customEvent.detail?.prompt) {
+        setInputValue(customEvent.detail.prompt)
+      }
+    }
+
+    const handleAssistantContext = (event: Event) => {
+      const customEvent = event as CustomEvent<AssistantProposalContext | null>
+      setProposalContext(customEvent.detail ?? null)
+    }
+
+    window.addEventListener(ASSISTANT_OPEN_EVENT, handleAssistantOpen as EventListener)
+    window.addEventListener(
+      ASSISTANT_CONTEXT_EVENT,
+      handleAssistantContext as EventListener,
+    )
+
+    return () => {
+      window.removeEventListener(
+        ASSISTANT_OPEN_EVENT,
+        handleAssistantOpen as EventListener,
+      )
+      window.removeEventListener(
+        ASSISTANT_CONTEXT_EVENT,
+        handleAssistantContext as EventListener,
+      )
+    }
+  }, [])
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -107,6 +184,7 @@ export function AssistantWidget() {
         routeLabel,
         history: messages,
         userName: currentUserProfile?.fullName,
+        proposalContext,
       })
 
       setMessages([
@@ -166,13 +244,15 @@ export function AssistantWidget() {
               </div>
             </div>
             <p className="mt-3 text-body-md text-white/82">
-              Tira dúvida sobre uso do sistema, documentos, propostas e pendências.
+              {proposalContext
+                ? `Contexto ativo: proposta ${proposalContext.proposalCode}. Posso resumir pendências, próximos passos e tratativa.`
+                : 'Tira dúvida sobre uso do sistema, documentos, propostas e pendências.'}
             </p>
           </div>
 
           <div className="border-b border-outline-variant bg-surface-container-low px-4 py-3">
             <div className="flex flex-wrap gap-2">
-              {QUICK_PROMPTS.map((prompt) => (
+              {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
@@ -198,7 +278,9 @@ export function AssistantWidget() {
                       : 'rounded-br-md bg-primary text-on-primary'
                   }`}
                 >
-                  {message.content}
+                  <div className="space-y-1 whitespace-pre-wrap break-words">
+                    {renderMessageContent(message.content)}
+                  </div>
                 </div>
               </div>
             ))}
@@ -235,7 +317,9 @@ export function AssistantWidget() {
               </button>
             </div>
             <p className="mt-2 text-body-sm text-on-surface-variant">
-              Responde só sobre uso e negócio do Effectus. Assuntos técnicos ficam de fora.
+              {proposalContext
+                ? 'Com o contexto da proposta ativo, o assistente responde de forma mais objetiva sobre a tratativa.'
+                : 'Responde só sobre uso e negócio do Effectus. Assuntos técnicos ficam de fora.'}
             </p>
           </form>
         </div>

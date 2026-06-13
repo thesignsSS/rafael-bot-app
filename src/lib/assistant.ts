@@ -6,6 +6,33 @@ export type AssistantMessage = {
   content: string
 }
 
+export type AssistantProposalContext = {
+  proposalId: string
+  proposalCode: string
+  status: string
+  statusLabel: string
+  brokerName: string
+  clientName: string
+  propertyCity: string
+  pendingReason: string
+  nextStepLabel: string
+  tasks: Array<{
+    title: string
+    detail: string
+    status: string
+  }>
+  latestComment: {
+    authorName: string
+    authorRole: string
+    message: string
+    createdAt: string
+    type: string
+  } | null
+}
+
+export const ASSISTANT_OPEN_EVENT = 'effectus:open-assistant'
+export const ASSISTANT_CONTEXT_EVENT = 'effectus:set-assistant-context'
+
 type AssistantChatResponse = {
   ok: boolean
   answer?: string
@@ -37,6 +64,7 @@ export async function sendAssistantMessage(input: {
   routePath: string
   routeLabel: string
   userName?: string
+  proposalContext?: AssistantProposalContext | null
 }) {
   if (!assistantApiUrl) {
     throw new Error('Endpoint do assistente não configurado.')
@@ -58,6 +86,7 @@ export async function sendAssistantMessage(input: {
       routePath: input.routePath,
       routeLabel: input.routeLabel,
       userName: input.userName,
+      proposalContext: input.proposalContext ?? null,
       history: input.history.slice(-6).map(({ role, content }) => ({
         role,
         content,

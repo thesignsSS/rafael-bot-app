@@ -1,31 +1,17 @@
 import { useEffect, useRef } from 'react'
 import type { ProposalComment } from '../../types/proposal-detail'
 
-type PendingDocumentDraft = {
-  file: File
-  key: string
-}
-
 type ProposalCommentsSectionProps = {
   pendingReason: string
   comments: ProposalComment[]
   emphasized?: boolean
   highlightedCommentId?: string | null
   scrollToCommentId?: string | null
-  pendingDocuments: PendingDocumentDraft[]
   commentDraft: string
   isSavingComment: boolean
-  isUploadingPendingDocuments: boolean
-  isResending: boolean
   canAddComment: boolean
-  canUploadPendingDocuments: boolean
-  canResend: boolean
-  hasPendingUpdates: boolean
   onCommentDraftChange: (value: string) => void
   onAddComment: () => void
-  onUploadPendingDocuments: () => void
-  onRemovePendingDocument: (file: File) => void
-  onResend: () => void
 }
 
 function formatCommentDate(value: string) {
@@ -53,40 +39,17 @@ function getCommentTypeLabel(type: ProposalComment['type']) {
   return 'Comentário'
 }
 
-function formatFileSize(sizeInBytes: number) {
-  if (sizeInBytes < 1024) {
-    return `${sizeInBytes} B`
-  }
-
-  const sizeInKb = sizeInBytes / 1024
-
-  if (sizeInKb < 1024) {
-    return `${sizeInKb.toFixed(1)} KB`
-  }
-
-  return `${(sizeInKb / 1024).toFixed(1)} MB`
-}
-
 export function ProposalCommentsSection({
   pendingReason,
   comments,
   emphasized = false,
   highlightedCommentId = null,
   scrollToCommentId = null,
-  pendingDocuments,
   commentDraft,
   isSavingComment,
-  isUploadingPendingDocuments,
-  isResending,
   canAddComment,
-  canUploadPendingDocuments,
-  canResend,
-  hasPendingUpdates,
   onCommentDraftChange,
   onAddComment,
-  onUploadPendingDocuments,
-  onRemovePendingDocument,
-  onResend,
 }: ProposalCommentsSectionProps) {
   const scrollTargetRef = useRef<HTMLElement | null>(null)
 
@@ -170,48 +133,6 @@ export function ProposalCommentsSection({
 
       {canAddComment ? (
         <div className="mt-5 rounded-xl border border-outline-variant bg-surface p-4">
-          {pendingDocuments.length > 0 ? (
-            <div className="mb-4 rounded-xl border border-outline-variant bg-white p-4">
-              <div className="mb-3 flex items-center justify-between gap-3">
-                <p className="text-label-md font-semibold text-on-surface">
-                  Documentação pendente selecionada
-                </p>
-                <span className="text-body-sm text-on-surface-variant">
-                  {pendingDocuments.length === 1
-                    ? '1 arquivo'
-                    : `${pendingDocuments.length} arquivos`}
-                </span>
-              </div>
-
-              <div className="space-y-3">
-                {pendingDocuments.map((document) => (
-                  <div
-                    key={document.key}
-                    className="flex items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface px-4 py-3"
-                  >
-                    <div className="min-w-0">
-                      <p className="truncate text-label-md font-semibold text-on-surface">
-                        {document.file.name}
-                      </p>
-                      <p className="text-body-sm text-on-surface-variant">
-                        {formatFileSize(document.file.size)}
-                      </p>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => onRemovePendingDocument(document.file)}
-                      disabled={isSavingComment || isUploadingPendingDocuments || isResending}
-                      className="rounded-lg border border-outline px-3 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50"
-                    >
-                      Remover
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : null}
-
           <textarea
             value={commentDraft}
             onChange={(event) => onCommentDraftChange(event.target.value)}
@@ -223,42 +144,18 @@ export function ProposalCommentsSection({
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-body-sm text-on-surface-variant">
-              {hasPendingUpdates || pendingDocuments.length > 0
-                ? 'Atualizações detectadas. Você já pode reenviar para análise.'
-                : 'Adicione comentários, ajuste os dados ou envie os documentos faltantes.'}
+              Use este espaço para registrar contexto da tratativa sem misturar com o envio final.
             </p>
 
             <div className="flex flex-wrap justify-end gap-3">
               <button
                 type="button"
                 onClick={onAddComment}
-                disabled={isSavingComment || isUploadingPendingDocuments || isResending}
+                disabled={isSavingComment}
                 className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSavingComment ? 'Salvando...' : 'Adicionar comentário'}
               </button>
-              {canUploadPendingDocuments ? (
-                <button
-                  type="button"
-                  onClick={onUploadPendingDocuments}
-                  disabled={isSavingComment || isUploadingPendingDocuments || isResending}
-                  className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isUploadingPendingDocuments
-                    ? 'Enviando...'
-                    : 'Enviar documentação pendente'}
-                </button>
-              ) : null}
-              {canResend ? (
-                <button
-                  type="button"
-                  onClick={onResend}
-                  disabled={isSavingComment || isUploadingPendingDocuments || isResending}
-                  className="rounded-lg bg-primary px-4 py-2 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  {isResending ? 'Reenviando...' : 'Reenviar para análise'}
-                </button>
-              ) : null}
             </div>
           </div>
         </div>

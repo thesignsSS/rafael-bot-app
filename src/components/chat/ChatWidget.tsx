@@ -575,18 +575,18 @@ export function ChatWidget() {
       ) : null}
 
       {activeConversation ? (
-        <div className="fixed right-4 bottom-44 z-40 flex w-[calc(100vw-2rem)] max-w-[390px] flex-col overflow-hidden rounded-[28px] border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.18)] sm:right-6 sm:bottom-48">
-          <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-5 py-4 text-on-primary">
+        <div className="fixed right-4 bottom-44 z-40 flex w-[calc(100vw-2rem)] max-w-[340px] flex-col overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest shadow-[0px_22px_64px_rgba(19,27,46,0.16)] sm:right-6 sm:bottom-48 sm:max-w-[352px]">
+          <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-4 py-3.5 text-on-primary">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/15 text-white">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
                   {getInitials(activeConversation.counterpart.fullName)}
                 </div>
                 <div className="min-w-0">
-                  <p className="truncate text-headline-sm font-semibold text-white">
+                  <p className="truncate text-body-lg font-semibold text-white">
                     {activeConversation.counterpart.fullName}
                   </p>
-                  <p className="text-body-sm text-white/75">
+                  <p className="text-[12px] text-white/75">
                     {activeConversation.counterpart.isAdmin ? 'Administrador' : 'Corretor'}
                   </p>
                 </div>
@@ -633,13 +633,13 @@ export function ChatWidget() {
             </div>
           </div>
 
-          <div className="h-[360px] overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-4 py-4">
+          <div className="h-[300px] overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-3.5 py-3.5">
             {isLoadingConversation ? (
-              <div className="rounded-2xl bg-white px-4 py-3 text-body-md text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+              <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                 Carregando conversa...
               </div>
             ) : messages.length === 0 ? (
-              <div className="rounded-2xl bg-white px-4 py-3 text-body-md text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+              <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                 Nenhuma mensagem ainda. Pode mandar a primeira.
               </div>
             ) : (
@@ -652,7 +652,7 @@ export function ChatWidget() {
                     className={`mb-3 flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-body-md shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
+                      className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-body-sm shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
                         isOwnMessage
                           ? 'rounded-br-md bg-primary text-on-primary'
                           : 'rounded-bl-md bg-white text-on-surface'
@@ -691,8 +691,8 @@ export function ChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-outline-variant bg-white p-4">
-            <div className="flex items-end gap-3">
+          <div className="border-t border-outline-variant bg-white p-3.5">
+            <div className="flex items-end gap-2.5">
               <textarea
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
@@ -704,19 +704,19 @@ export function ChatWidget() {
                 }}
                 placeholder={`Mensagem para ${activeConversation.counterpart.fullName.split(' ')[0]}`}
                 rows={2}
-                className="min-h-[52px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="min-h-[46px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-3.5 py-2.5 text-body-sm text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="button"
                 onClick={() => void handleSendMessage()}
                 disabled={isSending || !inputValue.trim()}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Enviar mensagem"
               >
                 <Icon name="send" size={18} />
               </button>
             </div>
-            <p className="mt-2 text-body-sm text-on-surface-variant">
+            <p className="mt-2 text-[12px] text-on-surface-variant">
               Conversando como {currentUserName}.
             </p>
           </div>

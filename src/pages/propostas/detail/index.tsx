@@ -1,4 +1,12 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import {
+  ASSISTANT_CONTEXT_EVENT,
+  ASSISTANT_OPEN_EVENT,
+} from '../../../lib/assistant'
+import {
+  buildProposalAssistantContext,
+  buildProposalOperationalGuide,
+} from '../lib/proposalOperationalGuide'
 import { PendingReasonModal } from '../components/detail/PendingReasonModal'
 import { PendingDocumentsUploadModal } from '../components/detail/PendingDocumentsUploadModal'
 import { ProposalBrokerCard } from '../components/detail/ProposalBrokerCard'
@@ -8,13 +16,14 @@ import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
+import { ProposalOperationalGuideCard } from '../components/detail/ProposalOperationalGuideCard'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
 import { ProposalStatusControl } from '../components/detail/ProposalStatusControl'
 import { ProposalTimelineSection } from '../components/detail/ProposalTimelineSection'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
 import { normalizeProposalStatus } from '../types/proposal-status'
 
-type DetailTab = 'informacoes' | 'comentarios' | 'timeline'
+type DetailTab = 'informacoes' | 'tratativa' | 'comentarios' | 'timeline'
 
 export default function ProposalDetailPage() {
   const {
@@ -71,6 +80,9 @@ export default function ProposalDetailPage() {
     canBrokerHandlePending &&
     (hasPendingUpdates || pendingDocumentsDraft.length > 0)
   const latestComment = proposal?.comments[proposal.comments.length - 1] ?? null
+  const shouldShowPendingIndicator = normalizedStatus === 'pendente'
+  const shouldShowCommentsIndicator =
+    normalizedStatus === 'pendente' && latestComment?.authorRole === 'admin'
   const shouldEmphasizeLatestAdminComment =
     canBrokerHandlePending &&
     normalizedStatus === 'pendente' &&
@@ -78,12 +90,61 @@ export default function ProposalDetailPage() {
   const latestAdminCommentId = shouldEmphasizeLatestAdminComment
     ? latestComment?.id ?? null
     : null
+  const operationalGuide = useMemo(
+    () =>
+      proposal
+        ? buildProposalOperationalGuide({
+            proposal,
+            normalizedStatus,
+            hasPendingUpdates,
+            pendingDocumentsCount: pendingDocumentsDraft.length,
+            hasDraftComment: commentDraft.trim().length > 0,
+            isEditing,
+          })
+        : null,
+    [
+      commentDraft,
+      hasPendingUpdates,
+      isEditing,
+      normalizedStatus,
+      pendingDocumentsDraft.length,
+      proposal,
+    ],
+  )
+  const assistantProposalContext = useMemo(
+    () =>
+      proposal && operationalGuide
+        ? buildProposalAssistantContext({
+            proposal,
+            normalizedStatus,
+            guide: operationalGuide,
+          })
+        : null,
+    [normalizedStatus, operationalGuide, proposal],
+  )
 
   useEffect(() => {
     if (canBrokerHandlePending && normalizedStatus === 'pendente') {
-      setActiveTab('comentarios')
+      setActiveTab('tratativa')
     }
   }, [canBrokerHandlePending, normalizedStatus])
+
+  useEffect(() => {
+    if (!assistantProposalContext) {
+      window.dispatchEvent(new CustomEvent(ASSISTANT_CONTEXT_EVENT, { detail: null }))
+      return
+    }
+
+    window.dispatchEvent(
+      new CustomEvent(ASSISTANT_CONTEXT_EVENT, {
+        detail: assistantProposalContext,
+      }),
+    )
+
+    return () => {
+      window.dispatchEvent(new CustomEvent(ASSISTANT_CONTEXT_EVENT, { detail: null }))
+    }
+  }, [assistantProposalContext])
 
   if (status === 'loading' || !proposal) {
     if (status === 'error') {
@@ -189,6 +250,26 @@ export default function ProposalDetailPage() {
           </button>
           <button
             type="button"
+            onClick={() => setActiveTab('tratativa')}
+            className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+              activeTab === 'tratativa'
+                ? 'bg-primary text-on-primary shadow-sm'
+                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+            }`}
+          >
+            <span className="flex items-center gap-2">
+              <span>Tratativa</span>
+              {shouldShowPendingIndicator ? (
+                <span
+                  className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
+                  aria-label="Há tratativa pendente"
+                  title="Há tratativa pendente"
+                />
+              ) : null}
+            </span>
+          </button>
+          <button
+            type="button"
             onClick={() => setActiveTab('comentarios')}
             className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
               activeTab === 'comentarios'
@@ -198,7 +279,7 @@ export default function ProposalDetailPage() {
           >
             <span className="flex items-center gap-2">
               <span>Comentários</span>
-              {latestAdminCommentId ? (
+              {shouldShowCommentsIndicator ? (
                 <span
                   className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
                   aria-label="Há comentário pendente do administrador"
@@ -277,30 +358,43 @@ export default function ProposalDetailPage() {
             </div>
           </div>
         </>
+      ) : activeTab === 'tratativa' ? (
+        operationalGuide ? (
+          <ProposalOperationalGuideCard
+            guide={operationalGuide}
+            pendingReason={proposal.pendingReason}
+            pendingDocuments={pendingDocumentsDraft.map((file) => ({
+              file,
+              key: `${file.name}-${file.size}-${file.lastModified}`,
+            }))}
+            isBusy={isUpdatingDocuments || isSavingStatus}
+            canUploadPendingDocuments={canBrokerHandlePending}
+            canResend={canResendForAnalysis}
+            onOpenComments={() => setActiveTab('comentarios')}
+            onOpenPendingDocuments={openPendingDocumentsModal}
+            onRemovePendingDocument={removePendingDocument}
+            onResend={resendForAnalysis}
+            onOpenAssistant={() => {
+              window.dispatchEvent(
+                new CustomEvent(ASSISTANT_OPEN_EVENT, {
+                  detail: { prompt: operationalGuide.recommendedPrompt },
+                }),
+              )
+            }}
+          />
+        ) : null
       ) : activeTab === 'comentarios' ? (
         <ProposalCommentsSection
           pendingReason={proposal.pendingReason}
           comments={proposal.comments}
           emphasized={shouldHighlightComments}
           highlightedCommentId={latestAdminCommentId}
-          scrollToCommentId={activeTab === 'comentarios' ? latestAdminCommentId : null}
-          pendingDocuments={pendingDocumentsDraft.map((file) => ({
-            file,
-            key: `${file.name}-${file.size}-${file.lastModified}`,
-          }))}
+          scrollToCommentId={null}
           commentDraft={commentDraft}
           isSavingComment={isSavingComment}
-          isUploadingPendingDocuments={isUpdatingDocuments}
-          isResending={isSavingStatus}
           canAddComment={isAdmin || canBrokerHandlePending}
-          canUploadPendingDocuments={canBrokerHandlePending}
-          canResend={canResendForAnalysis}
-          hasPendingUpdates={hasPendingUpdates}
           onCommentDraftChange={setCommentDraft}
           onAddComment={addComment}
-          onUploadPendingDocuments={openPendingDocumentsModal}
-          onRemovePendingDocument={removePendingDocument}
-          onResend={resendForAnalysis}
         />
       ) : (
         <ProposalTimelineSection
