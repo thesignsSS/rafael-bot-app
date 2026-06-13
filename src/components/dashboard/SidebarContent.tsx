@@ -57,13 +57,13 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
             Dúvidas? Fale com o administrador
           </p>
           <a
-            href="https://wa.me/5585999999999"
+            href="https://wa.me/5585988686633"
             target="_blank"
             rel="noreferrer"
             className="flex items-center gap-2 text-body-sm font-semibold text-primary"
           >
             <Icon name="call" size={18} />
-            (85) 99999-9999
+            (85) 9 8868-6633
           </a>
         </div>
       </div>

@@ -51,7 +51,7 @@ export function DashboardHeader({
             <Icon name="menu" size={24} />
           </button>
 
-          <div>
+          <div className="hidden sm:block">
             <h2 className="text-headline-lg font-semibold text-on-surface">{title}</h2>
           </div>
         </div>

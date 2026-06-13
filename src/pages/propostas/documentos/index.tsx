@@ -98,8 +98,8 @@ function DocumentPreview({
 
   return (
     <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
-      <div className="flex items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3 sm:px-5">
-        <h2 className="min-w-0 truncate text-headline-md font-semibold text-on-surface">
+      <div className="flex flex-col gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <h2 className="min-w-0 text-headline-md font-semibold text-on-surface sm:truncate">
           {document.fileName}
         </h2>
 
@@ -107,7 +107,7 @@ function DocumentPreview({
           href={document.url}
           target="_blank"
           rel="noreferrer"
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-outline px-3 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container"
+          className="inline-flex shrink-0 items-center gap-2 self-start rounded-lg border border-outline px-3 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container sm:self-auto"
         >
           <Icon name="open_in_new" size={18} />
           Abrir
@@ -217,7 +217,7 @@ function DocumentPreview({
             title={document.fileName}
             src={document.url}
             onLoad={() => setIsLoading(false)}
-            className="h-[calc(100dvh-180px)] min-h-[620px] w-full rounded-lg border border-outline-variant bg-white"
+            className="h-[60dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-white sm:h-[calc(100dvh-180px)] sm:min-h-[620px]"
           />
         )}
       </div>

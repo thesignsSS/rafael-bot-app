@@ -130,7 +130,7 @@ export function ProposalDocumentPreviewModal({
       />
 
       <div className="flex min-h-full items-start justify-center p-3 sm:p-5">
-        <div className="relative z-10 my-4 flex min-h-[60dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.28)]">
+        <div className="relative z-10 my-2 flex max-h-[calc(100dvh-1rem)] min-h-[60dvh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.28)] sm:my-4 sm:max-h-[calc(100dvh-2rem)]">
           <div className="flex flex-col gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-4 sm:flex-row sm:items-start sm:justify-between sm:px-5">
             <div className="min-w-0">
               <h3 className="truncate text-headline-md font-semibold text-on-surface">
@@ -265,7 +265,7 @@ export function ProposalDocumentPreviewModal({
                   title={fileName}
                   src={url}
                   onLoad={() => setIsLoading(false)}
-                  className="h-[72dvh] min-h-[540px] w-full rounded-lg border border-outline-variant bg-white"
+                  className="h-[65dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-white sm:h-[72dvh] sm:min-h-[540px]"
                 />
               </div>
             )}
