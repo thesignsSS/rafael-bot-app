@@ -71,6 +71,15 @@ export type ChatSocketEvent =
         readAt: string | null
       }
     }
+  | {
+      type: 'chat_presence_snapshot'
+      onlineUserIds: string[]
+    }
+  | {
+      type: 'chat_presence'
+      userId: string
+      isOnline: boolean
+    }
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
 const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY

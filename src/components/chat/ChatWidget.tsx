@@ -131,6 +131,7 @@ export function ChatWidget() {
   const [isLoadingConversation, setIsLoadingConversation] = useState(false)
   const [isSending, setIsSending] = useState(false)
   const [typingConversationId, setTypingConversationId] = useState<string | null>(null)
+  const [onlineUserIds, setOnlineUserIds] = useState<string[]>([])
   const socketRef = useRef<WebSocket | null>(null)
   const typingStopTimeoutRef = useRef<number | null>(null)
   const isTypingSentRef = useRef(false)
@@ -148,6 +149,8 @@ export function ChatWidget() {
       new Map(conversations.map((item) => [item.counterpart.id, item])),
     [conversations],
   )
+
+  const onlineUsersSet = useMemo(() => new Set(onlineUserIds), [onlineUserIds])
 
   const directoryItems = useMemo(
     () =>
@@ -279,6 +282,26 @@ export function ChatWidget() {
 
     socket.onmessage = (event) => {
       const payload = JSON.parse(event.data) as ChatSocketEvent
+
+      if (payload.type === 'chat_presence_snapshot') {
+        setOnlineUserIds(payload.onlineUserIds)
+        return
+      }
+
+      if (payload.type === 'chat_presence') {
+        setOnlineUserIds((currentItems) => {
+          const nextItems = new Set(currentItems)
+
+          if (payload.isOnline) {
+            nextItems.add(payload.userId)
+          } else {
+            nextItems.delete(payload.userId)
+          }
+
+          return Array.from(nextItems)
+        })
+        return
+      }
 
       if (payload.type === 'notification_created') {
         window.dispatchEvent(
@@ -585,8 +608,17 @@ export function ChatWidget() {
                   onClick={() => void handleSelectUser(user)}
                   className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-surface-container-low"
                 >
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,#DBEAFE,#BFDBFE)] text-sm font-semibold text-primary">
-                    {getInitials(user.fullName)}
+                  <div className="relative shrink-0">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#DBEAFE,#BFDBFE)] text-sm font-semibold text-primary">
+                      {getInitials(user.fullName)}
+                    </div>
+                    {onlineUsersSet.has(user.id) ? (
+                      <span
+                        className="absolute right-0 bottom-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.16)]"
+                        aria-label={`${user.fullName} está online`}
+                        title="Online"
+                      />
+                    ) : null}
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
@@ -624,15 +656,28 @@ export function ChatWidget() {
           <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-4 py-3.5 text-on-primary">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
-                  {getInitials(activeConversation.counterpart.fullName)}
+                <div className="relative shrink-0">
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
+                    {getInitials(activeConversation.counterpart.fullName)}
+                  </div>
+                  {onlineUsersSet.has(activeConversation.counterpart.id) ? (
+                    <span
+                      className="absolute right-0 bottom-0 h-3 w-3 rounded-full border-2 border-[#1d4ed8] bg-emerald-400 shadow-[0_0_0_3px_rgba(52,211,153,0.16)]"
+                      aria-label={`${activeConversation.counterpart.fullName} está online`}
+                      title="Online"
+                    />
+                  ) : null}
                 </div>
                 <div className="min-w-0">
                   <p className="truncate text-body-lg font-semibold text-white">
                     {activeConversation.counterpart.fullName}
                   </p>
                   <p className="text-[12px] text-white/75">
-                    {activeConversation.counterpart.isAdmin ? 'Administrador' : 'Corretor'}
+                    {onlineUsersSet.has(activeConversation.counterpart.id)
+                      ? 'Online'
+                      : activeConversation.counterpart.isAdmin
+                        ? 'Administrador'
+                        : 'Corretor'}
                   </p>
                 </div>
               </div>

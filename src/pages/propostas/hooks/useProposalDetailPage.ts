@@ -7,6 +7,7 @@ import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
 import type { PropertyType } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
 import {
+  deleteProposal,
   deleteProposalDocument,
   downloadProposalDocument,
   downloadProposalZip,
@@ -71,10 +72,12 @@ export function useProposalDetailPage() {
   const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false)
   const [isPendingReasonModalOpen, setIsPendingReasonModalOpen] = useState(false)
   const [isPendingDocumentsModalOpen, setIsPendingDocumentsModalOpen] = useState(false)
+  const [isDeleteProposalModalOpen, setIsDeleteProposalModalOpen] = useState(false)
   const [pendingReasonDraft, setPendingReasonDraft] = useState('')
   const [pendingDocumentsDraft, setPendingDocumentsDraft] = useState<File[]>([])
   const [commentDraft, setCommentDraft] = useState('')
   const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
+  const [isDeletingProposal, setIsDeletingProposal] = useState(false)
   const [documentPreview, setDocumentPreview] =
     useState<ProposalDocumentPreview | null>(null)
   const hasHandledMissingProposal = useRef(false)
@@ -510,6 +513,18 @@ export function useProposalDetailPage() {
     setIsPendingDocumentsModalOpen(false)
   }, [])
 
+  const openDeleteProposalModal = useCallback(() => {
+    setIsDeleteProposalModalOpen(true)
+  }, [])
+
+  const closeDeleteProposalModal = useCallback(() => {
+    if (isDeletingProposal) {
+      return
+    }
+
+    setIsDeleteProposalModalOpen(false)
+  }, [isDeletingProposal])
+
   const stagePendingDocuments = useCallback(async (selectedFiles: File[]) => {
       if (selectedFiles.length === 0) {
         return
@@ -627,6 +642,25 @@ export function useProposalDetailPage() {
     requireProposalContext,
   ])
 
+  const confirmDeleteProposal = useCallback(async () => {
+    try {
+      const context = requireProposalContext()
+      setIsDeletingProposal(true)
+      await deleteProposal(context.proposalId, context.brokerUserId)
+      setIsDeleteProposalModalOpen(false)
+      toast.success('Proposta excluída com sucesso.')
+      navigate('/propostas', { replace: true })
+    } catch (deleteError) {
+      toast.error(
+        deleteError instanceof Error
+          ? deleteError.message
+          : 'Não foi possível excluir a proposta.',
+      )
+    } finally {
+      setIsDeletingProposal(false)
+    }
+  }, [navigate, requireProposalContext])
+
   return {
     status,
     proposal,
@@ -646,6 +680,8 @@ export function useProposalDetailPage() {
     isUpdatingDocuments,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
+    isDeleteProposalModalOpen,
+    isDeletingProposal,
     pendingReasonDraft,
     pendingDocumentsDraft,
     commentDraft,
@@ -669,6 +705,9 @@ export function useProposalDetailPage() {
     addDocuments,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
+    openDeleteProposalModal,
+    closeDeleteProposalModal,
+    confirmDeleteProposal,
     stagePendingDocuments,
     removePendingDocument,
     addComment,

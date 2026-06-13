@@ -5,6 +5,8 @@ type ProposalDetailHeaderProps = {
   onBack: () => void
   onEdit: () => void
   onDownloadAll: () => void
+  onDelete: () => void
+  isDeleting: boolean
 }
 
 export function ProposalDetailHeader({
@@ -13,6 +15,8 @@ export function ProposalDetailHeader({
   onBack,
   onEdit,
   onDownloadAll,
+  onDelete,
+  isDeleting,
 }: ProposalDetailHeaderProps) {
   return (
     <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
@@ -50,6 +54,14 @@ export function ProposalDetailHeader({
           className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low active:scale-95"
         >
           Baixar Tudo (.zip)
+        </button>
+        <button
+          type="button"
+          onClick={onDelete}
+          disabled={isDeleting}
+          className="rounded-lg border border-error/40 px-4 py-2 text-label-md font-semibold text-error transition-all hover:bg-error/10 active:scale-95 disabled:cursor-not-allowed disabled:opacity-50"
+        >
+          {isDeleting ? 'Excluindo...' : 'Excluir proposta'}
         </button>
       </div>
     </div>

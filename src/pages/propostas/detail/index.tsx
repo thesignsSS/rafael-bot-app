@@ -7,6 +7,7 @@ import {
   buildProposalAssistantContext,
   buildProposalOperationalGuide,
 } from '../lib/proposalOperationalGuide'
+import { DeleteProposalModal } from '../components/detail/DeleteProposalModal'
 import { PendingReasonModal } from '../components/detail/PendingReasonModal'
 import { PendingDocumentsUploadModal } from '../components/detail/PendingDocumentsUploadModal'
 import { ProposalBrokerCard } from '../components/detail/ProposalBrokerCard'
@@ -44,6 +45,8 @@ export default function ProposalDetailPage() {
     isUpdatingDocuments,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
+    isDeleteProposalModalOpen,
+    isDeletingProposal,
     pendingReasonDraft,
     pendingDocumentsDraft,
     commentDraft,
@@ -67,6 +70,9 @@ export default function ProposalDetailPage() {
     addDocuments,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
+    openDeleteProposalModal,
+    closeDeleteProposalModal,
+    confirmDeleteProposal,
     stagePendingDocuments,
     removePendingDocument,
     addComment,
@@ -208,6 +214,14 @@ export default function ProposalDetailPage() {
         onSave={stagePendingDocuments}
       />
 
+      <DeleteProposalModal
+        isOpen={isDeleteProposalModalOpen}
+        isDeleting={isDeletingProposal}
+        proposalCode={proposal.proposalCode}
+        onClose={closeDeleteProposalModal}
+        onConfirm={confirmDeleteProposal}
+      />
+
       {documentPreview ? (
         <ProposalDocumentPreviewModal
           fileName={documentPreview.fileName}
@@ -223,6 +237,8 @@ export default function ProposalDetailPage() {
         onBack={goBack}
         onEdit={startEditing}
         onDownloadAll={downloadAll}
+        onDelete={openDeleteProposalModal}
+        isDeleting={isDeletingProposal}
       />
 
       <div className="mb-6">

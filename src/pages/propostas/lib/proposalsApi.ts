@@ -191,6 +191,23 @@ export async function deleteProposalDocument(
   }
 }
 
+export async function deleteProposal(
+  proposalId: string,
+  brokerUserId: string,
+): Promise<void> {
+  const url = new URL(`${getProposalsApiUrl()}/${proposalId}`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+
+  const response = await fetch(url.toString(), {
+    method: 'DELETE',
+    headers: getRequestHeaders(),
+  })
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
+}
+
 export async function viewProposalDocument(
   proposalId: string,
   documentId: string,
@@ -286,7 +303,7 @@ function getProposalsErrorMessage(status: number) {
   }
 
   if (status === 403) {
-    return 'Sem permissão para acessar esta proposta.'
+    return 'Sem permissão para acessar ou alterar esta proposta.'
   }
 
   if (status === 404) {
