@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
 import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
+import { useWhatsAppConnectionStatus } from '../../hooks/useWhatsAppConnectionStatus'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
@@ -12,6 +13,7 @@ type SidebarContentProps = {
 
 export function SidebarContent({ onNavigate, trailingAction }: SidebarContentProps) {
   const { currentUserProfile, isAdmin } = useAuth()
+  const whatsAppConnectionStatus = useWhatsAppConnectionStatus(isAdmin)
   const { hasPending } = usePendingProposalIndicator({
     brokerUserId: currentUserProfile?.id,
     enabled: !isAdmin,
@@ -60,6 +62,8 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
               icon="smartphone"
               label="Bot do WhatsApp"
               to="/admin/whatsapp"
+              showIndicator={whatsAppConnectionStatus != null && whatsAppConnectionStatus !== 'connected'}
+              indicatorClassName="bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.16)]"
               onNavigate={onNavigate}
             />
           </>

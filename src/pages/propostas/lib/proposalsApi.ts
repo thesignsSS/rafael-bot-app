@@ -55,6 +55,9 @@ export type FetchProposalsParams = {
   page: number
   pageSize: number
   search: string
+  clientName?: string
+  brokerName?: string
+  proposalCode?: string
 }
 
 export async function fetchProposals({
@@ -62,6 +65,9 @@ export async function fetchProposals({
   page,
   pageSize,
   search,
+  clientName = '',
+  brokerName = '',
+  proposalCode = '',
 }: FetchProposalsParams): Promise<ProposalsListResponse> {
   const url = new URL(getProposalsApiUrl())
   url.searchParams.set('brokerUserId', brokerUserId)
@@ -70,6 +76,18 @@ export async function fetchProposals({
 
   if (search.trim()) {
     url.searchParams.set('search', search.trim())
+  }
+
+  if (clientName.trim()) {
+    url.searchParams.set('clientName', clientName.trim())
+  }
+
+  if (brokerName.trim()) {
+    url.searchParams.set('brokerName', brokerName.trim())
+  }
+
+  if (proposalCode.trim()) {
+    url.searchParams.set('proposalCode', proposalCode.trim())
   }
 
   const response = await fetch(url.toString(), {

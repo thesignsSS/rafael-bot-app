@@ -12,8 +12,8 @@ export function ProposalsToolbar({
   onQueryChange,
 }: ProposalsToolbarProps) {
   return (
-    <div className="mb-6 flex flex-col items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 md:flex-row">
-      <div className="relative w-full flex-1">
+    <div className="mb-6 flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
+      <div className="relative w-full">
         <Icon
           name="search"
           size={20}
@@ -23,12 +23,12 @@ export function ProposalsToolbar({
           type="text"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
-          placeholder="Buscar por cliente, corretor ou código da proposta..."
+          placeholder="Filtrar por cliente, corretor ou código da proposta..."
           className="w-full rounded-lg border border-outline-variant bg-surface py-2 pl-10 pr-4 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
         />
       </div>
 
-      <div className="whitespace-nowrap rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2">
+      <div className="w-fit whitespace-nowrap rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2">
         <span className="text-body-md font-semibold text-on-surface">
           Total enviado:{' '}
           <span className="text-primary">{totalSent}</span>

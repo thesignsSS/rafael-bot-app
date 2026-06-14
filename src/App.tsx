@@ -1,4 +1,5 @@
 import { AssistantWidget } from './components/assistant/AssistantWidget'
+import { WhatsAppBotNotice } from './components/assistant/WhatsAppBotNotice'
 import { ChatWidget } from './components/chat/ChatWidget'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './contexts/AuthProvider'
@@ -58,6 +59,7 @@ function App() {
   return (
     <AuthProvider>
       <AppContent />
+      <WhatsAppBotNotice />
       <ChatWidget />
       <AssistantWidget />
       <Toaster position="top-center" richColors />
