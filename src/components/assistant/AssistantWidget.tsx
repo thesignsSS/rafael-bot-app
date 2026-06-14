@@ -228,36 +228,36 @@ export function AssistantWidget() {
       </button>
 
       {isOpen ? (
-        <div className="fixed right-4 bottom-24 z-40 w-[calc(100vw-2rem)] max-w-[380px] overflow-hidden rounded-[28px] border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.18)] sm:right-6 sm:bottom-26">
-          <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-5 py-4 text-on-primary">
+        <div className="fixed right-4 bottom-24 z-40 w-[calc(100vw-2rem)] max-w-[344px] overflow-hidden rounded-[24px] border border-outline-variant bg-surface-container-lowest shadow-[0px_20px_56px_rgba(19,27,46,0.18)] sm:right-6 sm:bottom-26 sm:max-w-[356px]">
+          <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-4 py-3.5 text-on-primary">
             <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-white/16 text-on-primary backdrop-blur-sm">
-                <Icon name="robot_2" size={26} />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-white/16 text-on-primary backdrop-blur-sm">
+                <Icon name="robot_2" size={22} />
               </div>
               <div className="min-w-0">
                 <p className="text-label-sm uppercase tracking-[0.16em] text-white/70">
                   Assistente Effectus
                 </p>
-                <h2 className="text-headline-lg font-semibold text-white">
+                <h2 className="text-title-lg font-semibold text-white">
                   Ajuda rapidinha
                 </h2>
               </div>
             </div>
-            <p className="mt-3 text-body-md text-white/82">
+            <p className="mt-2.5 text-body-sm text-white/82">
               {proposalContext
                 ? `Contexto ativo: proposta ${proposalContext.proposalCode}. Posso resumir pendências, próximos passos e tratativa.`
                 : 'Tira dúvida sobre uso do sistema, documentos, propostas e pendências.'}
             </p>
           </div>
 
-          <div className="border-b border-outline-variant bg-surface-container-low px-4 py-3">
+          <div className="border-b border-outline-variant bg-surface-container-low px-3.5 py-2.5">
             <div className="flex flex-wrap gap-2">
               {quickPrompts.map((prompt) => (
                 <button
                   key={prompt}
                   type="button"
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="rounded-full border border-outline-variant bg-white px-3 py-2 text-body-sm text-on-surface transition-all hover:border-primary hover:text-primary"
+                  className="rounded-full border border-outline-variant bg-white px-3 py-1.5 text-label-sm text-on-surface transition-all hover:border-primary hover:text-primary"
                 >
                   {prompt}
                 </button>
@@ -265,14 +265,14 @@ export function AssistantWidget() {
             </div>
           </div>
 
-          <div className="max-h-[380px] space-y-3 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-4 py-4">
+          <div className="max-h-[320px] space-y-2.5 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-3.5 py-3.5">
             {messages.map((message) => (
               <div
                 key={message.id}
                 className={`flex ${message.role === 'assistant' ? 'justify-start' : 'justify-end'}`}
               >
                 <div
-                  className={`max-w-[85%] rounded-2xl px-4 py-3 text-body-md shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
+                  className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-body-sm shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
                     message.role === 'assistant'
                       ? 'rounded-bl-md bg-white text-on-surface'
                       : 'rounded-br-md bg-primary text-on-primary'
@@ -287,14 +287,14 @@ export function AssistantWidget() {
 
             {isSending ? (
               <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-white px-4 py-3 text-body-md text-on-surface shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+                <div className="rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-body-sm text-on-surface shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                   Pensando aqui, pera aí...
                 </div>
               </div>
             ) : null}
           </div>
 
-          <form onSubmit={handleSubmit} className="border-t border-outline-variant bg-white p-4">
+          <form onSubmit={handleSubmit} className="border-t border-outline-variant bg-white p-3.5">
             <label htmlFor="effectus-assistant-input" className="sr-only">
               Digite sua dúvida
             </label>
@@ -305,18 +305,18 @@ export function AssistantWidget() {
                 onChange={(event) => setInputValue(event.target.value)}
                 placeholder="Ex.: o que significa proposta pendente?"
                 rows={2}
-                className="min-h-[52px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="min-h-[48px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-3.5 py-2.5 text-body-sm text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="submit"
                 disabled={isSending || !inputValue.trim()}
-                className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Enviar mensagem"
               >
                 <Icon name="arrow_upward" size={20} />
               </button>
             </div>
-            <p className="mt-2 text-body-sm text-on-surface-variant">
+            <p className="mt-2 text-label-sm text-on-surface-variant">
               {proposalContext
                 ? 'Com o contexto da proposta ativo, o assistente responde de forma mais objetiva sobre a tratativa.'
                 : 'Responde só sobre uso e negócio do Effectus. Assuntos técnicos ficam de fora.'}

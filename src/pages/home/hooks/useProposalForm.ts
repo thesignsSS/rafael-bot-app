@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'reac
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../contexts/auth-context'
-import { formatBrazilianPhone } from '../../../lib/phone'
+import { formatBrazilianPhone, formatCpf } from '../../../lib/phone'
 import { supabase } from '../../../lib/supabase'
 import { fileKey } from '../lib/proposalUtils'
 import {
@@ -54,7 +54,7 @@ export function useProposalForm() {
 
   const handleClientCpfChange = useCallback(
     (value: string) => {
-      setClientCpf(value)
+      setClientCpf(formatCpf(value))
       if (clientCpfError) {
         setClientCpfError('')
       }
@@ -64,7 +64,7 @@ export function useProposalForm() {
 
   const handleClientPhoneChange = useCallback(
     (value: string) => {
-      setClientPhone(value)
+      setClientPhone(formatBrazilianPhone(value))
       if (clientPhoneError) {
         setClientPhoneError('')
       }
@@ -159,11 +159,11 @@ export function useProposalForm() {
       }
 
       if (typeof draft.clientCpf === 'string') {
-        setClientCpf(draft.clientCpf)
+        setClientCpf(formatCpf(draft.clientCpf))
       }
 
       if (typeof draft.clientPhone === 'string') {
-        setClientPhone(draft.clientPhone)
+        setClientPhone(formatBrazilianPhone(draft.clientPhone))
       }
 
       if (typeof draft.clientEmail === 'string') {

@@ -52,6 +52,8 @@ export function ClientDataSection({
             onBlur={onValidateClientCpf}
             onChange={(event) => onClientCpfChange(event.target.value)}
             placeholder="000.000.000-00"
+            inputMode="numeric"
+            maxLength={14}
             aria-invalid={clientCpfError ? true : undefined}
             className={`proposal-input ${
               clientCpfError ? 'proposal-input-error' : ''
@@ -65,6 +67,8 @@ export function ClientDataSection({
               onBlur={onValidateClientPhone}
               onChange={(event) => onClientPhoneChange(event.target.value)}
               placeholder="(85) 99999-9999"
+              inputMode="tel"
+              maxLength={15}
               aria-invalid={clientPhoneError ? true : undefined}
               className={`proposal-input pr-12 ${
                 clientPhoneError ? 'proposal-input-error' : ''

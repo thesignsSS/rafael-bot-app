@@ -53,6 +53,7 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
               icon="manage_accounts"
               label="Gerenciar Perfis"
               to="/admin"
+              end
               onNavigate={onNavigate}
             />
             <SidebarNavItem
