@@ -1,4 +1,10 @@
-import { useMemo, useRef, useState, type KeyboardEvent } from 'react'
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import { formatCreatedAt } from '../lib/proposalListUtils'
 import type { ProposalListItem } from '../types/proposal-list-item'
@@ -43,7 +49,61 @@ export function ProposalsKanbanBoard({
 }: ProposalsKanbanBoardProps) {
   const [draggedProposalId, setDraggedProposalId] = useState<string | null>(null)
   const [dragOverStatus, setDragOverStatus] = useState<ProposalStatus | null>(null)
+  const [visibleHoverProposalId, setVisibleHoverProposalId] = useState<string | null>(
+    null,
+  )
+  const [isHoverCardVisible, setIsHoverCardVisible] = useState(false)
   const suppressNextClickRef = useRef(false)
+  const hoverOpenTimeoutRef = useRef<number | null>(null)
+  const hoverCloseTimeoutRef = useRef<number | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (hoverOpenTimeoutRef.current !== null) {
+        window.clearTimeout(hoverOpenTimeoutRef.current)
+      }
+
+      if (hoverCloseTimeoutRef.current !== null) {
+        window.clearTimeout(hoverCloseTimeoutRef.current)
+      }
+    }
+  }, [])
+
+  const clearHoverTimers = () => {
+    if (hoverOpenTimeoutRef.current !== null) {
+      window.clearTimeout(hoverOpenTimeoutRef.current)
+      hoverOpenTimeoutRef.current = null
+    }
+
+    if (hoverCloseTimeoutRef.current !== null) {
+      window.clearTimeout(hoverCloseTimeoutRef.current)
+      hoverCloseTimeoutRef.current = null
+    }
+  }
+
+  const handleProposalMouseEnter = (proposalId: string) => {
+    clearHoverTimers()
+
+    hoverOpenTimeoutRef.current = window.setTimeout(() => {
+      setVisibleHoverProposalId(proposalId)
+      setIsHoverCardVisible(true)
+    }, 600)
+  }
+
+  const handleProposalMouseLeave = (proposalId: string) => {
+    clearHoverTimers()
+    setIsHoverCardVisible(false)
+
+    if (visibleHoverProposalId !== proposalId) {
+      return
+    }
+
+    hoverCloseTimeoutRef.current = window.setTimeout(() => {
+      setVisibleHoverProposalId((currentProposalId) =>
+        currentProposalId === proposalId ? null : currentProposalId,
+      )
+    }, 180)
+  }
 
   const handleProposalKeyDown = (
     event: KeyboardEvent<HTMLElement>,
@@ -130,7 +190,7 @@ export function ProposalsKanbanBoard({
                 onMoveProposal(proposalId, column.status)
               }
             }}
-            className={`min-h-[420px] rounded-xl border bg-surface-container-low p-3 transition-colors ${
+            className={`min-w-0 min-h-[420px] rounded-xl border bg-surface-container-low p-3 transition-colors ${
               isDropTarget
                 ? 'border-primary bg-primary-fixed/70'
                 : 'border-outline-variant'
@@ -164,82 +224,161 @@ export function ProposalsKanbanBoard({
                   const isPendingOwnedHighlight =
                     highlightOwnedPendingCards &&
                     normalizeProposalStatus(proposal.status) === 'pendente'
+                  const isHoverCardOpen =
+                    visibleHoverProposalId === proposal.id && isHoverCardVisible
 
                   return (
                     <div
                       key={proposal.id}
-                      role="button"
-                      tabIndex={0}
-                      draggable={canMoveCards && !isMoving}
-                      onDragStart={(event) => {
-                        if (!canMoveCards) {
-                          return
-                        }
-
-                        suppressNextClickRef.current = true
-                        setDraggedProposalId(proposal.id)
-                        event.dataTransfer.effectAllowed = 'move'
-                        event.dataTransfer.setData('text/plain', proposal.id)
-                      }}
-                      onDragEnd={() => {
-                        setDraggedProposalId(null)
-                        setDragOverStatus(null)
-                        window.setTimeout(() => {
-                          suppressNextClickRef.current = false
-                        }, 0)
-                      }}
-                      onClick={() => {
-                        if (suppressNextClickRef.current) {
-                          return
-                        }
-
-                        onSelectProposal(proposal.id)
-                      }}
-                      onKeyDown={(event) =>
-                        handleProposalKeyDown(event, proposal.id)
-                      }
-                      className={`w-full rounded-lg border border-outline-variant bg-surface-container-lowest p-4 text-left shadow-[0px_1px_3px_rgba(0,0,0,0.05)] transition-all hover:-translate-y-0.5 hover:border-primary hover:shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
-                        canMoveCards ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer'
-                      } ${isMoving ? 'opacity-60' : ''} ${
-                        isPendingOwnedHighlight
-                          ? 'border-amber-300 bg-amber-50/80 shadow-[0px_8px_24px_rgba(245,158,11,0.16)] animate-pending-card-glow'
-                          : ''
-                      }`}
+                      className="relative min-w-0"
+                      onMouseEnter={() => handleProposalMouseEnter(proposal.id)}
+                      onMouseLeave={() => handleProposalMouseLeave(proposal.id)}
                     >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="text-label-md font-semibold text-primary">
-                            {proposal.proposalCode}
-                          </p>
-                          <p className="mt-1 truncate text-body-md font-semibold text-on-surface">
-                            {proposal.clientName}
-                          </p>
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        draggable={canMoveCards && !isMoving}
+                        onDragStart={(event) => {
+                          if (!canMoveCards) {
+                            return
+                          }
+
+                          suppressNextClickRef.current = true
+                          setDraggedProposalId(proposal.id)
+                          event.dataTransfer.effectAllowed = 'move'
+                          event.dataTransfer.setData('text/plain', proposal.id)
+                        }}
+                        onDragEnd={() => {
+                          setDraggedProposalId(null)
+                          setDragOverStatus(null)
+                          window.setTimeout(() => {
+                            suppressNextClickRef.current = false
+                          }, 0)
+                        }}
+                        onClick={() => {
+                          if (suppressNextClickRef.current) {
+                            return
+                          }
+
+                          onSelectProposal(proposal.id)
+                        }}
+                        onKeyDown={(event) =>
+                          handleProposalKeyDown(event, proposal.id)
+                        }
+                        className={`w-full min-w-0 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest p-4 text-left shadow-[0px_1px_3px_rgba(0,0,0,0.05)] transition-all duration-200 hover:-translate-y-0.5 hover:border-primary hover:shadow-[0px_10px_15px_-3px_rgba(0,0,0,0.08)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
+                          canMoveCards
+                            ? 'cursor-grab active:cursor-grabbing'
+                            : 'cursor-pointer'
+                        } ${isMoving ? 'opacity-60' : ''} ${
+                          isPendingOwnedHighlight
+                            ? 'border-amber-300 bg-amber-50/80 shadow-[0px_8px_24px_rgba(245,158,11,0.16)] animate-pending-card-glow'
+                            : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-label-md font-semibold text-primary">
+                              {proposal.proposalCode}
+                            </p>
+                            <p
+                              className="mt-1 truncate text-body-md font-semibold text-on-surface"
+                              title={proposal.clientName}
+                            >
+                              {proposal.clientName}
+                            </p>
+                          </div>
+                          <span className="shrink-0 rounded-md bg-surface-container px-2 py-1 text-label-sm font-semibold text-on-surface-variant">
+                            {proposal.documentsCount}
+                          </span>
                         </div>
-                        <span className="rounded-md bg-surface-container px-2 py-1 text-label-sm font-semibold text-on-surface-variant">
-                          {proposal.documentsCount}
-                        </span>
+
+                        <dl className="mt-4 grid gap-3 text-body-sm">
+                          <div className="min-w-0">
+                            <dt className="text-on-surface-variant">Corretor</dt>
+                            <dd
+                              className="truncate font-medium text-on-surface"
+                              title={proposal.brokerName}
+                            >
+                              {proposal.brokerName}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <dt className="text-on-surface-variant">Imóvel</dt>
+                            <dd
+                              className="truncate font-medium text-on-surface"
+                              title={proposal.propertyType}
+                            >
+                              {proposal.propertyType}
+                            </dd>
+                          </div>
+                          <div className="min-w-0">
+                            <dt className="text-on-surface-variant">Criada em</dt>
+                            <dd className="truncate font-medium text-on-surface">
+                              {formatCreatedAt(proposal.createdAt)}
+                            </dd>
+                          </div>
+                        </dl>
                       </div>
 
-                      <dl className="mt-4 grid gap-2 text-body-sm">
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-on-surface-variant">Corretor</dt>
-                          <dd className="truncate font-medium text-on-surface">
-                            {proposal.brokerName}
-                          </dd>
+                      {visibleHoverProposalId === proposal.id ? (
+                        <div
+                          aria-hidden={!isHoverCardOpen}
+                          className={`pointer-events-none absolute left-1/2 top-full z-20 mt-3 w-[min(22rem,calc(100vw-3rem))] -translate-x-1/2 rounded-2xl border border-outline-variant bg-surface-container-lowest/95 p-4 text-left shadow-[0px_20px_40px_rgba(15,23,42,0.16)] backdrop-blur-sm transition-all duration-200 ${
+                            isHoverCardOpen
+                              ? 'translate-y-0 opacity-100'
+                              : 'translate-y-2 opacity-0'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="text-label-md font-semibold text-primary">
+                                {proposal.proposalCode}
+                              </p>
+                              <p className="mt-1 break-words text-body-md font-semibold text-on-surface">
+                                {proposal.clientName}
+                              </p>
+                            </div>
+                            <span className="shrink-0 rounded-full bg-surface-container px-2.5 py-1 text-label-sm font-semibold text-on-surface-variant">
+                              {proposal.documentsCount} docs
+                            </span>
+                          </div>
+
+                          <dl className="mt-4 grid gap-3 text-body-sm">
+                            <div className="grid gap-1">
+                              <dt className="text-on-surface-variant">Corretor</dt>
+                              <dd className="break-words font-medium text-on-surface">
+                                {proposal.brokerName}
+                              </dd>
+                            </div>
+                            <div className="grid gap-1">
+                              <dt className="text-on-surface-variant">Tipo do imóvel</dt>
+                              <dd className="break-words font-medium text-on-surface">
+                                {proposal.propertyType}
+                              </dd>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div className="grid gap-1">
+                                <dt className="text-on-surface-variant">Status</dt>
+                                <dd className="font-medium text-on-surface">
+                                  {
+                                    statusOptions.find(
+                                      (statusOption) =>
+                                        statusOption.value ===
+                                        normalizeProposalStatus(proposal.status),
+                                    )?.label
+                                  }
+                                </dd>
+                              </div>
+                              <div className="grid gap-1">
+                                <dt className="text-on-surface-variant">Criada em</dt>
+                                <dd className="font-medium text-on-surface">
+                                  {formatCreatedAt(proposal.createdAt)}
+                                </dd>
+                              </div>
+                            </div>
+                          </dl>
                         </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-on-surface-variant">Imóvel</dt>
-                          <dd className="font-medium text-on-surface">
-                            {proposal.propertyType}
-                          </dd>
-                        </div>
-                        <div className="flex items-center justify-between gap-3">
-                          <dt className="text-on-surface-variant">Criada em</dt>
-                          <dd className="font-medium text-on-surface">
-                            {formatCreatedAt(proposal.createdAt)}
-                          </dd>
-                        </div>
-                      </dl>
+                      ) : null}
                     </div>
                   )
                 })
