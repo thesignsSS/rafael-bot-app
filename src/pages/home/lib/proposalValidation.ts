@@ -50,6 +50,14 @@ export function validateStateValue(state: string): string | null {
   return null
 }
 
+export function validateRequiredDocuments(files: File[]): string | null {
+  if (files.length === 0) {
+    return 'Anexe pelo menos um documento para enviar a proposta.'
+  }
+
+  return null
+}
+
 export function isSupportedFile(file: File) {
   const extension = getFileExtension(file.name)
 

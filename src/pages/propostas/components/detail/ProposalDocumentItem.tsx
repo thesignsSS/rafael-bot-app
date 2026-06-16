@@ -28,6 +28,8 @@ export function ProposalDocumentItem({
     inferDocumentKindFromContent(document.contentType, document.filename),
   )
   const displayName = document.displayName || document.originalFilename || document.filename
+  const uploadedByName = document.uploadedByName?.trim() || 'Usuário'
+  const shouldHighlightUploader = document.isUploadedByProposalOwner === false
 
   return (
     <div className="flex items-center justify-between gap-4 p-4 transition-colors hover:bg-surface-container-low">
@@ -42,9 +44,25 @@ export function ProposalDocumentItem({
           <h4 className="truncate text-body-md font-semibold text-on-surface">
             {displayName}
           </h4>
-          <p className="text-body-sm text-on-surface-variant">
-            {formatFileSize(document.sizeBytes)} • Enviado em{' '}
-            {formatDocumentDate(document.uploadedAt)}
+          <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-body-sm text-on-surface-variant">
+            <span>
+              {formatFileSize(document.sizeBytes)} • Enviado em{' '}
+              {formatDocumentDate(document.uploadedAt)}
+            </span>
+            <span className="hidden sm:inline">•</span>
+            <span className="inline-flex min-w-0 items-center gap-1">
+              <span>Enviado por:</span>
+              <span
+                className={
+                  shouldHighlightUploader
+                    ? 'max-w-[12rem] truncate rounded-md border border-primary-fixed-dim bg-primary-fixed px-1.5 py-0.5 text-label-sm font-semibold text-on-primary-fixed'
+                    : 'max-w-[12rem] truncate font-medium text-on-surface'
+                }
+                title={uploadedByName}
+              >
+                {uploadedByName}
+              </span>
+            </span>
           </p>
         </div>
       </div>

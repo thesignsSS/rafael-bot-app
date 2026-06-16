@@ -53,9 +53,8 @@ export function DocumentsSection({
   return (
     <FormSection
       icon="drive_folder_upload"
-      title="Documentos Adicionais"
-      description="Anexe outros documentos que julgar necessário"
-      optional
+      title="Documentos da Proposta"
+      description="Anexe pelo menos um documento para enviar a proposta"
     >
       <label
         htmlFor="extra-documents"

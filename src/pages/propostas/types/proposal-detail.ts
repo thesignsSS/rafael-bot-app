@@ -22,6 +22,9 @@ export type ProposalDocument = {
   contentType: string
   sizeBytes: number
   uploadedAt: string
+  uploadedByUserId?: string | null
+  uploadedByName?: string
+  isUploadedByProposalOwner?: boolean
   storageLocation: string
 }
 

@@ -10,6 +10,7 @@ import {
   validateClientCpfValue,
   validateClientEmailValue,
   validateClientPhoneValue,
+  validateRequiredDocuments,
 } from '../lib/proposalValidation'
 import {
   filesToSubmissionDocuments,
@@ -256,6 +257,13 @@ export function useProposalForm() {
 
     if (!validateCity()) {
       toast.error('Selecione o município do imóvel antes de enviar.')
+      return
+    }
+
+    const documentsError = validateRequiredDocuments(extraFiles)
+
+    if (documentsError) {
+      toast.error(documentsError)
       return
     }
 
