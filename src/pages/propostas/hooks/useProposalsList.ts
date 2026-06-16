@@ -28,6 +28,33 @@ function buildProposalsListStorageKey(cacheKey: string) {
   return `${PROPOSALS_LIST_CACHE_PREFIX}${cacheKey}`
 }
 
+export function invalidateProposalsListCache(brokerUserId: string, query?: string) {
+  const normalizedQuery = query?.trim().toLowerCase()
+
+  if (normalizedQuery !== undefined) {
+    const cacheKey = buildProposalsListCacheKey(brokerUserId, normalizedQuery)
+    window.sessionStorage.removeItem(buildProposalsListStorageKey(cacheKey))
+    proposalsListRequestCache.delete(cacheKey)
+    return
+  }
+
+  const cacheKeyPrefix = buildProposalsListStorageKey(`${brokerUserId}::`)
+
+  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
+    const storageKey = window.sessionStorage.key(index)
+
+    if (storageKey?.startsWith(cacheKeyPrefix)) {
+      window.sessionStorage.removeItem(storageKey)
+    }
+  }
+
+  for (const requestKey of proposalsListRequestCache.keys()) {
+    if (requestKey.startsWith(`${brokerUserId}::`)) {
+      proposalsListRequestCache.delete(requestKey)
+    }
+  }
+}
+
 function readStoredProposalsList(cacheKey: string): CachedProposalsList | null {
   const rawValue = window.sessionStorage.getItem(
     buildProposalsListStorageKey(cacheKey),
@@ -175,9 +202,7 @@ export function useProposalsList() {
       return
     }
 
-    const cacheKey = buildProposalsListCacheKey(brokerUserId, debouncedQuery)
-    window.sessionStorage.removeItem(buildProposalsListStorageKey(cacheKey))
-    proposalsListRequestCache.delete(cacheKey)
+    invalidateProposalsListCache(brokerUserId, debouncedQuery)
   }, [brokerUserId, debouncedQuery])
 
   const refetch = useCallback(async () => {

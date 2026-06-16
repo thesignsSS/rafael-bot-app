@@ -24,6 +24,7 @@ import {
   type ProposalStatus,
 } from '../types/proposal-status'
 import { useProposalDetail } from './useProposalDetail'
+import { invalidateProposalsListCache } from './useProposalsList'
 import { useProposalStatuses } from './useProposalStatuses'
 
 export type ProposalEditDraft = {
@@ -648,6 +649,7 @@ export function useProposalDetailPage() {
       const context = requireProposalContext()
       setIsDeletingProposal(true)
       await deleteProposal(context.proposalId, context.brokerUserId)
+      invalidateProposalsListCache(context.brokerUserId)
       setIsDeleteProposalModalOpen(false)
       toast.success('Proposta excluída com sucesso.')
       navigate('/propostas', { replace: true })
