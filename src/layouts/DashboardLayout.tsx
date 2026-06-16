@@ -15,13 +15,20 @@ export function DashboardLayout() {
     isSidebarOpen,
     openSidebar,
     closeSidebar,
+    isDesktopSidebarCollapsed,
+    toggleDesktopSidebarCollapse,
   } = useDashboardLayout()
 
   return (
     <div className="min-h-screen bg-background text-on-background">
-      <DashboardSidebar isMobileOpen={isSidebarOpen} onMobileClose={closeSidebar} />
+      <DashboardSidebar
+        isMobileOpen={isSidebarOpen}
+        onMobileClose={closeSidebar}
+        isDesktopCollapsed={isDesktopSidebarCollapsed}
+        onToggleDesktopCollapse={toggleDesktopSidebarCollapse}
+      />
 
-      <div className="lg:pl-60">
+      <div className={isDesktopSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-60'}>
         <DashboardHeader
           title={title}
           currentUserProfile={currentUserProfile}

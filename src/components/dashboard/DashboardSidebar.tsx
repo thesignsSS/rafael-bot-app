@@ -4,13 +4,27 @@ import { SidebarContent } from './SidebarContent'
 type DashboardSidebarProps = {
   isMobileOpen: boolean
   onMobileClose: () => void
+  isDesktopCollapsed: boolean
+  onToggleDesktopCollapse: () => void
 }
 
-export function DashboardSidebar({ isMobileOpen, onMobileClose }: DashboardSidebarProps) {
+export function DashboardSidebar({
+  isMobileOpen,
+  onMobileClose,
+  isDesktopCollapsed,
+  onToggleDesktopCollapse,
+}: DashboardSidebarProps) {
   return (
     <>
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-60 border-r border-outline-variant bg-surface px-4 py-4 lg:flex lg:flex-col">
-        <SidebarContent />
+      <aside
+        className={`fixed inset-y-0 left-0 z-20 hidden border-r border-outline-variant bg-surface px-4 py-4 transition-[width] duration-300 lg:flex lg:flex-col ${
+          isDesktopCollapsed ? 'w-20' : 'w-60'
+        }`}
+      >
+        <SidebarContent
+          isCollapsed={isDesktopCollapsed}
+          onToggleCollapse={onToggleDesktopCollapse}
+        />
       </aside>
 
       <div

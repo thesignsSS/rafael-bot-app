@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
 import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
-import { useWhatsAppConnectionStatus } from '../../hooks/useWhatsAppConnectionStatus'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
@@ -9,11 +8,17 @@ import { SidebarNavItem } from './SidebarNavItem'
 type SidebarContentProps = {
   onNavigate?: () => void
   trailingAction?: ReactNode
+  isCollapsed?: boolean
+  onToggleCollapse?: () => void
 }
 
-export function SidebarContent({ onNavigate, trailingAction }: SidebarContentProps) {
+export function SidebarContent({
+  onNavigate,
+  trailingAction,
+  isCollapsed = false,
+  onToggleCollapse,
+}: SidebarContentProps) {
   const { currentUserProfile, isAdmin } = useAuth()
-  const whatsAppConnectionStatus = useWhatsAppConnectionStatus(isAdmin)
   const { hasPending } = usePendingProposalIndicator({
     brokerUserId: currentUserProfile?.id,
     enabled: !isAdmin,
@@ -21,33 +26,63 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
 
   return (
     <>
-      <div className="mb-8 flex items-center justify-between gap-2 px-2">
-        <div className="flex min-w-0 items-center gap-3">
+      <div
+        className={`mb-8 flex items-center gap-2 ${
+          isCollapsed ? 'justify-center px-0' : 'justify-between px-2'
+        }`}
+      >
+        <div
+          className={`flex min-w-0 items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}
+        >
           <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
             <Icon name="robot_2" size={24} />
           </div>
-          <div className="min-w-0">
-            <h1 className="text-headline-md font-bold text-on-surface">Effectus</h1>
-            <p className="text-body-sm text-on-surface-variant">Documentos</p>
-          </div>
+          {!isCollapsed ? (
+            <div className="min-w-0">
+              <h1 className="text-headline-md font-bold text-on-surface">Effectus</h1>
+              <p className="text-body-sm text-on-surface-variant">Documentos</p>
+            </div>
+          ) : null}
         </div>
+        {onToggleCollapse ? (
+          <button
+            type="button"
+            onClick={onToggleCollapse}
+            aria-label={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
+            title={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
+            className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high lg:flex ${
+              isCollapsed ? '' : 'ml-auto'
+            }`}
+          >
+            <Icon name={isCollapsed ? 'chevron_right' : 'chevron_left'} size={22} />
+          </button>
+        ) : null}
         {trailingAction}
       </div>
 
       <nav className="flex flex-1 flex-col gap-1">
-        <SidebarNavItem icon="note_add" label="Nova Proposta" to="/" end onNavigate={onNavigate} />
+        <SidebarNavItem
+          icon="note_add"
+          label="Nova Proposta"
+          to="/"
+          end
+          onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
+        />
         <SidebarNavItem
           icon="description"
           label={isAdmin ? 'Todas as Propostas' : 'Minhas Propostas'}
           to="/propostas"
           showIndicator={!isAdmin && hasPending}
           onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
         />
         <SidebarNavItem
           icon="person"
           label="Meu Perfil"
           to="/perfil"
           onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
         />
         {isAdmin ? (
           <>
@@ -57,35 +92,50 @@ export function SidebarContent({ onNavigate, trailingAction }: SidebarContentPro
               to="/admin"
               end
               onNavigate={onNavigate}
+              isCollapsed={isCollapsed}
             />
             <SidebarNavItem
               icon="smartphone"
               label="Bot do WhatsApp"
               to="/admin/whatsapp"
-              showIndicator={whatsAppConnectionStatus != null && whatsAppConnectionStatus !== 'connected'}
-              indicatorClassName="bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.16)]"
               onNavigate={onNavigate}
+              isCollapsed={isCollapsed}
             />
           </>
         ) : null}
-        <SidebarNavButton icon="history" label="Histórico" />
-        <SidebarNavButton icon="help" label="Ajuda" />
+        <SidebarNavButton icon="history" label="Histórico" isCollapsed={isCollapsed} />
+        <SidebarNavButton icon="help" label="Ajuda" isCollapsed={isCollapsed} />
       </nav>
 
       <div className="mt-auto border-t border-outline-variant pt-4">
-        <div className="rounded-xl bg-surface-container-low p-4">
-          <p className="mb-2 text-body-sm text-on-surface-variant">
-            Dúvidas? Fale com o administrador
-          </p>
-          <a
-            href="https://wa.me/5585988686633"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 text-body-sm font-semibold text-primary"
-          >
-            <Icon name="call" size={18} />
-            (85) 9 8868-6633
-          </a>
+        <div className={`rounded-xl bg-surface-container-low ${isCollapsed ? 'p-3' : 'p-4'}`}>
+          {isCollapsed ? (
+            <a
+              href="https://wa.me/5585988686633"
+              target="_blank"
+              rel="noreferrer"
+              aria-label="Falar com o administrador"
+              title="Falar com o administrador"
+              className="flex items-center justify-center text-primary"
+            >
+              <Icon name="call" size={18} />
+            </a>
+          ) : (
+            <>
+              <p className="mb-2 text-body-sm text-on-surface-variant">
+                Dúvidas? Fale com o administrador
+              </p>
+              <a
+                href="https://wa.me/5585988686633"
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-2 text-body-sm font-semibold text-primary"
+              >
+                <Icon name="call" size={18} />
+                (85) 9 8868-6633
+              </a>
+            </>
+          )}
         </div>
       </div>
     </>

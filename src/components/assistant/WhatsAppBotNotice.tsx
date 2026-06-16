@@ -12,7 +12,12 @@ export function WhatsAppBotNotice() {
   const { session, isAdmin } = useAuth()
   const { pathname } = useLocation()
   const [isDismissed, setIsDismissed] = useState(false)
-  const connectionStatus = useWhatsAppConnectionStatus(isAdmin)
+  const shouldLoadConnectionStatus =
+    isAdmin &&
+    pathname.startsWith('/admin') &&
+    !HIDDEN_ROUTES.has(pathname) &&
+    pathname !== '/admin/whatsapp'
+  const connectionStatus = useWhatsAppConnectionStatus(shouldLoadConnectionStatus)
 
   useEffect(() => {
     setIsDismissed(window.localStorage.getItem(NOTICE_STORAGE_KEY) === 'true')

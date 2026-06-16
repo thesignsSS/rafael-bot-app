@@ -14,6 +14,8 @@ import {
 import { supabase } from '../lib/supabase'
 import type { AuthChangeEvent } from '@supabase/supabase-js'
 
+const PROFILE_CACHE_STORAGE_PREFIX = 'effectus-current-user-profile:'
+
 function buildFallbackProfile(user: User): CurrentUserProfile {
   const role = parseUserRole(user)
   const fullName =
@@ -30,6 +32,47 @@ function buildFallbackProfile(user: User): CurrentUserProfile {
   }
 }
 
+function getProfileCacheStorageKey(userId: string) {
+  return `${PROFILE_CACHE_STORAGE_PREFIX}${userId}`
+}
+
+function readStoredProfile(userId: string): CurrentUserProfile | null {
+  const rawValue = window.sessionStorage.getItem(getProfileCacheStorageKey(userId))
+
+  if (!rawValue) {
+    return null
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue) as CurrentUserProfile
+
+    if (
+      typeof parsedValue.id !== 'string' ||
+      typeof parsedValue.fullName !== 'string' ||
+      typeof parsedValue.role !== 'string' ||
+      typeof parsedValue.isAdmin !== 'boolean' ||
+      typeof parsedValue.isActive !== 'boolean'
+    ) {
+      return null
+    }
+
+    return parsedValue
+  } catch {
+    return null
+  }
+}
+
+function storeProfile(userId: string, profile: CurrentUserProfile) {
+  window.sessionStorage.setItem(
+    getProfileCacheStorageKey(userId),
+    JSON.stringify(profile),
+  )
+}
+
+function clearStoredProfile(userId: string) {
+  window.sessionStorage.removeItem(getProfileCacheStorageKey(userId))
+}
+
 export function useAuthSession(): AuthContextValue {
   const [session, setSession] = useState<Session | null>(null)
   const [currentUserProfile, setCurrentUserProfile] =
@@ -39,6 +82,9 @@ export function useAuthSession(): AuthContextValue {
   const sessionRef = useRef<Session | null>(null)
   const requestIdRef = useRef(0)
   const profileCacheRef = useRef(new Map<string, CurrentUserProfile>())
+  const pendingProfileRequestsRef = useRef(
+    new Map<string, Promise<CurrentUserProfile>>(),
+  )
 
   const loadProfileForSession = useCallback(async (
     nextSession: Session | null,
@@ -60,9 +106,11 @@ export function useAuthSession(): AuthContextValue {
     }
 
     const userId = nextSession.user.id
-    const cachedProfile = profileCacheRef.current.get(userId)
+    const cachedProfile =
+      profileCacheRef.current.get(userId) ?? readStoredProfile(userId)
 
     if (cachedProfile && !options?.force) {
+      profileCacheRef.current.set(userId, cachedProfile)
       setCurrentUserProfile(cachedProfile)
       setProfileError(null)
       setIsLoading(false)
@@ -72,7 +120,18 @@ export function useAuthSession(): AuthContextValue {
     setIsLoading(true)
 
     try {
-      const profile = await fetchCurrentUserProfile(userId)
+      let profileRequest = pendingProfileRequestsRef.current.get(userId)
+
+      if (!profileRequest || options?.force) {
+        profileRequest = fetchCurrentUserProfile(userId)
+        pendingProfileRequestsRef.current.set(userId, profileRequest)
+      }
+
+      const profile = await profileRequest
+
+      if (pendingProfileRequestsRef.current.get(userId) === profileRequest) {
+        pendingProfileRequestsRef.current.delete(userId)
+      }
 
       if (requestId !== requestIdRef.current) {
         return
@@ -80,6 +139,7 @@ export function useAuthSession(): AuthContextValue {
 
       if (!profile.isActive) {
         profileCacheRef.current.delete(userId)
+        clearStoredProfile(userId)
         setCurrentUserProfile(null)
         setProfileError('Seu perfil está inativo. Entre em contato com um administrador.')
         setIsLoading(false)
@@ -88,9 +148,12 @@ export function useAuthSession(): AuthContextValue {
       }
 
       profileCacheRef.current.set(userId, profile)
+      storeProfile(userId, profile)
       setCurrentUserProfile(profile)
       setProfileError(null)
     } catch (error) {
+      pendingProfileRequestsRef.current.delete(userId)
+
       if (requestId !== requestIdRef.current) {
         return
       }
@@ -98,6 +161,7 @@ export function useAuthSession(): AuthContextValue {
       if (error instanceof CurrentUserProfileNotFoundError) {
         const fallbackProfile = buildFallbackProfile(nextSession.user)
         profileCacheRef.current.set(userId, fallbackProfile)
+        storeProfile(userId, fallbackProfile)
         setCurrentUserProfile(fallbackProfile)
         setProfileError(null)
       } else {
@@ -149,6 +213,8 @@ export function useAuthSession(): AuthContextValue {
 
     if (currentUserId) {
       profileCacheRef.current.delete(currentUserId)
+      clearStoredProfile(currentUserId)
+      pendingProfileRequestsRef.current.delete(currentUserId)
     }
 
     await loadProfileForSession(sessionRef.current, { force: true })
@@ -159,6 +225,8 @@ export function useAuthSession(): AuthContextValue {
 
     if (currentUserId) {
       profileCacheRef.current.delete(currentUserId)
+      clearStoredProfile(currentUserId)
+      pendingProfileRequestsRef.current.delete(currentUserId)
     }
 
     await supabase.auth.signOut()

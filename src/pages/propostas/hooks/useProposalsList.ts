@@ -11,6 +11,51 @@ import { useProposalStatuses } from './useProposalStatuses'
 
 const PAGE_SIZE = 100
 const SEARCH_DEBOUNCE_MS = 300
+const PROPOSALS_LIST_CACHE_PREFIX = 'effectus-proposals-list:'
+
+type CachedProposalsList = {
+  items: ProposalListItem[]
+  totalCount: number
+}
+
+const proposalsListRequestCache = new Map<string, Promise<CachedProposalsList>>()
+
+function buildProposalsListCacheKey(brokerUserId: string, query: string) {
+  return `${brokerUserId}::${query.trim().toLowerCase()}`
+}
+
+function buildProposalsListStorageKey(cacheKey: string) {
+  return `${PROPOSALS_LIST_CACHE_PREFIX}${cacheKey}`
+}
+
+function readStoredProposalsList(cacheKey: string): CachedProposalsList | null {
+  const rawValue = window.sessionStorage.getItem(
+    buildProposalsListStorageKey(cacheKey),
+  )
+
+  if (!rawValue) {
+    return null
+  }
+
+  try {
+    const parsedValue = JSON.parse(rawValue) as CachedProposalsList
+
+    if (!Array.isArray(parsedValue.items) || typeof parsedValue.totalCount !== 'number') {
+      return null
+    }
+
+    return parsedValue
+  } catch {
+    return null
+  }
+}
+
+function storeProposalsList(cacheKey: string, value: CachedProposalsList) {
+  window.sessionStorage.setItem(
+    buildProposalsListStorageKey(cacheKey),
+    JSON.stringify(value),
+  )
+}
 
 export function useProposalsList() {
   const { user, isLoading: isAuthLoading } = useAuth()
@@ -51,32 +96,68 @@ export function useProposalsList() {
     try {
       setIsLoading(true)
       setError(null)
+      const cacheKey = buildProposalsListCacheKey(brokerUserId, debouncedQuery)
+      const storedValue = readStoredProposalsList(cacheKey)
 
-      const firstPage = await fetchProposals({
-        brokerUserId,
-        page: 1,
-        pageSize: PAGE_SIZE,
-        search: debouncedQuery,
-      })
-
-      const allItems = [...firstPage.items]
-      const total = firstPage.total
-      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
-
-      for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
-        const response = await fetchProposals({
-          brokerUserId,
-          page: nextPage,
-          pageSize: PAGE_SIZE,
-          search: debouncedQuery,
-        })
-
-        allItems.push(...response.items)
+      if (storedValue) {
+        setItems(storedValue.items)
+        setTotalCount(storedValue.totalCount)
+        setIsLoading(false)
+        return
       }
 
-      setItems(allItems)
-      setTotalCount(total)
+      let request = proposalsListRequestCache.get(cacheKey)
+
+      if (!request) {
+        request = (async () => {
+          const firstPage = await fetchProposals({
+            brokerUserId,
+            page: 1,
+            pageSize: PAGE_SIZE,
+            search: debouncedQuery,
+          })
+
+          const allItems = [...firstPage.items]
+          const total = firstPage.total
+          const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE))
+
+          for (let nextPage = 2; nextPage <= totalPages; nextPage += 1) {
+            const response = await fetchProposals({
+              brokerUserId,
+              page: nextPage,
+              pageSize: PAGE_SIZE,
+              search: debouncedQuery,
+            })
+
+            allItems.push(...response.items)
+          }
+
+          const result = {
+            items: allItems,
+            totalCount: total,
+          }
+
+          storeProposalsList(cacheKey, result)
+          return result
+        })()
+
+        proposalsListRequestCache.set(cacheKey, request)
+      }
+
+      const result = await request
+
+      if (proposalsListRequestCache.get(cacheKey) === request) {
+        proposalsListRequestCache.delete(cacheKey)
+      }
+
+      setItems(result.items)
+      setTotalCount(result.totalCount)
     } catch (requestError) {
+      if (brokerUserId) {
+        const cacheKey = buildProposalsListCacheKey(brokerUserId, debouncedQuery)
+        proposalsListRequestCache.delete(cacheKey)
+      }
+
       setItems([])
       setTotalCount(0)
       setError(
@@ -88,6 +169,21 @@ export function useProposalsList() {
       setIsLoading(false)
     }
   }, [brokerUserId, debouncedQuery, isAuthLoading])
+
+  const invalidateCurrentListCache = useCallback(() => {
+    if (!brokerUserId) {
+      return
+    }
+
+    const cacheKey = buildProposalsListCacheKey(brokerUserId, debouncedQuery)
+    window.sessionStorage.removeItem(buildProposalsListStorageKey(cacheKey))
+    proposalsListRequestCache.delete(cacheKey)
+  }, [brokerUserId, debouncedQuery])
+
+  const refetch = useCallback(async () => {
+    invalidateCurrentListCache()
+    await loadProposals()
+  }, [invalidateCurrentListCache, loadProposals])
 
   useEffect(() => {
     void loadProposals()
@@ -127,6 +223,7 @@ export function useProposalsList() {
           status,
           pendingReason: options?.pendingReason,
         })
+        invalidateCurrentListCache()
         toast.success('Situação da proposta atualizada.')
       } catch (moveError) {
         setItems((currentItems) =>
@@ -143,7 +240,7 @@ export function useProposalsList() {
         setMovingProposalId(null)
       }
     },
-    [brokerUserId, items, movingProposalId],
+    [brokerUserId, invalidateCurrentListCache, items, movingProposalId],
   )
 
   const moveProposal = useCallback(
@@ -197,7 +294,7 @@ export function useProposalsList() {
     error,
     isPendingReasonModalOpen: pendingMoveProposalId !== null,
     pendingReasonDraft,
-    refetch: loadProposals,
+    refetch,
     moveProposal,
     setPendingReasonDraft,
     closePendingReasonModal,
