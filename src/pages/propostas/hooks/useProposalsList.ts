@@ -11,7 +11,6 @@ import { useProposalStatuses } from './useProposalStatuses'
 
 const PAGE_SIZE = 100
 const SEARCH_DEBOUNCE_MS = 300
-const PROPOSALS_LIST_CACHE_PREFIX = 'effectus-proposals-list:'
 
 type CachedProposalsList = {
   items: ProposalListItem[]
@@ -24,28 +23,13 @@ function buildProposalsListCacheKey(brokerUserId: string, query: string) {
   return `${brokerUserId}::${query.trim().toLowerCase()}`
 }
 
-function buildProposalsListStorageKey(cacheKey: string) {
-  return `${PROPOSALS_LIST_CACHE_PREFIX}${cacheKey}`
-}
-
 export function invalidateProposalsListCache(brokerUserId: string, query?: string) {
   const normalizedQuery = query?.trim().toLowerCase()
 
   if (normalizedQuery !== undefined) {
     const cacheKey = buildProposalsListCacheKey(brokerUserId, normalizedQuery)
-    window.sessionStorage.removeItem(buildProposalsListStorageKey(cacheKey))
     proposalsListRequestCache.delete(cacheKey)
     return
-  }
-
-  const cacheKeyPrefix = buildProposalsListStorageKey(`${brokerUserId}::`)
-
-  for (let index = window.sessionStorage.length - 1; index >= 0; index -= 1) {
-    const storageKey = window.sessionStorage.key(index)
-
-    if (storageKey?.startsWith(cacheKeyPrefix)) {
-      window.sessionStorage.removeItem(storageKey)
-    }
   }
 
   for (const requestKey of proposalsListRequestCache.keys()) {
@@ -53,35 +37,6 @@ export function invalidateProposalsListCache(brokerUserId: string, query?: strin
       proposalsListRequestCache.delete(requestKey)
     }
   }
-}
-
-function readStoredProposalsList(cacheKey: string): CachedProposalsList | null {
-  const rawValue = window.sessionStorage.getItem(
-    buildProposalsListStorageKey(cacheKey),
-  )
-
-  if (!rawValue) {
-    return null
-  }
-
-  try {
-    const parsedValue = JSON.parse(rawValue) as CachedProposalsList
-
-    if (!Array.isArray(parsedValue.items) || typeof parsedValue.totalCount !== 'number') {
-      return null
-    }
-
-    return parsedValue
-  } catch {
-    return null
-  }
-}
-
-function storeProposalsList(cacheKey: string, value: CachedProposalsList) {
-  window.sessionStorage.setItem(
-    buildProposalsListStorageKey(cacheKey),
-    JSON.stringify(value),
-  )
 }
 
 export function useProposalsList() {
@@ -124,15 +79,6 @@ export function useProposalsList() {
       setIsLoading(true)
       setError(null)
       const cacheKey = buildProposalsListCacheKey(brokerUserId, debouncedQuery)
-      const storedValue = readStoredProposalsList(cacheKey)
-
-      if (storedValue) {
-        setItems(storedValue.items)
-        setTotalCount(storedValue.totalCount)
-        setIsLoading(false)
-        return
-      }
-
       let request = proposalsListRequestCache.get(cacheKey)
 
       if (!request) {
@@ -164,7 +110,6 @@ export function useProposalsList() {
             totalCount: total,
           }
 
-          storeProposalsList(cacheKey, result)
           return result
         })()
 
