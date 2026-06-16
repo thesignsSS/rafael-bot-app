@@ -76,6 +76,7 @@ export function ProposalEditForm({
           >
             <option value="Novo">Novo</option>
             <option value="Usado">Usado</option>
+            <option value="Adjudicado Caixa">Adjudicado Caixa</option>
           </select>
         </label>
 

@@ -7,11 +7,13 @@ type ProposalSummaryProps = {
   clientLabel: string
   emailLabel: string
   propertyType: PropertyType
+  bankLabel: string
   stateLabel: string
   cityLabel: string
   hasClientName: boolean
   hasClientEmail: boolean
   hasEmailError: boolean
+  hasBank: boolean
   hasCity: boolean
   isSubmitting: boolean
   onSubmit: () => void | Promise<void>
@@ -21,11 +23,13 @@ export function ProposalSummary({
   clientLabel,
   emailLabel,
   propertyType,
+  bankLabel,
   stateLabel,
   cityLabel,
   hasClientName,
   hasClientEmail,
   hasEmailError,
+  hasBank,
   hasCity,
   isSubmitting,
   onSubmit,
@@ -42,6 +46,7 @@ export function ProposalSummary({
             muted={!hasClientEmail || hasEmailError}
           />
           <SummaryRow label="Tipo do imóvel" value={propertyType} />
+          <SummaryRow label="Banco" value={bankLabel} muted={!hasBank} />
           <SummaryRow label="Estado" value={stateLabel} />
           <SummaryRow label="Município" value={cityLabel} muted={!hasCity} />
         </dl>

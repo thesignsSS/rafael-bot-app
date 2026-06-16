@@ -1,7 +1,7 @@
 import type { PropertyType } from '../../home/types/proposal'
 import type { ProposalStatus } from './proposal-status'
 
-export type ProposalDocumentKind = 'pdf' | 'image'
+export type ProposalDocumentKind = 'pdf' | 'image' | 'text'
 
 export type ProposalCommentType = 'comment' | 'pending_reason' | 'resubmission'
 

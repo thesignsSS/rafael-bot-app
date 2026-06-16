@@ -1,4 +1,5 @@
-export type PropertyType = 'Novo' | 'Usado'
+export type PropertyType = 'Novo' | 'Usado' | 'Adjudicado Caixa'
+export type ProposalBank = 'Caixa' | 'Bradesco' | 'Itaú' | 'Santander' | 'Inter' | 'Todos'
 
 export type IbgeCity = {
   id: number

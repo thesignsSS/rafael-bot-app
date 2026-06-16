@@ -1,6 +1,7 @@
 import { Icon } from '../../../components/ui/Icon'
 import { useProposalForm } from '../hooks/useProposalForm'
 import { AdditionalInfoSection } from './AdditionalInfoSection'
+import { BankSelectionSection } from './BankSelectionSection'
 import { BrokerDataSection } from './BrokerDataSection'
 import { ClientDataSection } from './ClientDataSection'
 import { DocumentsSection } from './DocumentsSection'
@@ -92,6 +93,12 @@ export function ProposalForm() {
           onSelectCity={form.selectCity}
         />
 
+        <BankSelectionSection
+          selectedBank={form.selectedBank}
+          bankError={form.bankError}
+          onSelectedBankChange={form.setSelectedBank}
+        />
+
         <DocumentsSection
           extraFiles={form.extraFiles}
           onExtraFileChange={form.handleExtraFileChange}
@@ -108,11 +115,13 @@ export function ProposalForm() {
           clientLabel={form.clientLabel}
           emailLabel={form.emailLabel}
           propertyType={form.propertyType}
+          bankLabel={form.bankLabel}
           stateLabel={form.propertyState}
           cityLabel={form.cityLabel}
           hasClientName={Boolean(form.clientName.trim())}
           hasClientEmail={Boolean(form.clientEmail.trim())}
           hasEmailError={Boolean(form.emailError)}
+          hasBank={Boolean(form.selectedBank)}
           hasCity={Boolean(form.city)}
           isSubmitting={form.isSubmitting}
           onSubmit={form.handleSubmit}

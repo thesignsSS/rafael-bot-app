@@ -16,7 +16,7 @@ import {
   filesToSubmissionDocuments,
   submitProposalToBot,
 } from '../lib/submitProposal'
-import type { PropertyType } from '../types/proposal'
+import type { PropertyType, ProposalBank } from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
 
 const PROPOSAL_DRAFT_STORAGE_KEY = 'proposal-form-draft'
@@ -29,6 +29,7 @@ type ProposalFormDraft = {
   brokerPhone: string
   propertyType: PropertyType
   propertyState: string
+  selectedBank: ProposalBank | ''
   city: string
   additionalInfo: string
 }
@@ -47,6 +48,8 @@ export function useProposalForm() {
   const [brokerPhone, setBrokerPhone] = useState('')
   const [propertyType, setPropertyType] = useState<PropertyType>('Novo')
   const [propertyState, setPropertyState] = useState('')
+  const [selectedBank, setSelectedBank] = useState<ProposalBank | ''>('')
+  const [bankError, setBankError] = useState('')
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [additionalInfo, setAdditionalInfo] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -100,6 +103,12 @@ export function useProposalForm() {
     setClientPhoneError(error ?? '')
     return error === null
   }, [clientPhone])
+
+  const validateSelectedBank = useCallback(() => {
+    const isValid = selectedBank.trim().length > 0
+    setBankError(isValid ? '' : 'Selecione o banco antes de enviar.')
+    return isValid
+  }, [selectedBank])
 
   const addExtraFiles = useCallback((selectedFiles: File[]) => {
     const unsupportedFiles = selectedFiles.filter((file) => !isSupportedFile(file))
@@ -175,8 +184,23 @@ export function useProposalForm() {
         setBrokerPhone(formatBrazilianPhone(draft.brokerPhone))
       }
 
-      if (draft.propertyType === 'Novo' || draft.propertyType === 'Usado') {
+      if (
+        draft.propertyType === 'Novo' ||
+        draft.propertyType === 'Usado' ||
+        draft.propertyType === 'Adjudicado Caixa'
+      ) {
         setPropertyType(draft.propertyType)
+      }
+
+      if (
+        draft.selectedBank === 'Caixa' ||
+        draft.selectedBank === 'Bradesco' ||
+        draft.selectedBank === 'Itaú' ||
+        draft.selectedBank === 'Santander' ||
+        draft.selectedBank === 'Inter' ||
+        draft.selectedBank === 'Todos'
+      ) {
+        setSelectedBank(draft.selectedBank)
       }
 
       if (typeof draft.propertyState === 'string') {
@@ -208,6 +232,7 @@ export function useProposalForm() {
       brokerPhone,
       propertyType,
       propertyState,
+      selectedBank,
       city: cityCombobox.city,
       additionalInfo,
     }
@@ -223,6 +248,7 @@ export function useProposalForm() {
     clientPhone,
     propertyState,
     propertyType,
+    selectedBank,
   ])
 
   const handleSubmit = useCallback(async () => {
@@ -257,6 +283,11 @@ export function useProposalForm() {
 
     if (!validateCity()) {
       toast.error('Selecione o município do imóvel antes de enviar.')
+      return
+    }
+
+    if (!validateSelectedBank()) {
+      toast.error('Selecione o banco antes de enviar.')
       return
     }
 
@@ -307,6 +338,7 @@ export function useProposalForm() {
           'Telefone do Cliente': clientPhone.trim(),
           'E-mail do Cliente': clientEmail.trim(),
           'Tipo do Imóvel': propertyType,
+          'Banco Escolhido': selectedBank,
           'Município do Imóvel': cityCombobox.city,
           'UF do Imóvel': propertyState,
           'Informações Adicionais': additionalInfo.trim(),
@@ -352,6 +384,7 @@ export function useProposalForm() {
     clientEmail,
     propertyType,
     propertyState,
+    selectedBank,
     brokerPhone,
     additionalInfo,
     extraFiles,
@@ -361,12 +394,14 @@ export function useProposalForm() {
     validateClientEmail,
     validateState,
     validateCity,
+    validateSelectedBank,
     currentUserProfile?.fullName,
     navigate,
   ])
 
   const clientLabel = clientName.trim() || 'Ainda não informado'
   const emailLabel = clientEmail.trim() || 'Ainda não informado'
+  const bankLabel = selectedBank || 'Ainda não informado'
 
   return {
     clientName,
@@ -383,18 +418,23 @@ export function useProposalForm() {
     setPropertyType,
     propertyState,
     setPropertyState,
+    selectedBank,
+    setSelectedBank,
+    bankError,
     extraFiles,
     additionalInfo,
     setAdditionalInfo,
     isSubmitting,
     clientLabel,
     emailLabel,
+    bankLabel,
     handleClientCpfChange,
     handleClientPhoneChange,
     handleClientEmailChange,
     validateClientCpf,
     validateClientPhone,
     validateClientEmail,
+    validateSelectedBank,
     handleExtraFileChange,
     addExtraFiles,
     removeExtraFile,

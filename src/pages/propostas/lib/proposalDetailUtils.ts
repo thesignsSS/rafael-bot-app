@@ -1,10 +1,20 @@
 import type { ProposalDocumentKind } from '../types/proposal-detail'
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
+const TEXT_EXTENSIONS = new Set(['txt'])
 
 export function inferDocumentKind(fileName: string): ProposalDocumentKind {
   const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
-  return IMAGE_EXTENSIONS.has(extension) ? 'image' : 'pdf'
+
+  if (IMAGE_EXTENSIONS.has(extension)) {
+    return 'image'
+  }
+
+  if (TEXT_EXTENSIONS.has(extension)) {
+    return 'text'
+  }
+
+  return 'pdf'
 }
 
 export function inferDocumentKindFromContent(
@@ -13,6 +23,10 @@ export function inferDocumentKindFromContent(
 ): ProposalDocumentKind {
   if (contentType.startsWith('image/')) {
     return 'image'
+  }
+
+  if (contentType.startsWith('text/')) {
+    return 'text'
   }
 
   return inferDocumentKind(fileName)
@@ -44,6 +58,13 @@ export function getDocumentIconStyles(kind: ProposalDocumentKind) {
     return {
       container: 'bg-red-50 text-red-600',
       icon: 'picture_as_pdf',
+    } as const
+  }
+
+  if (kind === 'text') {
+    return {
+      container: 'bg-amber-50 text-amber-700',
+      icon: 'description',
     } as const
   }
 

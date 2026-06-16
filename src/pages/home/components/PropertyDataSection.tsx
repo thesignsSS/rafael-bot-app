@@ -46,15 +46,15 @@ export function PropertyDataSection({
 }: PropertyDataSectionProps) {
   return (
     <FormSection icon="home" title="Dados do Imóvel">
-      <div className="grid gap-5 md:grid-cols-[1fr_0.6fr_1.4fr]">
+      <div className="grid gap-5 md:grid-cols-[1.45fr_0.6fr_0.95fr]">
         <Field label="Tipo do Imóvel" required>
-          <div className="grid grid-cols-2 gap-3">
-            {(['Novo', 'Usado'] as PropertyType[]).map((type) => (
+          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+            {(['Novo', 'Usado', 'Adjudicado Caixa'] as PropertyType[]).map((type) => (
               <button
                 key={type}
                 type="button"
                 onClick={() => onPropertyTypeChange(type)}
-                className={`flex h-12 items-center gap-3 rounded-lg border px-4 text-label-md font-semibold transition-all ${
+                className={`flex min-h-12 items-center gap-3 rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
                   propertyType === type
                     ? 'border-primary bg-blue-50 text-primary shadow-sm'
                     : 'border-outline-variant bg-white text-on-surface-variant hover:border-primary/60'
@@ -71,7 +71,7 @@ export function PropertyDataSection({
                     <span className="h-2 w-2 rounded-full bg-white" />
                   ) : null}
                 </span>
-                {type}
+                <span className="text-left leading-tight">{type}</span>
               </button>
             ))}
           </div>

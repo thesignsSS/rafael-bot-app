@@ -116,6 +116,15 @@ export function ProposalDocumentPreviewModal({
     setIsDraggingImage(true)
   }
 
+  function handleImageWheel(event: React.WheelEvent<HTMLDivElement>) {
+    if (!event.ctrlKey) {
+      return
+    }
+
+    event.preventDefault()
+    setImageRotation((current) => current + (event.deltaY > 0 ? 90 : -90))
+  }
+
   if (!isMounted) {
     return null
   }
@@ -175,7 +184,8 @@ export function ProposalDocumentPreviewModal({
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-white px-4 py-3 sm:px-5">
                   <p className="text-body-sm text-on-surface-variant">
-                    Use os controles para ajustar a visualização da imagem.
+                    Use os controles para ajustar a visualização da imagem. Atalho:
+                    segure Ctrl + scroll para girar.
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -234,6 +244,7 @@ export function ProposalDocumentPreviewModal({
                 <div className="flex min-h-[50dvh] items-center justify-center overflow-auto bg-surface-container-low p-4 sm:p-5">
                   <div
                     onMouseDown={handleImageMouseDown}
+                    onWheel={handleImageWheel}
                     className={`flex items-center justify-center ${
                       imageScale > 1
                         ? isDraggingImage

@@ -96,6 +96,15 @@ function DocumentPreview({
     setIsDraggingImage(true)
   }
 
+  function handleImageWheel(event: React.WheelEvent<HTMLDivElement>) {
+    if (!event.ctrlKey) {
+      return
+    }
+
+    event.preventDefault()
+    setImageRotation((current) => current + (event.deltaY > 0 ? 90 : -90))
+  }
+
   return (
     <article className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
       <div className="flex flex-col gap-3 border-b border-outline-variant bg-surface-container-low px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
@@ -128,7 +137,8 @@ function DocumentPreview({
           <>
             <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3">
               <p className="text-body-sm text-on-surface-variant">
-                Ajuste a visualização da imagem com zoom, giro e reset.
+                Ajuste a visualização da imagem com zoom, giro e reset. Atalho:
+                segure Ctrl + scroll para girar.
               </p>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -187,6 +197,7 @@ function DocumentPreview({
             <div className="flex max-h-[calc(100dvh-180px)] justify-center overflow-auto rounded-lg border border-outline-variant bg-white p-3">
               <div
                 onMouseDown={handleImageMouseDown}
+                onWheel={handleImageWheel}
                 className={`flex items-center justify-center ${
                   imageScale > 1
                     ? isDraggingImage
