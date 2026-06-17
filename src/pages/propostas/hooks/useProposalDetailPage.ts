@@ -5,7 +5,7 @@ import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
 import { formatBrazilianPhone } from '../../../lib/phone'
 import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
-import type { PropertyType } from '../../home/types/proposal'
+import type { PropertyType, ProposalBank } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
 import {
   deleteProposal,
@@ -34,6 +34,7 @@ export type ProposalEditDraft = {
   clientEmail: string
   clientPhone: string
   propertyType: PropertyType
+  selectedBank: ProposalBank | ''
   propertyCity: string
   propertyState: string
   additionalInfo: string
@@ -114,6 +115,7 @@ export function useProposalDetailPage() {
       clientEmail: proposal.client.email,
       clientPhone: proposal.client.phone,
       propertyType: proposal.property.type,
+      selectedBank: extractProposalBank(proposal.formData),
       propertyCity: proposal.property.city,
       propertyState: proposal.property.state,
       additionalInfo: proposal.additionalInfo,
@@ -151,6 +153,7 @@ export function useProposalDetailPage() {
       clientEmail: proposal.client.email,
       clientPhone: proposal.client.phone,
       propertyType: proposal.property.type,
+      selectedBank: extractProposalBank(proposal.formData),
       propertyCity: proposal.property.city,
       propertyState: proposal.property.state,
       additionalInfo: proposal.additionalInfo,
@@ -200,6 +203,7 @@ export function useProposalDetailPage() {
           'E-mail do Cliente': editDraft.clientEmail.trim(),
           'Telefone do Cliente': editDraft.clientPhone.trim(),
           'Tipo do Imóvel': editDraft.propertyType,
+          'Banco Escolhido': editDraft.selectedBank,
           'Município do Imóvel': editDraft.propertyCity.trim(),
           'UF do Imóvel': editDraft.propertyState.trim(),
           'Informações Adicionais': editDraft.additionalInfo.trim(),
@@ -716,5 +720,28 @@ export function useProposalDetailPage() {
     addComment,
     setCommentDraft,
     resendForAnalysis,
+    proposalBank: proposal ? extractProposalBank(proposal.formData) : '',
   }
+}
+
+function extractProposalBank(formData: Record<string, unknown>): ProposalBank | '' {
+  const possibleKeys = ['Banco Escolhido', 'Banco da Proposta', 'bank', 'selectedBank']
+
+  for (const key of possibleKeys) {
+    const value = formData[key]
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim()
+
+      if (isProposalBank(normalizedValue)) {
+        return normalizedValue
+      }
+    }
+  }
+
+  return ''
+}
+
+function isProposalBank(value: string): value is ProposalBank {
+  return ['Caixa', 'Bradesco', 'Itaú', 'Santander', 'Inter', 'Todos'].includes(value)
 }

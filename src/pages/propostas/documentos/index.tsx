@@ -17,13 +17,18 @@ type ProposalDocumentPreview = {
   url: string
 }
 
+const MIN_IMAGE_SCALE = 0.5
+const DEFAULT_IMAGE_SCALE = 1
+
 function DocumentPreview({
   document,
 }: {
   document: ProposalDocumentPreview
 }) {
   const [isLoading, setIsLoading] = useState(true)
-  const [imageScale, setImageScale] = useState(1)
+  const [imageScale, setImageScale] = useState(
+    document.kind === 'image' ? MIN_IMAGE_SCALE : DEFAULT_IMAGE_SCALE,
+  )
   const [imageRotation, setImageRotation] = useState(0)
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 })
   const [isDraggingImage, setIsDraggingImage] = useState(false)
@@ -36,12 +41,14 @@ function DocumentPreview({
 
   useEffect(() => {
     setIsLoading(true)
-    setImageScale(1)
+    setImageScale(
+      document.kind === 'image' ? MIN_IMAGE_SCALE : DEFAULT_IMAGE_SCALE,
+    )
     setImageRotation(0)
     setImageOffset({ x: 0, y: 0 })
     setIsDraggingImage(false)
     dragStateRef.current = null
-  }, [document.id, document.url])
+  }, [document.id, document.kind, document.url])
 
   useEffect(() => {
     if (imageScale <= 1 && (imageOffset.x !== 0 || imageOffset.y !== 0)) {
@@ -144,7 +151,9 @@ function DocumentPreview({
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   type="button"
-                  onClick={() => setImageScale((current) => Math.max(0.5, current - 0.1))}
+                  onClick={() =>
+                    setImageScale((current) => Math.max(MIN_IMAGE_SCALE, current - 0.1))
+                  }
                   className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
                   aria-label="Diminuir zoom"
                   title="Diminuir zoom"
@@ -181,7 +190,7 @@ function DocumentPreview({
                 <button
                   type="button"
                   onClick={() => {
-                    setImageScale(1)
+                    setImageScale(MIN_IMAGE_SCALE)
                     setImageRotation(0)
                     setImageOffset({ x: 0, y: 0 })
                   }}

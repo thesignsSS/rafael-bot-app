@@ -10,6 +10,9 @@ type ProposalDocumentPreviewModalProps = {
   onClose: () => void
 }
 
+const MIN_IMAGE_SCALE = 0.5
+const DEFAULT_IMAGE_SCALE = 1
+
 export function ProposalDocumentPreviewModal({
   fileName,
   kind,
@@ -18,9 +21,12 @@ export function ProposalDocumentPreviewModal({
 }: ProposalDocumentPreviewModalProps) {
   const [isLoading, setIsLoading] = useState(true)
   const [isMounted, setIsMounted] = useState(false)
-  const [imageScale, setImageScale] = useState(1)
+  const [imageScale, setImageScale] = useState(
+    kind === 'image' ? MIN_IMAGE_SCALE : DEFAULT_IMAGE_SCALE,
+  )
   const [imageRotation, setImageRotation] = useState(0)
   const [imageOffset, setImageOffset] = useState({ x: 0, y: 0 })
+  const [imageNaturalSize, setImageNaturalSize] = useState({ width: 0, height: 0 })
   const [isDraggingImage, setIsDraggingImage] = useState(false)
   const dragStateRef = useRef<{
     startX: number
@@ -56,9 +62,10 @@ export function ProposalDocumentPreviewModal({
 
   useEffect(() => {
     setIsLoading(true)
-    setImageScale(1)
+    setImageScale(kind === 'image' ? MIN_IMAGE_SCALE : DEFAULT_IMAGE_SCALE)
     setImageRotation(0)
     setImageOffset({ x: 0, y: 0 })
+    setImageNaturalSize({ width: 0, height: 0 })
     setIsDraggingImage(false)
     dragStateRef.current = null
   }, [fileName, kind, url])
@@ -181,7 +188,7 @@ export function ProposalDocumentPreviewModal({
             ) : null}
 
             {kind === 'image' ? (
-              <>
+              <div className="flex h-full min-h-0 flex-col">
                 <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-white px-4 py-3 sm:px-5">
                   <p className="text-body-sm text-on-surface-variant">
                     Use os controles para ajustar a visualização da imagem. Atalho:
@@ -191,7 +198,9 @@ export function ProposalDocumentPreviewModal({
                   <div className="flex flex-wrap items-center gap-2">
                     <button
                       type="button"
-                      onClick={() => setImageScale((current) => Math.max(0.5, current - 0.1))}
+                      onClick={() =>
+                        setImageScale((current) => Math.max(MIN_IMAGE_SCALE, current - 0.1))
+                      }
                       className="rounded-lg border border-outline p-2 text-primary transition-all hover:bg-surface-container"
                       aria-label="Diminuir zoom"
                       title="Diminuir zoom"
@@ -228,7 +237,7 @@ export function ProposalDocumentPreviewModal({
                     <button
                       type="button"
                       onClick={() => {
-                        setImageScale(1)
+                        setImageScale(MIN_IMAGE_SCALE)
                         setImageRotation(0)
                         setImageOffset({ x: 0, y: 0 })
                       }}
@@ -241,35 +250,53 @@ export function ProposalDocumentPreviewModal({
                   </div>
                 </div>
 
-                <div className="flex min-h-[50dvh] items-center justify-center overflow-auto bg-surface-container-low p-4 sm:p-5">
-                  <div
-                    onMouseDown={handleImageMouseDown}
-                    onWheel={handleImageWheel}
-                    className={`flex items-center justify-center ${
-                      imageScale > 1
-                        ? isDraggingImage
-                          ? 'cursor-grabbing'
-                          : 'cursor-grab'
-                        : 'cursor-default'
-                    }`}
-                    style={{
-                      transform: `translate(${imageOffset.x}px, ${imageOffset.y}px)`,
-                    }}
-                  >
-                    <img
-                      src={url}
-                      alt={fileName}
-                      onLoad={() => setIsLoading(false)}
-                      draggable={false}
-                      className="h-auto max-w-full select-none rounded-lg border border-outline-variant bg-white object-contain shadow-[0px_1px_3px_rgba(0,0,0,0.05)] transition-transform duration-200"
+                <div className="min-h-0 flex-1 bg-surface-container-low p-4 sm:p-5">
+                  <div className="h-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border border-outline-variant bg-white">
+                    <div className="flex min-h-full min-w-full items-start justify-center p-3">
+                    <div
+                      onMouseDown={handleImageMouseDown}
+                      onWheel={handleImageWheel}
+                      className={`inline-flex ${
+                        imageScale > 1
+                          ? isDraggingImage
+                            ? 'cursor-grabbing'
+                            : 'cursor-grab'
+                          : 'cursor-default'
+                      }`}
                       style={{
-                        transform: `scale(${imageScale}) rotate(${imageRotation}deg)`,
-                        transformOrigin: 'center center',
+                        transform: `translate(${imageOffset.x}px, ${imageOffset.y}px)`,
                       }}
-                    />
+                    >
+                      <img
+                        src={url}
+                        alt={fileName}
+                        onLoad={(event) => {
+                          setImageNaturalSize({
+                            width: event.currentTarget.naturalWidth,
+                            height: event.currentTarget.naturalHeight,
+                          })
+                          setIsLoading(false)
+                        }}
+                        draggable={false}
+                        className="block h-auto max-w-none select-none rounded-lg object-contain shadow-[0px_1px_3px_rgba(0,0,0,0.05)] transition-transform duration-200"
+                        style={{
+                          width:
+                            imageNaturalSize.width > 0
+                              ? `${imageNaturalSize.width * imageScale}px`
+                              : undefined,
+                          height:
+                            imageNaturalSize.height > 0
+                              ? `${imageNaturalSize.height * imageScale}px`
+                              : undefined,
+                          transform: `rotate(${imageRotation}deg)`,
+                          transformOrigin: 'top center',
+                        }}
+                      />
+                    </div>
+                  </div>
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="bg-surface-container-low p-3 sm:p-4">
                 <iframe

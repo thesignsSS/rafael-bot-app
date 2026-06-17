@@ -1,7 +1,16 @@
 import type { InputHTMLAttributes } from 'react'
-import type { PropertyType } from '../../../home/types/proposal'
+import type { PropertyType, ProposalBank } from '../../../home/types/proposal'
 import { formatBrazilianPhone } from '../../../../lib/phone'
 import type { ProposalEditDraft } from '../../hooks/useProposalDetailPage'
+
+const BANK_OPTIONS: ProposalBank[] = [
+  'Caixa',
+  'Bradesco',
+  'Itaú',
+  'Santander',
+  'Inter',
+  'Todos',
+]
 
 type ProposalEditFormProps = {
   draft: ProposalEditDraft
@@ -62,6 +71,26 @@ export function ProposalEditForm({
           value={draft.clientPhone}
           onChange={(value) => onChange('clientPhone', value)}
         />
+
+        <label className="flex flex-col gap-1">
+          <span className="text-label-sm font-medium text-on-surface-variant">
+            Banco da proposta
+          </span>
+          <select
+            value={draft.selectedBank}
+            onChange={(event) =>
+              onChange('selectedBank', event.target.value as ProposalBank | '')
+            }
+            className="h-10 rounded-lg border border-outline-variant bg-surface px-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">Selecione o banco</option>
+            {BANK_OPTIONS.map((bank) => (
+              <option key={bank} value={bank}>
+                {bank}
+              </option>
+            ))}
+          </select>
+        </label>
 
         <label className="flex flex-col gap-1">
           <span className="text-label-sm font-medium text-on-surface-variant">

@@ -17,12 +17,14 @@ import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
+import { ProposalInfoField } from '../components/detail/ProposalInfoField'
 import { ProposalOperationalGuideCard } from '../components/detail/ProposalOperationalGuideCard'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
 import { ProposalStatusControl } from '../components/detail/ProposalStatusControl'
 import { ProposalTimelineSection } from '../components/detail/ProposalTimelineSection'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
 import { normalizeProposalStatus } from '../types/proposal-status'
+import { Icon } from '../../../components/ui/Icon'
 
 type DetailTab = 'informacoes' | 'tratativa' | 'comentarios' | 'timeline'
 
@@ -51,6 +53,7 @@ export default function ProposalDetailPage() {
     pendingDocumentsDraft,
     commentDraft,
     hasPendingUpdates,
+    proposalBank,
     goBack,
     startEditing,
     cancelEditing,
@@ -351,9 +354,27 @@ export default function ProposalDetailPage() {
               />
 
               <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
-                <h3 className="text-headline-md font-semibold text-on-surface">
-                  Informações adicionais
-                </h3>
+                <div className="mb-4 flex items-center gap-2 text-primary">
+                  <Icon name="account_balance" size={22} />
+                  <h3 className="text-headline-md font-semibold text-on-surface">
+                    Banco da proposta
+                  </h3>
+                </div>
+                <div className="mt-4">
+                  <ProposalInfoField
+                    label="Banco selecionado"
+                    value={proposalBank || 'Não informado'}
+                  />
+                </div>
+              </section>
+
+              <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
+                <div className="mb-4 flex items-center gap-2 text-primary">
+                  <Icon name="info" size={22} />
+                  <h3 className="text-headline-md font-semibold text-on-surface">
+                    Informações adicionais
+                  </h3>
+                </div>
                 <p className="mt-3 whitespace-pre-wrap text-body-md text-on-surface-variant">
                   {proposal.additionalInfo || 'Nenhuma informação adicional registrada.'}
                 </p>
