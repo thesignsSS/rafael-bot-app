@@ -121,6 +121,8 @@ function playIncomingMessageSound() {
 export function ChatWidget() {
   const { currentUserProfile } = useAuth()
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false)
+  const [isOfflineListOpen, setIsOfflineListOpen] = useState(false)
+  const [openingUserId, setOpeningUserId] = useState<string | null>(null)
   const [activeConversation, setActiveConversation] =
     useState<ChatConversationSummary | null>(null)
   const [users, setUsers] = useState<ChatDirectoryUser[]>([])
@@ -151,6 +153,7 @@ export function ChatWidget() {
   )
 
   const onlineUsersSet = useMemo(() => new Set(onlineUserIds), [onlineUserIds])
+  const isAdmin = currentUserProfile?.isAdmin ?? false
 
   const directoryItems = useMemo(
     () =>
@@ -189,6 +192,16 @@ export function ChatWidget() {
           return first.user.fullName.localeCompare(second.user.fullName)
         }),
     [conversationsByUserId, users],
+  )
+
+  const onlineDirectoryItems = useMemo(
+    () => directoryItems.filter(({ user }) => onlineUsersSet.has(user.id)),
+    [directoryItems, onlineUsersSet],
+  )
+
+  const offlineDirectoryItems = useMemo(
+    () => directoryItems.filter(({ user }) => !onlineUsersSet.has(user.id)),
+    [directoryItems, onlineUsersSet],
   )
 
   const loadDirectoryData = useCallback(async () => {
@@ -230,9 +243,17 @@ export function ChatWidget() {
   }, [])
 
   const openConversationById = useCallback(
-    async (conversationId: string) => {
+    async (conversationId: string, previewConversation?: ChatConversationSummary | null) => {
       if (!currentUserId) {
         return
+      }
+
+      if (previewConversation) {
+        setActiveConversation(previewConversation)
+        setMessages([])
+        setTypingConversationId(null)
+        setInputValue('')
+        setIsDirectoryOpen(false)
       }
 
       setIsLoadingConversation(true)
@@ -250,6 +271,10 @@ export function ChatWidget() {
             ? error.message
             : 'Não foi possível abrir a conversa.',
         )
+        if (previewConversation) {
+          setActiveConversation(null)
+          setIsDirectoryOpen(true)
+        }
       } finally {
         setIsLoadingConversation(false)
       }
@@ -462,9 +487,17 @@ export function ChatWidget() {
       const existingConversation = conversationsByUserId.get(user.id)
 
       if (existingConversation) {
-        await openConversationById(existingConversation.id)
+        setOpeningUserId(user.id)
+
+        try {
+          await openConversationById(existingConversation.id, existingConversation)
+        } finally {
+          setOpeningUserId(null)
+        }
         return
       }
+
+      setOpeningUserId(user.id)
 
       try {
         const conversation = await openDirectChatConversation(currentUserId, user.id)
@@ -473,6 +506,8 @@ export function ChatWidget() {
         )
         setMessages([])
         setActiveConversation(conversation)
+        setTypingConversationId(null)
+        setInputValue('')
         setIsDirectoryOpen(false)
       } catch (error) {
         toast.error(
@@ -480,6 +515,8 @@ export function ChatWidget() {
             ? error.message
             : 'Não foi possível iniciar a conversa.',
         )
+      } finally {
+        setOpeningUserId(null)
       }
     },
     [conversationsByUserId, currentUserId, openConversationById],
@@ -538,6 +575,104 @@ export function ChatWidget() {
 
   if (!currentUserId) {
     return null
+  }
+
+  const closeConversation = () => {
+    if (
+      socketRef.current?.readyState === WebSocket.OPEN &&
+      activeConversation &&
+      isTypingSentRef.current
+    ) {
+      socketRef.current.send(
+        JSON.stringify({
+          type: 'typing',
+          conversationId: activeConversation.id,
+          recipientUserId: activeConversation.counterpart.id,
+          isTyping: false,
+        }),
+      )
+    }
+
+    setActiveConversation(null)
+    setMessages([])
+    setTypingConversationId(null)
+    setInputValue('')
+    setIsLoadingConversation(false)
+    isTypingSentRef.current = false
+  }
+
+  const handleBackToChats = () => {
+    closeConversation()
+    setIsDirectoryOpen(true)
+  }
+
+  const renderDirectoryButton = ({
+    user,
+    conversation,
+  }: {
+    user: ChatDirectoryUser
+    conversation: ChatConversationSummary | null
+  }) => {
+    const isOpening = openingUserId === user.id
+
+    return (
+      <button
+        key={user.id}
+        type="button"
+        onClick={() => void handleSelectUser(user)}
+        disabled={isOpening}
+        className={`flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors ${
+          isOpening
+            ? 'cursor-wait bg-surface-container-low'
+            : 'hover:bg-surface-container-low'
+        }`}
+      >
+      <div className="relative shrink-0">
+        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#DBEAFE,#BFDBFE)] text-sm font-semibold text-primary">
+          {getInitials(user.fullName)}
+        </div>
+        {onlineUsersSet.has(user.id) ? (
+          <span
+            className="absolute right-0 bottom-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.16)]"
+            aria-label={`${user.fullName} está online`}
+            title="Online"
+          />
+        ) : null}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-body-md font-semibold text-on-surface">
+            {user.fullName}
+          </p>
+          {conversation?.unreadCount ? (
+            <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary animate-gentle-pulse" />
+          ) : null}
+        </div>
+        <p className="truncate text-body-sm text-on-surface-variant">
+          {conversation?.lastMessage ?? (user.isAdmin ? 'Administrador' : 'Corretor')}
+        </p>
+      </div>
+      <div className="shrink-0 text-right">
+        {isOpening ? (
+          <span className="inline-flex items-center gap-1 text-body-sm text-primary">
+            <Icon name="progress_activity" size={16} className="animate-spin" />
+            Abrindo
+          </span>
+        ) : (
+          <>
+            <p className="text-body-sm text-on-surface-variant">
+              {formatMessageTime(conversation?.lastMessageAt ?? null)}
+            </p>
+            {conversation?.unreadCount ? (
+              <span className="mt-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-on-primary">
+                {conversation.unreadCount}
+              </span>
+            ) : null}
+          </>
+        )}
+      </div>
+      </button>
+    )
   }
 
   return (
@@ -600,52 +735,67 @@ export function ChatWidget() {
               <div className="px-3 py-8 text-center text-body-md text-on-surface-variant">
                 Nenhum usuário disponível no momento.
               </div>
-            ) : (
-              directoryItems.map(({ user, conversation }) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => void handleSelectUser(user)}
-                  className="flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors hover:bg-surface-container-low"
-                >
-                  <div className="relative shrink-0">
-                    <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[linear-gradient(135deg,#DBEAFE,#BFDBFE)] text-sm font-semibold text-primary">
-                      {getInitials(user.fullName)}
-                    </div>
-                    {onlineUsersSet.has(user.id) ? (
-                      <span
-                        className="absolute right-0 bottom-0 h-3.5 w-3.5 rounded-full border-2 border-white bg-emerald-500 shadow-[0_0_0_3px_rgba(16,185,129,0.16)]"
-                        aria-label={`${user.fullName} está online`}
-                        title="Online"
-                      />
-                    ) : null}
+            ) : isAdmin ? (
+              <div className="space-y-3">
+                <section className="space-y-1">
+                  <div className="flex items-center justify-between px-3 pt-1 pb-2">
+                    <p className="text-label-sm font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                      Online
+                    </p>
+                    <span className="rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                      {onlineDirectoryItems.length}
+                    </span>
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <p className="truncate text-body-md font-semibold text-on-surface">
-                        {user.fullName}
+                  {onlineDirectoryItems.length === 0 ? (
+                    <div className="rounded-2xl bg-surface px-3 py-3 text-body-sm text-on-surface-variant">
+                      Ninguém online no momento.
+                    </div>
+                  ) : (
+                    onlineDirectoryItems.map(renderDirectoryButton)
+                  )}
+                </section>
+
+                <section className="rounded-2xl border border-outline-variant/70 bg-surface">
+                  <button
+                    type="button"
+                    onClick={() => setIsOfflineListOpen((currentValue) => !currentValue)}
+                    className="flex w-full items-center justify-between gap-3 px-3 py-3 text-left"
+                    aria-expanded={isOfflineListOpen}
+                  >
+                    <div>
+                      <p className="text-label-sm font-semibold uppercase tracking-[0.12em] text-on-surface-variant">
+                        Offline
                       </p>
-                      {conversation?.unreadCount ? (
-                        <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary animate-gentle-pulse" />
-                      ) : null}
+                      <p className="text-body-sm text-on-surface-variant">
+                        {offlineDirectoryItems.length === 0
+                          ? 'Nenhum usuário offline.'
+                          : `${offlineDirectoryItems.length} usuário(s) offline`}
+                      </p>
                     </div>
-                    <p className="truncate text-body-sm text-on-surface-variant">
-                      {conversation?.lastMessage ??
-                        (user.isAdmin ? 'Administrador' : 'Corretor')}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-body-sm text-on-surface-variant">
-                      {formatMessageTime(conversation?.lastMessageAt ?? null)}
-                    </p>
-                    {conversation?.unreadCount ? (
-                      <span className="mt-1 inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-semibold text-on-primary">
-                        {conversation.unreadCount}
+                    <div className="flex items-center gap-3">
+                      <span className="rounded-full bg-surface-container px-2 py-0.5 text-[11px] font-semibold text-on-surface">
+                        {offlineDirectoryItems.length}
                       </span>
-                    ) : null}
-                  </div>
-                </button>
-              ))
+                      <span
+                        className={`text-on-surface-variant transition-transform ${
+                          isOfflineListOpen ? 'rotate-180' : ''
+                        }`}
+                        aria-hidden="true"
+                      >
+                        <Icon name="expand_more" size={20} />
+                      </span>
+                    </div>
+                  </button>
+
+                  {isOfflineListOpen && offlineDirectoryItems.length > 0 ? (
+                    <div className="space-y-1 border-t border-outline-variant/60 px-1 py-2">
+                      {offlineDirectoryItems.map(renderDirectoryButton)}
+                    </div>
+                  ) : null}
+                </section>
+              </div>
+            ) : (
+              directoryItems.map(renderDirectoryButton)
             )}
           </div>
         </div>
@@ -656,6 +806,14 @@ export function ChatWidget() {
           <div className="bg-[linear-gradient(135deg,rgba(0,74,198,0.98),rgba(37,99,235,0.88))] px-4 py-3.5 text-on-primary">
             <div className="flex items-center justify-between gap-3">
               <div className="flex min-w-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={handleBackToChats}
+                  className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+                  aria-label="Voltar para os chats"
+                >
+                  <Icon name="arrow_back" size={20} />
+                </button>
                 <div className="relative shrink-0">
                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-white/15 text-sm font-semibold text-white">
                     {getInitials(activeConversation.counterpart.fullName)}
@@ -692,28 +850,7 @@ export function ChatWidget() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    if (
-                      socketRef.current?.readyState === WebSocket.OPEN &&
-                      activeConversation &&
-                      isTypingSentRef.current
-                    ) {
-                      socketRef.current.send(
-                        JSON.stringify({
-                          type: 'typing',
-                          conversationId: activeConversation.id,
-                          recipientUserId: activeConversation.counterpart.id,
-                          isTyping: false,
-                        }),
-                      )
-                    }
-
-                    setActiveConversation(null)
-                    setMessages([])
-                    setTypingConversationId(null)
-                    setInputValue('')
-                    isTypingSentRef.current = false
-                  }}
+                  onClick={closeConversation}
                   className="rounded-full p-2 text-white/80 transition-colors hover:bg-white/10 hover:text-white"
                   aria-label="Fechar conversa"
                 >
@@ -723,10 +860,13 @@ export function ChatWidget() {
             </div>
           </div>
 
-          <div className="h-[300px] overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-3.5 py-3.5">
+          <div className="chat-wallpaper h-[300px] overflow-y-auto px-3.5 py-3.5">
             {isLoadingConversation ? (
               <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
-                Carregando conversa...
+                <div className="flex items-center gap-2">
+                  <Icon name="progress_activity" size={16} className="animate-spin text-primary" />
+                  Carregando conversa...
+                </div>
               </div>
             ) : messages.length === 0 ? (
               <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
@@ -794,12 +934,13 @@ export function ChatWidget() {
                 }}
                 placeholder={`Mensagem para ${activeConversation.counterpart.fullName.split(' ')[0]}`}
                 rows={2}
+                disabled={isLoadingConversation}
                 className="min-h-[46px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-3.5 py-2.5 text-body-sm text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <button
                 type="button"
                 onClick={() => void handleSendMessage()}
-                disabled={isSending || !inputValue.trim()}
+                disabled={isLoadingConversation || isSending || !inputValue.trim()}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-primary text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                 aria-label="Enviar mensagem"
               >
