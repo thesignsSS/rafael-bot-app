@@ -51,10 +51,15 @@ export default function ProposalDetailPage() {
     isEditing,
     isAdmin,
     canBrokerHandlePending,
+    canViewGuests,
     canManageGuests,
     canDeleteProposal,
     editDraft,
     shareLink,
+    inviteQuery,
+    inviteCandidates,
+    selectedInviteeId,
+    inviteHelperMessage,
     documentPreview,
     isSavingProposal,
     isSavingStatus,
@@ -64,6 +69,7 @@ export default function ProposalDetailPage() {
     isManagingGuests,
     guestPendingRemoval,
     isGeneratingShareLink,
+    isSearchingInviteCandidates,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     isDeleteProposalModalOpen,
@@ -91,6 +97,9 @@ export default function ProposalDetailPage() {
     closeDocumentPreview,
     addDocuments,
     generateShareLink,
+    updateInviteQuery,
+    selectInvitee,
+    sendInvitation,
     openRemoveGuestModal,
     closeRemoveGuestModal,
     confirmRemoveGuest,
@@ -380,7 +389,7 @@ export default function ProposalDetailPage() {
           >
             Linha do tempo
           </button>
-          {canManageGuests ? (
+          {canViewGuests ? (
             <button
               type="button"
               onClick={() => setActiveTab('convidados')}
@@ -392,7 +401,7 @@ export default function ProposalDetailPage() {
             >
                 <span className="flex items-center gap-2">
                   <span>Convidados</span>
-                  {shouldShowGuestsIndicator ? (
+                  {canManageGuests && shouldShowGuestsIndicator ? (
                     <span
                       className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[11px] font-semibold text-white shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
                       aria-label={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
@@ -520,12 +529,22 @@ export default function ProposalDetailPage() {
           onAddComment={addComment}
         />
       ) : (
-        activeTab === 'convidados' && canManageGuests ? (
+        activeTab === 'convidados' && canViewGuests ? (
           <ProposalGuestsSection
             guests={proposal.guests}
+            pendingInvitations={proposal.pendingInvitations}
             ownerName={proposal.ownerName}
+            canManageGuests={canManageGuests}
             shareLink={shareLink}
             isBusy={isManagingGuests || isGeneratingShareLink}
+            inviteQuery={inviteQuery}
+            inviteCandidates={inviteCandidates}
+            selectedInviteeId={selectedInviteeId}
+            isSearchingInviteCandidates={isSearchingInviteCandidates}
+            inviteHelperMessage={inviteHelperMessage}
+            onInviteQueryChange={updateInviteQuery}
+            onSelectInvitee={selectInvitee}
+            onSendInvite={() => void sendInvitation()}
             onCopyShareLink={() => void generateShareLink()}
             onRemoveGuest={openRemoveGuestModal}
           />

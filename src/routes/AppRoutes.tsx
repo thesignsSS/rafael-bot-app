@@ -8,6 +8,7 @@ import CadastroPage from '../pages/cadastro'
 import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
 import PerfilPage from '../pages/perfil'
+import ConvitesPage from '../pages/propostas/convites'
 import PropostasPage from '../pages/propostas'
 import ProposalSharePage from '../pages/propostas/compartilhar'
 import ProposalDetailPage from '../pages/propostas/detail'
@@ -23,6 +24,7 @@ export function AppRoutes() {
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/perfil" element={<PerfilPage />} />
+          <Route path="/convites" element={<ConvitesPage />} />
           <Route path="/propostas" element={<PropostasPage />} />
           <Route
             path="/propostas/compartilhar/:shareToken"

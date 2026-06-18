@@ -8,6 +8,10 @@ import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
 import type { PropertyType, ProposalBank } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
 import {
+  createProposalInvitation,
+  searchInviteCandidates,
+} from '../lib/invitationsApi'
+import {
   createProposalShareLink,
   deleteProposal,
   deleteProposalDocument,
@@ -84,6 +88,12 @@ export function useProposalDetailPage() {
   const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
   const [isDeletingProposal, setIsDeletingProposal] = useState(false)
   const [isManagingGuests, setIsManagingGuests] = useState(false)
+  const [inviteQuery, setInviteQuery] = useState('')
+  const [inviteCandidates, setInviteCandidates] = useState<
+    Array<{ id: string; fullName: string; role: 'admin' | 'broker'; isAdmin: boolean }>
+  >([])
+  const [selectedInviteeId, setSelectedInviteeId] = useState<string | null>(null)
+  const [isSearchingInviteCandidates, setIsSearchingInviteCandidates] = useState(false)
   const [guestPendingRemoval, setGuestPendingRemoval] = useState<{
     userId: string
     name: string
@@ -96,7 +106,16 @@ export function useProposalDetailPage() {
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
   const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
   const canManageGuests = proposal?.isOwnedByCurrentUser ?? false
+  const canViewGuests = canManageGuests || isAdmin
   const canDeleteProposal = proposal?.canDeleteProposal ?? false
+  const inviteHelperMessage =
+    inviteQuery.trim().length > 0 && inviteQuery.trim().length < 5
+      ? 'Digite pelo menos 5 letras para buscar um usuário.'
+      : inviteQuery.trim().length >= 5 &&
+          !isSearchingInviteCandidates &&
+          inviteCandidates.length === 0
+        ? 'Nenhum usuário encontrado com esse nome.'
+        : null
 
   const pageTitle = proposal
     ? `Proposta ${proposal.proposalCode} | Effectus`
@@ -143,8 +162,44 @@ export function useProposalDetailPage() {
         ? `${window.location.origin}/propostas/compartilhar/${proposal.shareLinkToken}`
         : null,
     )
+    setInviteQuery('')
+    setInviteCandidates([])
+    setSelectedInviteeId(null)
     setGuestPendingRemoval(null)
   }, [proposal?.id, proposal?.pendingReason, proposal?.shareLinkToken, normalizedStatus])
+
+  useEffect(() => {
+    async function loadInviteCandidates() {
+      if (!canManageGuests || !brokerUserId) {
+        setInviteCandidates([])
+        return
+      }
+
+      const trimmedQuery = inviteQuery.trim()
+
+      if (trimmedQuery.length < 5) {
+        setInviteCandidates([])
+        setSelectedInviteeId(null)
+        return
+      }
+
+      try {
+        setIsSearchingInviteCandidates(true)
+        const items = await searchInviteCandidates(brokerUserId, trimmedQuery)
+        setInviteCandidates(items)
+      } catch {
+        setInviteCandidates([])
+      } finally {
+        setIsSearchingInviteCandidates(false)
+      }
+    }
+
+    const timeoutId = window.setTimeout(() => {
+      void loadInviteCandidates()
+    }, 250)
+
+    return () => window.clearTimeout(timeoutId)
+  }, [brokerUserId, canManageGuests, inviteQuery])
 
   const requireProposalContext = useCallback(() => {
     if (!proposalId || !brokerUserId) {
@@ -558,6 +613,45 @@ export function useProposalDetailPage() {
     }
   }, [proposal?.isOwnedByCurrentUser, requireProposalContext])
 
+  const updateInviteQuery = useCallback((value: string) => {
+    setInviteQuery(value)
+    setSelectedInviteeId(null)
+  }, [])
+
+  const selectInvitee = useCallback((userId: string) => {
+    setSelectedInviteeId(userId)
+  }, [])
+
+  const sendInvitation = useCallback(async () => {
+    if (!selectedInviteeId) {
+      toast.error('Selecione um usuário para enviar o convite.')
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsManagingGuests(true)
+      await createProposalInvitation(
+        context.proposalId,
+        context.brokerUserId,
+        selectedInviteeId,
+      )
+      await refetch()
+      setInviteQuery('')
+      setInviteCandidates([])
+      setSelectedInviteeId(null)
+      toast.success('Convite enviado com sucesso.')
+    } catch (inviteError) {
+      toast.error(
+        inviteError instanceof Error
+          ? inviteError.message
+          : 'Não foi possível enviar o convite.',
+      )
+    } finally {
+      setIsManagingGuests(false)
+    }
+  }, [refetch, requireProposalContext, selectedInviteeId])
+
   const openRemoveGuestModal = useCallback(
     (guestUserId: string) => {
       if (!proposal) {
@@ -785,10 +879,15 @@ export function useProposalDetailPage() {
     isEditing,
     isAdmin,
     canBrokerHandlePending,
+    canViewGuests,
     canManageGuests,
     canDeleteProposal,
     editDraft,
     shareLink,
+    inviteQuery,
+    inviteCandidates,
+    selectedInviteeId,
+    inviteHelperMessage,
     documentPreview,
     isSavingProposal,
     isSavingStatus,
@@ -799,6 +898,7 @@ export function useProposalDetailPage() {
     isManagingGuests,
     guestPendingRemoval,
     isGeneratingShareLink,
+    isSearchingInviteCandidates,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     isDeleteProposalModalOpen,
@@ -825,6 +925,9 @@ export function useProposalDetailPage() {
     closeDocumentPreview,
     addDocuments,
     generateShareLink,
+    updateInviteQuery,
+    selectInvitee,
+    sendInvitation,
     openRemoveGuestModal,
     closeRemoveGuestModal,
     confirmRemoveGuest,

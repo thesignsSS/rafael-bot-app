@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
+import { usePendingInvitationsIndicator } from '../../hooks/usePendingInvitationsIndicator'
 import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
@@ -20,6 +21,13 @@ export function SidebarContent({
 }: SidebarContentProps) {
   const { currentUserProfile, isAdmin } = useAuth()
   const { hasPending } = usePendingProposalIndicator({
+    brokerUserId: currentUserProfile?.id,
+    enabled: !isAdmin,
+  })
+  const {
+    hasPending: hasPendingInvitations,
+    pendingCount: pendingInvitationsCount,
+  } = usePendingInvitationsIndicator({
     brokerUserId: currentUserProfile?.id,
     enabled: !isAdmin,
   })
@@ -84,6 +92,17 @@ export function SidebarContent({
           onNavigate={onNavigate}
           isCollapsed={isCollapsed}
         />
+        {!isAdmin ? (
+          <SidebarNavItem
+            icon="mail"
+            label="Convites"
+            to="/convites"
+            showIndicator={hasPendingInvitations}
+            indicatorCount={pendingInvitationsCount}
+            onNavigate={onNavigate}
+            isCollapsed={isCollapsed}
+          />
+        ) : null}
         {isAdmin ? (
           <>
             <SidebarNavItem

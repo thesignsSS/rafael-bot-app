@@ -8,6 +8,7 @@ import { useState } from 'react'
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Nova Proposta',
   '/propostas': 'Minhas Propostas',
+  '/convites': 'Convites',
   '/perfil': 'Meu Perfil',
   '/admin': 'Gerenciar Perfis',
   '/admin/whatsapp': 'Bot do WhatsApp',

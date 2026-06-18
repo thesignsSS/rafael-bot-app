@@ -38,6 +38,31 @@ export type ProposalGuest = {
   joinedAt: string
 }
 
+export type ProposalInvitationStatus = 'pending' | 'accepted' | 'rejected'
+
+export type ProposalInvitation = {
+  id: string
+  proposalId: string
+  proposalCode: string
+  clientName: string
+  inviterUserId: string
+  inviterName: string
+  ownerBrokerUserId: string
+  ownerName: string
+  inviteeUserId: string
+  inviteeName: string
+  status: ProposalInvitationStatus
+  createdAt: string
+  respondedAt: string | null
+}
+
+export type InviteSearchUser = {
+  id: string
+  fullName: string
+  role: 'admin' | 'broker'
+  isAdmin: boolean
+}
+
 export type ProposalSharePreview = {
   proposalId: string
   proposalCode: string
@@ -91,6 +116,7 @@ export type ProposalDetail = {
   documents: ProposalDocument[]
   guests: ProposalGuest[]
   shareLinkToken: string | null
+  pendingInvitations: ProposalInvitation[]
 }
 
 export type UpdateProposalPayload = {

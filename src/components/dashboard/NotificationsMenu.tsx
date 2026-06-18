@@ -57,6 +57,7 @@ export function NotificationsMenu({ currentUserProfile }: NotificationsMenuProps
 
   async function handleOpenNotification(
     notificationId: string,
+    notificationType: string,
     proposalId: string | null,
     conversationId: string | null,
   ) {
@@ -69,6 +70,11 @@ export function NotificationsMenu({ currentUserProfile }: NotificationsMenuProps
           detail: { conversationId },
         }),
       )
+      return
+    }
+
+    if (notificationType === 'proposal_invitation_received') {
+      navigate('/convites')
       return
     }
 
@@ -137,6 +143,7 @@ export function NotificationsMenu({ currentUserProfile }: NotificationsMenuProps
                   onClick={() =>
                     void handleOpenNotification(
                       item.id,
+                      item.type,
                       item.proposalId,
                       item.conversationId,
                     )
