@@ -224,6 +224,7 @@ export function ProposalsKanbanBoard({
                   const isPendingOwnedHighlight =
                     highlightOwnedPendingCards &&
                     normalizeProposalStatus(proposal.status) === 'pendente'
+                  const isSharedProposal = proposal.isSharedWithCurrentUser
                   const isHoverCardOpen =
                     visibleHoverProposalId === proposal.id && isHoverCardVisible
 
@@ -280,8 +281,17 @@ export function ProposalsKanbanBoard({
                             <p className="truncate text-label-md font-semibold text-primary">
                               {proposal.proposalCode}
                             </p>
+                            {isSharedProposal ? (
+                              <span
+                                className="mt-1 inline-flex max-w-full items-center rounded-full border border-primary/20 bg-primary-fixed/60 px-2 py-0.5 text-[11px] font-semibold text-on-primary-fixed"
+                                title={`Compartilhada por ${proposal.ownerName}`}
+                              >
+                                <span className="shrink-0">Compart.:</span>
+                                <span className="ml-1 truncate">{proposal.ownerName}</span>
+                              </span>
+                            ) : null}
                             <p
-                              className="mt-1 truncate text-body-md font-semibold text-on-surface"
+                              className="mt-2 truncate text-body-md font-semibold text-on-surface"
                               title={proposal.clientName}
                             >
                               {proposal.clientName}
@@ -297,9 +307,9 @@ export function ProposalsKanbanBoard({
                             <dt className="text-on-surface-variant">Corretor</dt>
                             <dd
                               className="truncate font-medium text-on-surface"
-                              title={proposal.brokerName}
+                              title={isSharedProposal ? proposal.ownerName : proposal.brokerName}
                             >
-                              {proposal.brokerName}
+                              {isSharedProposal ? proposal.ownerName : proposal.brokerName}
                             </dd>
                           </div>
                           <div className="min-w-0">
@@ -334,6 +344,14 @@ export function ProposalsKanbanBoard({
                               <p className="text-label-md font-semibold text-primary">
                                 {proposal.proposalCode}
                               </p>
+                              {isSharedProposal ? (
+                                <p
+                                  className="mt-2 truncate text-body-sm text-primary"
+                                  title={`Compartilhada por ${proposal.ownerName}`}
+                                >
+                                  Compart.: {proposal.ownerName}
+                                </p>
+                              ) : null}
                               <p className="mt-1 break-words text-body-md font-semibold text-on-surface">
                                 {proposal.clientName}
                               </p>
@@ -347,7 +365,7 @@ export function ProposalsKanbanBoard({
                             <div className="grid gap-1">
                               <dt className="text-on-surface-variant">Corretor</dt>
                               <dd className="break-words font-medium text-on-surface">
-                                {proposal.brokerName}
+                                {isSharedProposal ? proposal.ownerName : proposal.brokerName}
                               </dd>
                             </div>
                             <div className="grid gap-1">

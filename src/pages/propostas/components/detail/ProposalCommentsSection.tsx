@@ -36,6 +36,10 @@ function getCommentTypeLabel(type: ProposalComment['type']) {
     return 'Reenvio'
   }
 
+  if (type === 'audit') {
+    return 'Auditoria'
+  }
+
   return 'Comentário'
 }
 

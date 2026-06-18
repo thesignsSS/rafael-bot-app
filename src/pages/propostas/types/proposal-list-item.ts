@@ -4,6 +4,10 @@ import type { ProposalStatus } from './proposal-status'
 export type ProposalListItem = {
   id: string
   proposalCode: string
+  ownerBrokerUserId: string
+  ownerName: string
+  isOwnedByCurrentUser: boolean
+  isSharedWithCurrentUser: boolean
   clientName: string
   brokerName: string
   propertyType: PropertyType

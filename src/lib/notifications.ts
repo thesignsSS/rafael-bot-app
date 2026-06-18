@@ -8,6 +8,7 @@ export type NotificationItem = {
     | 'proposal_status_changed'
     | 'proposal_comment_added'
     | 'proposal_resubmitted'
+    | 'proposal_collaborator_added'
     | 'chat_message'
   title: string
   message: string

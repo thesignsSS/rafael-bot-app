@@ -1,5 +1,8 @@
 import type {
+  AcceptProposalShareResponse,
   ProposalDetail,
+  ProposalShareLinkResponse,
+  ProposalSharePreview,
   UpdateProposalStatusPayload,
   UpdateProposalPayload,
   ViewProposalDocumentResponse,
@@ -23,6 +26,17 @@ function getProposalsApiUrl() {
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, '/proposals')
 }
 
+function getProposalShareLinksApiUrl() {
+  if (!formSubmissionApiUrl) {
+    throw new Error('URL de envio do formulário não configurada.')
+  }
+
+  return formSubmissionApiUrl.replace(
+    /\/form-submissions\/?$/,
+    '/proposal-share-links',
+  )
+}
+
 function getRequestHeaders() {
   if (!formSubmissionApiKey) {
     throw new Error('Chave de API de envio do formulário não configurada.')
@@ -41,13 +55,20 @@ function getJsonRequestHeaders() {
 }
 
 async function parseApiResponse<T>(response: Response): Promise<T> {
-  const data = (await response.json().catch(() => null)) as T | null
+  const data = (await response.json().catch(() => null)) as
+    | (T & { error?: string })
+    | { error?: string }
+    | null
 
   if (!response.ok || data === null) {
-    throw new Error(getProposalsErrorMessage(response.status))
+    throw new Error(getProposalsErrorMessage(response.status, data))
   }
 
-  return data
+  if ('error' in data && typeof data.error === 'string' && data.error.trim()) {
+    throw new Error(data.error)
+  }
+
+  return data as T
 }
 
 export type FetchProposalsParams = {
@@ -148,6 +169,64 @@ export async function updateProposalStatus(
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
+}
+
+export async function createProposalShareLink(
+  proposalId: string,
+  brokerUserId: string,
+): Promise<ProposalShareLinkResponse> {
+  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/share-link`, {
+    method: 'POST',
+    headers: getJsonRequestHeaders(),
+    body: JSON.stringify({ brokerUserId }),
+  })
+
+  return parseApiResponse<ProposalShareLinkResponse>(response)
+}
+
+export async function fetchProposalSharePreview(
+  token: string,
+  brokerUserId: string,
+): Promise<ProposalSharePreview> {
+  const url = new URL(`${getProposalShareLinksApiUrl()}/${token}`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+
+  const response = await fetch(url.toString(), {
+    headers: getRequestHeaders(),
+  })
+
+  return parseApiResponse<ProposalSharePreview>(response)
+}
+
+export async function acceptProposalShareLink(
+  token: string,
+  brokerUserId: string,
+): Promise<AcceptProposalShareResponse> {
+  const response = await fetch(`${getProposalShareLinksApiUrl()}/${token}/accept`, {
+    method: 'POST',
+    headers: getJsonRequestHeaders(),
+    body: JSON.stringify({ brokerUserId }),
+  })
+
+  return parseApiResponse<AcceptProposalShareResponse>(response)
+}
+
+export async function removeProposalGuest(
+  proposalId: string,
+  guestUserId: string,
+  brokerUserId: string,
+): Promise<void> {
+  const url = new URL(`${getProposalsApiUrl()}/${proposalId}/guests/${guestUserId}`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+
+  const response = await fetch(url.toString(), {
+    method: 'DELETE',
+    headers: getRequestHeaders(),
   })
 
   if (!response.ok) {
@@ -311,7 +390,14 @@ export async function downloadProposalDocument(
   }
 }
 
-function getProposalsErrorMessage(status: number) {
+function getProposalsErrorMessage(
+  status: number,
+  data?: { error?: string } | null,
+) {
+  if (data?.error?.trim()) {
+    return data.error
+  }
+
   if (status === 400) {
     return 'Dados inválidos para buscar propostas.'
   }

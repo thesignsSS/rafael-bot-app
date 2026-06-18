@@ -3,7 +3,11 @@ import type { ProposalStatus } from './proposal-status'
 
 export type ProposalDocumentKind = 'pdf' | 'image' | 'text'
 
-export type ProposalCommentType = 'comment' | 'pending_reason' | 'resubmission'
+export type ProposalCommentType =
+  | 'comment'
+  | 'pending_reason'
+  | 'resubmission'
+  | 'audit'
 
 export type ProposalComment = {
   id: string
@@ -28,9 +32,43 @@ export type ProposalDocument = {
   storageLocation: string
 }
 
+export type ProposalGuest = {
+  userId: string
+  name: string
+  joinedAt: string
+}
+
+export type ProposalSharePreview = {
+  proposalId: string
+  proposalCode: string
+  clientName: string
+  ownerBrokerUserId: string
+  ownerName: string
+  isOwnedByCurrentUser: boolean
+  isAlreadyAttached: boolean
+}
+
+export type ProposalShareLinkResponse = {
+  token: string
+  createdAt: string
+}
+
+export type AcceptProposalShareResponse = {
+  proposalId: string
+  proposalCode: string
+  ownerBrokerUserId: string
+  ownerName: string
+  alreadyAttached: boolean
+}
+
 export type ProposalDetail = {
   id: string
   proposalCode: string
+  ownerBrokerUserId: string
+  ownerName: string
+  isOwnedByCurrentUser: boolean
+  isSharedWithCurrentUser: boolean
+  canDeleteProposal: boolean
   brokerName: string
   brokerPhone: string
   createdAt: string
@@ -51,6 +89,8 @@ export type ProposalDetail = {
   formData: Record<string, unknown>
   comments: ProposalComment[]
   documents: ProposalDocument[]
+  guests: ProposalGuest[]
+  shareLinkToken: string | null
 }
 
 export type UpdateProposalPayload = {

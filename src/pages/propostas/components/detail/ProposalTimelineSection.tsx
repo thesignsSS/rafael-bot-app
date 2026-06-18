@@ -10,7 +10,7 @@ type ProposalTimelineSectionProps = {
   comments: ProposalComment[]
 }
 
-type TimelineEventTone = 'default' | 'pending' | 'resubmission'
+type TimelineEventTone = 'default' | 'pending' | 'resubmission' | 'audit'
 
 type TimelineEvent = {
   id: string
@@ -26,12 +26,14 @@ const toneClassName: Record<TimelineEventTone, string> = {
   default: 'border-outline-variant bg-white text-on-surface',
   pending: 'border-amber-200 bg-amber-50/75 text-amber-950',
   resubmission: 'border-sky-200 bg-sky-50/75 text-sky-950',
+  audit: 'border-violet-200 bg-violet-50/75 text-violet-950',
 }
 
 const markerClassName: Record<TimelineEventTone, string> = {
   default: 'border-primary/25 bg-white text-primary',
   pending: 'border-amber-300 bg-white text-amber-500',
   resubmission: 'border-sky-300 bg-white text-sky-500',
+  audit: 'border-violet-300 bg-white text-violet-600',
 }
 
 function formatEventDate(value: string) {
@@ -66,6 +68,15 @@ function resolveCommentEvent(
       description: comment.message || `A proposta ${proposalCode} foi reenviada para análise.`,
       tone: 'resubmission',
       icon: 'refresh',
+    }
+  }
+
+  if (comment.type === 'audit') {
+    return {
+      title: 'Auditoria registrada',
+      description: comment.message,
+      tone: 'audit',
+      icon: 'history',
     }
   }
 

@@ -8,10 +8,12 @@ import { filesToSubmissionDocuments } from '../../home/lib/submitProposal'
 import type { PropertyType, ProposalBank } from '../../home/types/proposal'
 import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
 import {
+  createProposalShareLink,
   deleteProposal,
   deleteProposalDocument,
   downloadProposalDocument,
   downloadProposalZip,
+  removeProposalGuest,
   renameProposalDocument,
   updateProposal,
   updateProposalStatus,
@@ -81,11 +83,20 @@ export function useProposalDetailPage() {
   const [commentDraft, setCommentDraft] = useState('')
   const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
   const [isDeletingProposal, setIsDeletingProposal] = useState(false)
+  const [isManagingGuests, setIsManagingGuests] = useState(false)
+  const [guestPendingRemoval, setGuestPendingRemoval] = useState<{
+    userId: string
+    name: string
+  } | null>(null)
+  const [isGeneratingShareLink, setIsGeneratingShareLink] = useState(false)
+  const [shareLink, setShareLink] = useState<string | null>(null)
   const [documentPreview, setDocumentPreview] =
     useState<ProposalDocumentPreview | null>(null)
   const hasHandledMissingProposal = useRef(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
   const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
+  const canManageGuests = proposal?.isOwnedByCurrentUser ?? false
+  const canDeleteProposal = proposal?.canDeleteProposal ?? false
 
   const pageTitle = proposal
     ? `Proposta ${proposal.proposalCode} | Effectus`
@@ -127,7 +138,13 @@ export function useProposalDetailPage() {
     setPendingDocumentsDraft([])
     setCommentDraft('')
     setHasPendingUpdates(false)
-  }, [proposal?.id, proposal?.pendingReason, normalizedStatus])
+    setShareLink(
+      proposal?.shareLinkToken
+        ? `${window.location.origin}/propostas/compartilhar/${proposal.shareLinkToken}`
+        : null,
+    )
+    setGuestPendingRemoval(null)
+  }, [proposal?.id, proposal?.pendingReason, proposal?.shareLinkToken, normalizedStatus])
 
   const requireProposalContext = useCallback(() => {
     if (!proposalId || !brokerUserId) {
@@ -507,6 +524,97 @@ export function useProposalDetailPage() {
     [refetch, requireProposalContext],
   )
 
+  const generateShareLink = useCallback(async () => {
+    if (!proposal?.isOwnedByCurrentUser) {
+      toast.error('Somente o dono da proposta pode gerar o link de compartilhamento.')
+      return
+    }
+
+    try {
+      const context = requireProposalContext()
+      setIsGeneratingShareLink(true)
+      const result = await createProposalShareLink(
+        context.proposalId,
+        context.brokerUserId,
+      )
+      const nextShareLink = `${window.location.origin}/propostas/compartilhar/${result.token}`
+
+      setShareLink(nextShareLink)
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(nextShareLink)
+        toast.success('Link de compartilhamento copiado.')
+      } else {
+        window.prompt('Copie o link de compartilhamento', nextShareLink)
+        toast.success('Link de compartilhamento gerado.')
+      }
+    } catch (shareError) {
+      toast.error(
+        shareError instanceof Error
+          ? shareError.message
+          : 'Não foi possível gerar o link de compartilhamento.',
+      )
+    } finally {
+      setIsGeneratingShareLink(false)
+    }
+  }, [proposal?.isOwnedByCurrentUser, requireProposalContext])
+
+  const openRemoveGuestModal = useCallback(
+    (guestUserId: string) => {
+      if (!proposal) {
+        return
+      }
+
+      const guest = proposal.guests.find((item) => item.userId === guestUserId)
+
+      if (!guest) {
+        return
+      }
+
+      setGuestPendingRemoval({
+        userId: guest.userId,
+        name: guest.name,
+      })
+    },
+    [proposal],
+  )
+
+  const closeRemoveGuestModal = useCallback(() => {
+    if (isManagingGuests) {
+      return
+    }
+
+    setGuestPendingRemoval(null)
+  }, [isManagingGuests])
+
+  const confirmRemoveGuest = useCallback(async () => {
+      if (!guestPendingRemoval) {
+        return
+      }
+
+      try {
+        const context = requireProposalContext()
+        setIsManagingGuests(true)
+        await removeProposalGuest(
+          context.proposalId,
+          guestPendingRemoval.userId,
+          context.brokerUserId,
+        )
+        await refetch()
+        setGuestPendingRemoval(null)
+        toast.success('Vínculo removido com sucesso.')
+      } catch (removeError) {
+        toast.error(
+          removeError instanceof Error
+            ? removeError.message
+            : 'Não foi possível remover o vínculo do convidado.',
+        )
+      } finally {
+        setIsManagingGuests(false)
+      }
+    },
+    [guestPendingRemoval, refetch, requireProposalContext],
+  )
+
   const closeDocumentPreview = useCallback(() => {
     setDocumentPreview(null)
   }, [])
@@ -677,7 +785,10 @@ export function useProposalDetailPage() {
     isEditing,
     isAdmin,
     canBrokerHandlePending,
+    canManageGuests,
+    canDeleteProposal,
     editDraft,
+    shareLink,
     documentPreview,
     isSavingProposal,
     isSavingStatus,
@@ -685,6 +796,9 @@ export function useProposalDetailPage() {
     statusOptions,
     isLoadingStatuses,
     isUpdatingDocuments,
+    isManagingGuests,
+    guestPendingRemoval,
+    isGeneratingShareLink,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     isDeleteProposalModalOpen,
@@ -710,6 +824,10 @@ export function useProposalDetailPage() {
     openAllDocumentsPreview,
     closeDocumentPreview,
     addDocuments,
+    generateShareLink,
+    openRemoveGuestModal,
+    closeRemoveGuestModal,
+    confirmRemoveGuest,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
     openDeleteProposalModal,

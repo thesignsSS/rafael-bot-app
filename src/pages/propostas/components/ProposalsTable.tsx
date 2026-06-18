@@ -89,7 +89,9 @@ export function ProposalsTable({
                   {proposal.proposalCode}
                 </td>
                 <td className="px-6 py-4 text-body-md text-on-surface">
-                  {proposal.brokerName}
+                  {proposal.isSharedWithCurrentUser
+                    ? `${proposal.ownerName} (compartilhada)`
+                    : proposal.brokerName}
                 </td>
                 <td className="px-6 py-4 text-body-md text-on-surface">
                   {proposal.clientName}

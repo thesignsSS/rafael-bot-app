@@ -64,7 +64,13 @@ export type ChatSocketEvent =
         userId: string
         proposalId: string | null
         conversationId: string | null
-        type: 'chat_message'
+        type:
+          | 'proposal_submitted'
+          | 'proposal_status_changed'
+          | 'proposal_comment_added'
+          | 'proposal_resubmitted'
+          | 'proposal_collaborator_added'
+          | 'chat_message'
         title: string
         message: string
         createdAt: string

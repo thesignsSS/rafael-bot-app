@@ -1,5 +1,5 @@
 import { useCallback, useState, type FormEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { mapFieldErrors } from '../../../lib/mapFieldErrors'
 import { supabase } from '../../../lib/supabase'
@@ -18,6 +18,7 @@ function getLoginErrorMessage(error: { code?: string; message?: string }): strin
 
 export function useLoginForm() {
   const navigate = useNavigate()
+  const location = useLocation()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -80,9 +81,15 @@ export function useLoginForm() {
         return
       }
 
-      navigate('/', { replace: true })
+      const redirectTo =
+        typeof (location.state as { redirectTo?: string } | null)?.redirectTo ===
+        'string'
+          ? (location.state as { redirectTo?: string }).redirectTo
+          : '/'
+
+      navigate(redirectTo || '/', { replace: true })
     },
-    [email, password, navigate],
+    [email, location.state, navigate, password],
   )
 
   return {

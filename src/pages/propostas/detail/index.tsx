@@ -1,4 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useAuth } from '../../../contexts/auth-context'
+import { useNotifications } from '../../../hooks/useNotifications'
 import {
   ASSISTANT_CONTEXT_EVENT,
   ASSISTANT_OPEN_EVENT,
@@ -17,18 +19,29 @@ import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
+import { ProposalGuestsSection } from '../components/detail/ProposalGuestsSection'
 import { ProposalInfoField } from '../components/detail/ProposalInfoField'
 import { ProposalOperationalGuideCard } from '../components/detail/ProposalOperationalGuideCard'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
+import { RemoveProposalGuestModal } from '../components/detail/RemoveProposalGuestModal'
 import { ProposalStatusControl } from '../components/detail/ProposalStatusControl'
 import { ProposalTimelineSection } from '../components/detail/ProposalTimelineSection'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
 import { normalizeProposalStatus } from '../types/proposal-status'
 import { Icon } from '../../../components/ui/Icon'
 
-type DetailTab = 'informacoes' | 'tratativa' | 'comentarios' | 'timeline'
+type DetailTab =
+  | 'informacoes'
+  | 'tratativa'
+  | 'comentarios'
+  | 'timeline'
+  | 'convidados'
 
 export default function ProposalDetailPage() {
+  const { currentUserProfile } = useAuth()
+  const { items: notifications, markAsRead } = useNotifications(
+    currentUserProfile?.id,
+  )
   const {
     status,
     proposal,
@@ -38,13 +51,19 @@ export default function ProposalDetailPage() {
     isEditing,
     isAdmin,
     canBrokerHandlePending,
+    canManageGuests,
+    canDeleteProposal,
     editDraft,
+    shareLink,
     documentPreview,
     isSavingProposal,
     isSavingStatus,
     isSavingComment,
     statusOptions,
     isUpdatingDocuments,
+    isManagingGuests,
+    guestPendingRemoval,
+    isGeneratingShareLink,
     isPendingReasonModalOpen,
     isPendingDocumentsModalOpen,
     isDeleteProposalModalOpen,
@@ -71,6 +90,10 @@ export default function ProposalDetailPage() {
     openAllDocumentsPreview,
     closeDocumentPreview,
     addDocuments,
+    generateShareLink,
+    openRemoveGuestModal,
+    closeRemoveGuestModal,
+    confirmRemoveGuest,
     openPendingDocumentsModal,
     closePendingDocumentsModal,
     openDeleteProposalModal,
@@ -131,12 +154,36 @@ export default function ProposalDetailPage() {
         : null,
     [normalizedStatus, operationalGuide, proposal],
   )
+  const unreadGuestNotifications = useMemo(
+    () =>
+      proposal && canManageGuests
+        ? notifications.filter(
+            (item) =>
+              item.type === 'proposal_collaborator_added' &&
+              item.proposalId === proposal.id &&
+              item.readAt === null,
+          )
+        : [],
+    [canManageGuests, notifications, proposal],
+  )
+  const unreadGuestsCount = unreadGuestNotifications.length
+  const shouldShowGuestsIndicator = unreadGuestsCount > 0
 
   useEffect(() => {
     if (canBrokerHandlePending && normalizedStatus === 'pendente') {
       setActiveTab('tratativa')
     }
   }, [canBrokerHandlePending, normalizedStatus])
+
+  useEffect(() => {
+    if (activeTab !== 'convidados' || unreadGuestNotifications.length === 0) {
+      return
+    }
+
+    unreadGuestNotifications.forEach((notification) => {
+      void markAsRead(notification.id)
+    })
+  }, [activeTab, markAsRead, unreadGuestNotifications])
 
   useEffect(() => {
     if (!assistantProposalContext) {
@@ -225,6 +272,14 @@ export default function ProposalDetailPage() {
         onConfirm={confirmDeleteProposal}
       />
 
+      <RemoveProposalGuestModal
+        isOpen={guestPendingRemoval !== null}
+        guestName={guestPendingRemoval?.name ?? ''}
+        isRemoving={isManagingGuests}
+        onClose={closeRemoveGuestModal}
+        onConfirm={() => void confirmRemoveGuest()}
+      />
+
       {documentPreview ? (
         <ProposalDocumentPreviewModal
           fileName={documentPreview.fileName}
@@ -237,10 +292,17 @@ export default function ProposalDetailPage() {
       <ProposalDetailHeader
         proposalCode={proposal.proposalCode}
         brokerName={proposal.brokerName}
+        ownerName={proposal.ownerName}
+        isOwnedByCurrentUser={proposal.isOwnedByCurrentUser}
+        isSharedWithCurrentUser={proposal.isSharedWithCurrentUser}
+        canDeleteProposal={canDeleteProposal}
+        canShareProposal={canManageGuests}
         onBack={goBack}
         onEdit={startEditing}
         onDownloadAll={downloadAll}
+        onShare={() => void generateShareLink()}
         onDelete={openDeleteProposalModal}
+        isSharing={isGeneratingShareLink}
         isDeleting={isDeletingProposal}
       />
 
@@ -318,6 +380,30 @@ export default function ProposalDetailPage() {
           >
             Linha do tempo
           </button>
+          {canManageGuests ? (
+            <button
+              type="button"
+              onClick={() => setActiveTab('convidados')}
+              className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                activeTab === 'convidados'
+                  ? 'bg-primary text-on-primary shadow-sm'
+                  : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+              }`}
+            >
+                <span className="flex items-center gap-2">
+                  <span>Convidados</span>
+                  {shouldShowGuestsIndicator ? (
+                    <span
+                      className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[11px] font-semibold text-white shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
+                      aria-label={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
+                      title={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
+                    >
+                      {unreadGuestsCount > 9 ? '9+' : unreadGuestsCount}
+                    </span>
+                  ) : null}
+                </span>
+              </button>
+          ) : null}
         </div>
       </div>
 
@@ -434,13 +520,24 @@ export default function ProposalDetailPage() {
           onAddComment={addComment}
         />
       ) : (
-        <ProposalTimelineSection
-          proposalCode={proposal.proposalCode}
-          createdAt={proposal.createdAt}
-          brokerName={proposal.brokerName}
-          status={normalizedStatus}
-          comments={proposal.comments}
-        />
+        activeTab === 'convidados' && canManageGuests ? (
+          <ProposalGuestsSection
+            guests={proposal.guests}
+            ownerName={proposal.ownerName}
+            shareLink={shareLink}
+            isBusy={isManagingGuests || isGeneratingShareLink}
+            onCopyShareLink={() => void generateShareLink()}
+            onRemoveGuest={openRemoveGuestModal}
+          />
+        ) : (
+          <ProposalTimelineSection
+            proposalCode={proposal.proposalCode}
+            createdAt={proposal.createdAt}
+            brokerName={proposal.brokerName}
+            status={normalizedStatus}
+            comments={proposal.comments}
+          />
+        )
       )}
     </div>
   )

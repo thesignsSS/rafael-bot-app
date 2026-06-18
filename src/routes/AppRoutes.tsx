@@ -9,6 +9,7 @@ import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
 import PerfilPage from '../pages/perfil'
 import PropostasPage from '../pages/propostas'
+import ProposalSharePage from '../pages/propostas/compartilhar'
 import ProposalDetailPage from '../pages/propostas/detail'
 import ProposalDocumentsPage from '../pages/propostas/documentos'
 import RecuperarSenhaPage from '../pages/recuperar-senha'
@@ -23,6 +24,10 @@ export function AppRoutes() {
           <Route path="/" element={<HomePage />} />
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/propostas" element={<PropostasPage />} />
+          <Route
+            path="/propostas/compartilhar/:shareToken"
+            element={<ProposalSharePage />}
+          />
           <Route
             path="/propostas/:proposalId/documentos"
             element={<ProposalDocumentsPage />}
