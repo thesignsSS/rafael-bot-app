@@ -46,9 +46,9 @@ export function PropertyDataSection({
 }: PropertyDataSectionProps) {
   return (
     <FormSection icon="home" title="Dados do Imóvel">
-      <div className="grid gap-5 md:grid-cols-[1.45fr_0.6fr_0.95fr]">
+      <div className="grid gap-5">
         <Field label="Tipo do Imóvel" required>
-          <div className="grid gap-3 sm:grid-cols-2 2xl:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {(['Novo', 'Usado', 'Adjudicado Caixa'] as PropertyType[]).map((type) => (
               <button
                 key={type}
@@ -76,106 +76,108 @@ export function PropertyDataSection({
             ))}
           </div>
         </Field>
-        <Field label="Estado do Imóvel" required error={stateError}>
-          <select
-            value={propertyState}
-            onChange={(event) => onPropertyStateChange(event.target.value)}
-            aria-invalid={stateError ? true : undefined}
-            className={`proposal-input ${
-              stateError ? 'proposal-input-error' : ''
-            }`}
-          >
-            <option value="">Selecione o estado</option>
-            {brazilianStates.map((state) => (
-              <option key={state.code} value={state.code}>
-                {state.name} ({state.code})
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label="Município do Imóvel" required error={cityError}>
-          <div ref={comboboxRef} className="relative">
-            <input
-              type="text"
-              value={citySearch}
-              onChange={(event) => onCitySearchChange(event.target.value)}
-              onFocus={onOpenCityDropdown}
-              disabled={!propertyState}
-              placeholder={
-                !propertyState
-                  ? 'Selecione o estado primeiro'
-                  : isLoadingCities
-                  ? 'Carregando municípios...'
-                  : 'Busque o município'
-              }
-              role="combobox"
-              aria-expanded={isCityDropdownOpen}
-              aria-controls="city-options"
-              aria-autocomplete="list"
-              aria-invalid={cityError ? true : undefined}
-              className={`proposal-input pr-12 ${
-                cityError ? 'proposal-input-error' : ''
+        <div className="grid gap-5 md:grid-cols-2">
+          <Field label="Estado do Imóvel" required error={stateError}>
+            <select
+              value={propertyState}
+              onChange={(event) => onPropertyStateChange(event.target.value)}
+              aria-invalid={stateError ? true : undefined}
+              className={`proposal-input ${
+                stateError ? 'proposal-input-error' : ''
               }`}
-            />
-            <button
-              type="button"
-              onClick={onToggleCityDropdown}
-              disabled={!propertyState}
-              className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-outline transition-colors hover:text-primary"
-              aria-label="Abrir lista de municípios"
             >
-              <Icon
-                name={
-                  isCityDropdownOpen
-                    ? 'keyboard_arrow_up'
-                    : 'keyboard_arrow_down'
+              <option value="">Selecione o estado</option>
+              {brazilianStates.map((state) => (
+                <option key={state.code} value={state.code}>
+                  {state.name} ({state.code})
+                </option>
+              ))}
+            </select>
+          </Field>
+          <Field label="Município do Imóvel" required error={cityError}>
+            <div ref={comboboxRef} className="relative">
+              <input
+                type="text"
+                value={citySearch}
+                onChange={(event) => onCitySearchChange(event.target.value)}
+                onFocus={onOpenCityDropdown}
+                disabled={!propertyState}
+                placeholder={
+                  !propertyState
+                    ? 'Selecione o estado primeiro'
+                    : isLoadingCities
+                    ? 'Carregando municípios...'
+                    : 'Busque o município'
                 }
-                size={22}
+                role="combobox"
+                aria-expanded={isCityDropdownOpen}
+                aria-controls="city-options"
+                aria-autocomplete="list"
+                aria-invalid={cityError ? true : undefined}
+                className={`proposal-input pr-12 ${
+                  cityError ? 'proposal-input-error' : ''
+                }`}
               />
-            </button>
-
-            {isCityDropdownOpen ? (
-              <div
-                id="city-options"
-                className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-xl"
+              <button
+                type="button"
+                onClick={onToggleCityDropdown}
+                disabled={!propertyState}
+                className="absolute inset-y-0 right-0 flex w-12 items-center justify-center text-outline transition-colors hover:text-primary"
+                aria-label="Abrir lista de municípios"
               >
-                <div className="max-h-64 overflow-y-auto py-2">
-                  {isLoadingCities ? (
-                    <p className="px-4 py-3 text-body-md text-on-surface-variant">
-                      Carregando municípios...
-                    </p>
-                  ) : citiesError ? (
-                    <p className="px-4 py-3 text-body-md text-error">
-                      {citiesError}
-                    </p>
-                  ) : filteredCities.length > 0 ? (
-                    filteredCities.map((cityOption) => (
-                      <button
-                        key={cityOption.id}
-                        type="button"
-                        onClick={() => onSelectCity(cityOption.nome)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-body-md transition-colors hover:bg-surface-container-low ${
-                          city === cityOption.nome
-                            ? 'font-semibold text-primary'
-                            : 'text-on-surface'
-                        }`}
-                      >
-                        <span>{cityOption.nome}</span>
-                        {city === cityOption.nome ? (
-                          <Icon name="check" size={18} />
-                        ) : null}
-                      </button>
-                    ))
-                  ) : (
-                    <p className="px-4 py-3 text-body-md text-on-surface-variant">
-                      Nenhum município encontrado.
-                    </p>
-                  )}
+                <Icon
+                  name={
+                    isCityDropdownOpen
+                      ? 'keyboard_arrow_up'
+                      : 'keyboard_arrow_down'
+                  }
+                  size={22}
+                />
+              </button>
+
+              {isCityDropdownOpen ? (
+                <div
+                  id="city-options"
+                  className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-xl"
+                >
+                  <div className="max-h-64 overflow-y-auto py-2">
+                    {isLoadingCities ? (
+                      <p className="px-4 py-3 text-body-md text-on-surface-variant">
+                        Carregando municípios...
+                      </p>
+                    ) : citiesError ? (
+                      <p className="px-4 py-3 text-body-md text-error">
+                        {citiesError}
+                      </p>
+                    ) : filteredCities.length > 0 ? (
+                      filteredCities.map((cityOption) => (
+                        <button
+                          key={cityOption.id}
+                          type="button"
+                          onClick={() => onSelectCity(cityOption.nome)}
+                          className={`flex w-full items-center justify-between px-4 py-3 text-left text-body-md transition-colors hover:bg-surface-container-low ${
+                            city === cityOption.nome
+                              ? 'font-semibold text-primary'
+                              : 'text-on-surface'
+                          }`}
+                        >
+                          <span>{cityOption.nome}</span>
+                          {city === cityOption.nome ? (
+                            <Icon name="check" size={18} />
+                          ) : null}
+                        </button>
+                      ))
+                    ) : (
+                      <p className="px-4 py-3 text-body-md text-on-surface-variant">
+                        Nenhum município encontrado.
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ) : null}
-          </div>
-        </Field>
+              ) : null}
+            </div>
+          </Field>
+        </div>
       </div>
     </FormSection>
   )

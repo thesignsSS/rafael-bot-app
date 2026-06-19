@@ -12,6 +12,8 @@ export type ProposalCommentType =
 export type ProposalComment = {
   id: string
   authorName: string
+  authorUserId?: string | null
+  authorAvatarPath?: string | null
   authorRole: 'admin' | 'broker'
   createdAt: string
   message: string
@@ -91,6 +93,7 @@ export type ProposalDetail = {
   proposalCode: string
   ownerBrokerUserId: string
   ownerName: string
+  ownerAvatarPath: string | null
   isOwnedByCurrentUser: boolean
   isSharedWithCurrentUser: boolean
   canDeleteProposal: boolean

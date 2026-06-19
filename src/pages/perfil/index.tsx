@@ -1,8 +1,16 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import Cropper, { type Area } from 'react-easy-crop'
+import 'react-easy-crop/react-easy-crop.css'
 import { toast } from 'sonner'
 import { useAuth } from '../../contexts/auth-context'
 import { usePreferences } from '../../contexts/preferences-context'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import {
+  buildProfileAvatarPath,
+  createCroppedAvatarBlob,
+  getProfileAvatarUrl,
+  PROFILE_AVATAR_MAX_UPLOAD_BYTES,
+} from '../../lib/profile-avatar'
 import { supabase } from '../../lib/supabase'
 
 type ProfileTab = 'conta' | 'preferencias'
@@ -16,6 +24,12 @@ export default function PerfilPage() {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
+  const [isSavingAvatar, setIsSavingAvatar] = useState(false)
+  const [avatarDraftUrl, setAvatarDraftUrl] = useState<string | null>(null)
+  const [avatarCrop, setAvatarCrop] = useState({ x: 0, y: 0 })
+  const [avatarZoom, setAvatarZoom] = useState(1)
+  const [avatarCroppedAreaPixels, setAvatarCroppedAreaPixels] = useState<Area | null>(null)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   useDocumentTitle('Meu Perfil | Effectus')
 
@@ -23,12 +37,169 @@ export default function PerfilPage() {
     setFullName(currentUserProfile?.fullName ?? '')
   }, [currentUserProfile?.fullName])
 
+  useEffect(() => {
+    return () => {
+      if (avatarDraftUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarDraftUrl)
+      }
+    }
+  }, [avatarDraftUrl])
+
   const email = user?.email ?? 'Não informado'
   const roleLabel = useMemo(
     () => (role === 'admin' ? 'Administrador' : 'Corretor'),
     [role],
   )
+  const avatarUrl = useMemo(
+    () =>
+      getProfileAvatarUrl(
+        currentUserProfile?.avatarPath,
+        currentUserProfile?.updatedAt,
+      ),
+    [currentUserProfile?.avatarPath, currentUserProfile?.updatedAt],
+  )
   const hasNameChanges = fullName.trim() !== (currentUserProfile?.fullName ?? '').trim()
+
+  function resetAvatarEditor() {
+    setAvatarCrop({ x: 0, y: 0 })
+    setAvatarZoom(1)
+    setAvatarCroppedAreaPixels(null)
+    setAvatarDraftUrl((currentUrl) => {
+      if (currentUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(currentUrl)
+      }
+
+      return null
+    })
+  }
+
+  function handleAvatarFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const nextFile = event.target.files?.[0]
+    event.target.value = ''
+
+    if (!nextFile) {
+      return
+    }
+
+    if (!nextFile.type.startsWith('image/')) {
+      toast.error('Selecione uma imagem JPG, PNG ou WebP.')
+      return
+    }
+
+    if (nextFile.size > PROFILE_AVATAR_MAX_UPLOAD_BYTES) {
+      toast.error('A imagem precisa ter no máximo 5 MB antes da otimização.')
+      return
+    }
+
+    const objectUrl = URL.createObjectURL(nextFile)
+    setAvatarCrop({ x: 0, y: 0 })
+    setAvatarZoom(1)
+    setAvatarCroppedAreaPixels(null)
+    setAvatarDraftUrl((currentUrl) => {
+      if (currentUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(currentUrl)
+      }
+
+      return objectUrl
+    })
+  }
+
+  async function handleSaveAvatar() {
+    if (!user || !avatarDraftUrl || !avatarCroppedAreaPixels) {
+      toast.error('Selecione e ajuste a foto antes de salvar.')
+      return
+    }
+
+    try {
+      setIsSavingAvatar(true)
+
+      const avatarBlob = await createCroppedAvatarBlob({
+        imageUrl: avatarDraftUrl,
+        crop: {
+          x: avatarCroppedAreaPixels.x,
+          y: avatarCroppedAreaPixels.y,
+          width: avatarCroppedAreaPixels.width,
+          height: avatarCroppedAreaPixels.height,
+        },
+      })
+
+      const avatarPath = buildProfileAvatarPath(user.id)
+      const { error: uploadError } = await supabase.storage
+        .from('avatars')
+        .upload(avatarPath, avatarBlob, {
+          upsert: true,
+          contentType: 'image/webp',
+          cacheControl: '3600',
+        })
+
+      if (uploadError) {
+        throw uploadError
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_path: avatarPath,
+        })
+        .eq('id', user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      await refreshProfile()
+      resetAvatarEditor()
+      toast.success('Foto de perfil atualizada.')
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível atualizar sua foto de perfil.',
+      )
+    } finally {
+      setIsSavingAvatar(false)
+    }
+  }
+
+  async function handleRemoveAvatar() {
+    if (!user || !currentUserProfile?.avatarPath) {
+      return
+    }
+
+    try {
+      setIsSavingAvatar(true)
+
+      const { error: removeError } = await supabase.storage
+        .from('avatars')
+        .remove([currentUserProfile.avatarPath])
+
+      if (removeError) {
+        throw removeError
+      }
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          avatar_path: null,
+        })
+        .eq('id', user.id)
+
+      if (profileError) {
+        throw profileError
+      }
+
+      await refreshProfile()
+      toast.success('Foto de perfil removida.')
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível remover sua foto de perfil.',
+      )
+    } finally {
+      setIsSavingAvatar(false)
+    }
+  }
 
   async function handleSaveProfile() {
     const normalizedFullName = fullName.trim()
@@ -137,6 +308,7 @@ export default function PerfilPage() {
   }
 
   return (
+    <>
     <div className="mx-auto max-w-4xl animate-fade-up space-y-6">
       <section className="rounded-[28px] border border-outline-variant bg-[linear-gradient(135deg,var(--color-surface-container-lowest)_0%,var(--color-surface-container-low)_100%)] p-6 shadow-[0px_10px_32px_rgba(19,27,46,0.08)] sm:p-8">
         <p className="text-label-sm font-semibold uppercase tracking-[0.16em] text-primary/80">
@@ -179,9 +351,6 @@ export default function PerfilPage() {
                 <h2 className="text-headline-md font-semibold text-on-surface">
                   Dados do perfil
                 </h2>
-                <p className="mt-2 text-body-sm text-on-surface-variant">
-                  Esse nome aparece no cabeçalho, no chat e nos registros operacionais.
-                </p>
               </div>
 
               <span className="rounded-full bg-primary-container px-3 py-1 text-label-sm font-semibold text-on-primary-container">
@@ -190,6 +359,58 @@ export default function PerfilPage() {
             </div>
 
             <div className="mt-6 space-y-5">
+              <div className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-surface-container-low p-4 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                  <div className="flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-highest">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt={`Foto de perfil de ${currentUserProfile?.fullName ?? 'usuário'}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-2xl font-semibold text-primary">
+                        {(currentUserProfile?.fullName ?? email).trim().slice(0, 1).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <p className="text-label-md font-semibold text-on-surface">
+                      Foto de perfil
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/png,image/jpeg,image/webp"
+                    onChange={handleAvatarFileChange}
+                    className="hidden"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSavingAvatar}
+                    className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-2 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {avatarUrl ? 'Trocar foto' : 'Adicionar foto'}
+                  </button>
+                  {avatarUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => void handleRemoveAvatar()}
+                      disabled={isSavingAvatar}
+                      className="rounded-xl border border-error/30 bg-error/8 px-4 py-2 text-label-md font-semibold text-error transition-all hover:bg-error/12 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Remover
+                    </button>
+                  ) : null}
+                </div>
+              </div>
+
               <div>
                 <label
                   htmlFor="profile-email"
@@ -610,5 +831,77 @@ export default function PerfilPage() {
         </div>
       )}
     </div>
+    {avatarDraftUrl ? (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/65 p-4 backdrop-blur-[2px]">
+        <div className="w-full max-w-2xl overflow-hidden rounded-[28px] border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_80px_rgba(19,27,46,0.28)]">
+          <div className="border-b border-outline-variant px-6 py-4">
+            <h3 className="text-headline-md font-semibold text-on-surface">
+              Ajustar foto de perfil
+            </h3>
+            <p className="mt-1 text-body-sm text-on-surface-variant">
+              Posicione a imagem como quiser. O upload final será quadrado e otimizado.
+            </p>
+          </div>
+
+          <div className="space-y-5 p-6">
+            <div className="relative h-80 overflow-hidden rounded-2xl bg-surface">
+              <Cropper
+                image={avatarDraftUrl}
+                crop={avatarCrop}
+                zoom={avatarZoom}
+                aspect={1}
+                cropShape="round"
+                showGrid={false}
+                onCropChange={setAvatarCrop}
+                onZoomChange={setAvatarZoom}
+                onCropComplete={(_, croppedAreaPixels) =>
+                  setAvatarCroppedAreaPixels(croppedAreaPixels)
+                }
+              />
+            </div>
+
+            <div>
+              <div className="mb-2 flex items-center justify-between gap-3">
+                <span className="text-label-md font-semibold text-on-surface">
+                  Zoom
+                </span>
+                <span className="text-body-sm text-on-surface-variant">
+                  {Math.round(avatarZoom * 100)}%
+                </span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={3}
+                step={0.01}
+                value={avatarZoom}
+                onChange={(event) => setAvatarZoom(Number(event.target.value))}
+                className="w-full accent-primary"
+              />
+            </div>
+          </div>
+
+          <div className="flex flex-wrap justify-end gap-3 border-t border-outline-variant px-6 py-4">
+            <button
+              type="button"
+              onClick={resetAvatarEditor}
+              disabled={isSavingAvatar}
+              className="rounded-xl border border-outline-variant px-4 py-2 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              onClick={() => void handleSaveAvatar()}
+              disabled={isSavingAvatar || !avatarCroppedAreaPixels}
+              className="rounded-xl bg-primary px-5 py-2 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingAvatar ? 'Salvando foto...' : 'Salvar foto'}
+            </button>
+          </div>
+        </div>
+      </div>
+    ) : null}
+    </>
   )
 }

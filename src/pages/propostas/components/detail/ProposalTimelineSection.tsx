@@ -1,11 +1,13 @@
 import type { ProposalComment } from '../../types/proposal-detail'
 import type { ProposalStatus } from '../../types/proposal-status'
+import { getProfileAvatarUrl } from '../../../../lib/profile-avatar'
 import { Icon } from '../../../../components/ui/Icon'
 
 type ProposalTimelineSectionProps = {
   proposalCode: string
   createdAt: string
   brokerName: string
+  ownerAvatarPath: string | null
   status: ProposalStatus
   comments: ProposalComment[]
 }
@@ -17,6 +19,7 @@ type TimelineEvent = {
   title: string
   description: string
   authorName: string
+  authorAvatarPath: string | null
   createdAt: string
   tone: TimelineEventTone
   icon: string
@@ -52,7 +55,7 @@ function formatEventDate(value: string) {
 function resolveCommentEvent(
   proposalCode: string,
   comment: ProposalComment,
-): Omit<TimelineEvent, 'id' | 'authorName' | 'createdAt'> {
+): Omit<TimelineEvent, 'id' | 'authorName' | 'authorAvatarPath' | 'createdAt'> {
   if (comment.type === 'pending_reason') {
     return {
       title: 'Proposta movida para pendente',
@@ -92,6 +95,7 @@ function buildTimelineEvents(input: {
   proposalCode: string
   createdAt: string
   brokerName: string
+  ownerAvatarPath: string | null
   comments: ProposalComment[]
 }): TimelineEvent[] {
   const createdEvent: TimelineEvent = {
@@ -99,6 +103,7 @@ function buildTimelineEvents(input: {
     title: 'Proposta criada',
     description: `A proposta ${input.proposalCode} entrou no fluxo do Effectus.`,
     authorName: input.brokerName || 'Corretor',
+    authorAvatarPath: input.ownerAvatarPath,
     createdAt: input.createdAt,
     tone: 'default',
     icon: 'note_add',
@@ -112,6 +117,7 @@ function buildTimelineEvents(input: {
       title: resolved.title,
       description: resolved.description,
       authorName: comment.authorName,
+      authorAvatarPath: comment.authorAvatarPath ?? null,
       createdAt: comment.createdAt,
       tone: resolved.tone,
       icon: resolved.icon,
@@ -128,6 +134,7 @@ export function ProposalTimelineSection({
   proposalCode,
   createdAt,
   brokerName,
+  ownerAvatarPath,
   status,
   comments,
 }: ProposalTimelineSectionProps) {
@@ -135,6 +142,7 @@ export function ProposalTimelineSection({
     proposalCode,
     createdAt,
     brokerName,
+    ownerAvatarPath,
     comments,
   })
 
@@ -170,7 +178,7 @@ export function ProposalTimelineSection({
         <div className="rounded-[24px] bg-[linear-gradient(180deg,var(--color-surface-container-low)_0%,var(--color-surface)_100%)] px-4 py-6 sm:px-6">
           <div className="space-y-5">
             {events.map((event, index) => (
-              <div key={event.id} className="relative pl-14">
+              <div key={event.id} className="relative pl-16">
                 {index < events.length - 1 ? (
                   <span className="absolute top-12 left-[23px] h-[calc(100%+20px)] w-[3px] rounded-full bg-outline-variant" />
                 ) : null}
@@ -186,15 +194,33 @@ export function ProposalTimelineSection({
                     toneClassName[event.tone]
                   }`}
                 >
+                  <div className="mb-4 flex items-center gap-3">
+                    <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-high text-sm font-semibold text-primary">
+                      {getProfileAvatarUrl(event.authorAvatarPath) ? (
+                        <img
+                          src={getProfileAvatarUrl(event.authorAvatarPath) ?? undefined}
+                          alt={`Foto de ${event.authorName}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        event.authorName.trim().charAt(0).toUpperCase() || 'U'
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p className="truncate text-body-md font-semibold text-on-surface">
+                        {event.authorName}
+                      </p>
+                      <p className="text-body-sm text-on-surface-variant">
+                        Movimentou esta etapa
+                      </p>
+                    </div>
+                  </div>
                   <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                     <h4 className="text-label-md font-semibold">{event.title}</h4>
                     <span className="text-body-sm text-on-surface-variant">
                       {formatEventDate(event.createdAt)}
                     </span>
                   </div>
-                  <p className="mt-2 text-body-sm text-on-surface-variant">
-                    Movimentado por {event.authorName}
-                  </p>
                   <p className="mt-3 whitespace-pre-wrap text-body-md">
                     {event.description}
                   </p>

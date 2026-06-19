@@ -6,6 +6,7 @@ import {
   type KeyboardEvent,
 } from 'react'
 import { Icon } from '../../../components/ui/Icon'
+import { getProfileAvatarUrl } from '../../../lib/profile-avatar'
 import { formatCreatedAt } from '../lib/proposalListUtils'
 import type { ProposalListItem } from '../types/proposal-list-item'
 import {
@@ -227,6 +228,11 @@ export function ProposalsKanbanBoard({
                   const isSharedProposal = proposal.isSharedWithCurrentUser
                   const isHoverCardOpen =
                     visibleHoverProposalId === proposal.id && isHoverCardVisible
+                  const ownerDisplayName = isSharedProposal
+                    ? proposal.ownerName
+                    : proposal.brokerName
+                  const ownerAvatarUrl = getProfileAvatarUrl(proposal.ownerAvatarPath)
+                  const ownerInitial = ownerDisplayName.trim().charAt(0).toUpperCase() || 'C'
 
                   return (
                     <div
@@ -305,11 +311,24 @@ export function ProposalsKanbanBoard({
                         <dl className="mt-4 grid gap-3 text-body-sm">
                           <div className="min-w-0">
                             <dt className="text-on-surface-variant">Corretor</dt>
-                            <dd
-                              className="truncate font-medium text-on-surface"
-                              title={isSharedProposal ? proposal.ownerName : proposal.brokerName}
-                            >
-                              {isSharedProposal ? proposal.ownerName : proposal.brokerName}
+                            <dd className="mt-1 flex items-center gap-2">
+                              <span className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-high text-[11px] font-semibold text-primary">
+                                {ownerAvatarUrl ? (
+                                  <img
+                                    src={ownerAvatarUrl}
+                                    alt={`Foto de ${ownerDisplayName}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  ownerInitial
+                                )}
+                              </span>
+                              <span
+                                className="truncate font-medium text-on-surface"
+                                title={ownerDisplayName}
+                              >
+                                {ownerDisplayName}
+                              </span>
                             </dd>
                           </div>
                           <div className="min-w-0">

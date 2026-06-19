@@ -1,5 +1,6 @@
 import type { User } from '@supabase/supabase-js'
 import type { CurrentUserProfile } from '../../lib/current-user-profile'
+import { getProfileAvatarUrl } from '../../lib/profile-avatar'
 import { Icon } from '../ui/Icon'
 import { NotificationsMenu } from './NotificationsMenu'
 import { useUserMenu } from './hooks/useUserMenu'
@@ -27,6 +28,10 @@ export function DashboardHeader({
 
   const displayName =
     currentUserProfile?.fullName ?? user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
+  const avatarUrl = getProfileAvatarUrl(
+    currentUserProfile?.avatarPath,
+    currentUserProfile?.updatedAt,
+  )
 
   const handleSignOut = () => {
     closeMenu()
@@ -75,8 +80,16 @@ export function DashboardHeader({
                   </span>
                 ) : null}
               </div>
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-surface-container-highest">
-                <Icon name="person" size={20} className="text-primary" />
+              <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-container-highest">
+                {avatarUrl ? (
+                  <img
+                    src={avatarUrl}
+                    alt={`Foto de perfil de ${displayName}`}
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <Icon name="person" size={20} className="text-primary" />
+                )}
               </div>
             </button>
 

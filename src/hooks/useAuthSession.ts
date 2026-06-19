@@ -29,6 +29,8 @@ function buildFallbackProfile(user: User): CurrentUserProfile {
     role,
     isAdmin: isAdminRole(role),
     isActive: true,
+    avatarPath: null,
+    updatedAt: null,
   }
 }
 
@@ -51,7 +53,15 @@ function readStoredProfile(userId: string): CurrentUserProfile | null {
       typeof parsedValue.fullName !== 'string' ||
       typeof parsedValue.role !== 'string' ||
       typeof parsedValue.isAdmin !== 'boolean' ||
-      typeof parsedValue.isActive !== 'boolean'
+      typeof parsedValue.isActive !== 'boolean' ||
+      !(
+        parsedValue.avatarPath === null ||
+        typeof parsedValue.avatarPath === 'string'
+      ) ||
+      !(
+        parsedValue.updatedAt === null ||
+        typeof parsedValue.updatedAt === 'string'
+      )
     ) {
       return null
     }

@@ -6,6 +6,7 @@ export type ProposalListItem = {
   proposalCode: string
   ownerBrokerUserId: string
   ownerName: string
+  ownerAvatarPath: string | null
   isOwnedByCurrentUser: boolean
   isSharedWithCurrentUser: boolean
   clientName: string

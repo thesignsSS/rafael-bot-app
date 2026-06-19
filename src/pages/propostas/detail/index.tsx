@@ -553,6 +553,7 @@ export default function ProposalDetailPage() {
             proposalCode={proposal.proposalCode}
             createdAt={proposal.createdAt}
             brokerName={proposal.brokerName}
+            ownerAvatarPath={proposal.ownerAvatarPath}
             status={normalizedStatus}
             comments={proposal.comments}
           />
