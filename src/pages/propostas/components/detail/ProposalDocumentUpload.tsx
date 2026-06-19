@@ -70,7 +70,7 @@ export function ProposalDocumentUpload({
         }}
         onDrop={handleDrop}
         onDragOver={handleDragOver}
-        className={`group flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-outline bg-white/50 py-6 transition-colors hover:bg-primary-container/5 ${
+        className={`group flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-outline bg-surface-container-lowest/70 py-6 transition-colors hover:bg-primary-container/5 ${
           isBusy ? 'cursor-wait opacity-60' : 'cursor-pointer'
         }`}
       >

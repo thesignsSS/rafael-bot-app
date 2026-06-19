@@ -117,8 +117,8 @@ export function PendingDocumentsUploadModal({
         <label
           className={`mt-5 flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition-colors ${
             isDragging
-              ? 'border-primary bg-blue-50'
-              : 'border-outline-variant bg-white hover:border-primary/60 hover:bg-primary-container/5'
+              ? 'border-primary bg-primary/10'
+              : 'border-outline-variant bg-surface-container-lowest hover:border-primary/60 hover:bg-primary-container/5'
           }`}
         >
           <input
@@ -152,7 +152,7 @@ export function PendingDocumentsUploadModal({
             onDrop={handleDrop}
             className="flex w-full flex-col items-center justify-center"
           >
-            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-blue-50 text-primary">
+            <div className="flex h-14 w-14 items-center justify-center rounded-full bg-primary/10 text-primary">
               <Icon name="upload_file" size={30} />
             </div>
             <p className="mt-4 text-label-md font-semibold text-on-surface">
@@ -180,7 +180,7 @@ export function PendingDocumentsUploadModal({
             {selectedFiles.map((file) => (
               <div
                 key={fileKey(file)}
-                className="flex items-center justify-between gap-4 rounded-xl border border-outline-variant bg-white px-4 py-3"
+                className="flex items-center justify-between gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3"
               >
                 <div className="min-w-0">
                   <p className="truncate text-label-md font-semibold text-on-surface">

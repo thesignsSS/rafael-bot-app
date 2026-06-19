@@ -103,7 +103,7 @@ export function NotificationsMenu({ currentUserProfile }: NotificationsMenuProps
       </button>
 
       {isOpen ? (
-        <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-outline-variant bg-white shadow-[0px_20px_40px_rgba(19,27,46,0.16)]">
+        <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-[380px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0px_20px_40px_rgba(19,27,46,0.16)]">
           <div className="flex items-center justify-between border-b border-outline-variant px-4 py-3">
             <div>
               <h3 className="text-label-md font-semibold text-on-surface">
@@ -149,7 +149,9 @@ export function NotificationsMenu({ currentUserProfile }: NotificationsMenuProps
                     )
                   }
                   className={`flex w-full flex-col items-start gap-1 border-b border-outline-variant px-4 py-4 text-left transition-colors last:border-b-0 hover:bg-surface-container-low ${
-                    item.readAt === null ? 'bg-primary-fixed/35' : 'bg-white'
+                    item.readAt === null
+                      ? 'bg-primary-fixed/35'
+                      : 'bg-surface-container-lowest'
                   }`}
                 >
                   <div className="flex w-full items-start justify-between gap-3">

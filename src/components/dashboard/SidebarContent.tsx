@@ -35,8 +35,8 @@ export function SidebarContent({
   return (
     <>
       <div
-        className={`mb-8 flex items-center gap-2 ${
-          isCollapsed ? 'justify-center px-0' : 'justify-between px-2'
+        className={`relative mb-8 flex items-center gap-2 ${
+          isCollapsed ? 'justify-center px-0 pt-1' : 'justify-between px-2'
         }`}
       >
         <div
@@ -58,8 +58,10 @@ export function SidebarContent({
             onClick={onToggleCollapse}
             aria-label={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
             title={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
-            className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-lg text-on-surface-variant transition-colors hover:bg-surface-container-high lg:flex ${
-              isCollapsed ? '' : 'ml-auto'
+            className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant bg-surface text-on-surface-variant shadow-[0px_10px_24px_rgba(19,27,46,0.12)] transition-all hover:bg-surface-container-high hover:text-on-surface lg:flex ${
+              isCollapsed
+                ? 'absolute top-1/2 -right-5 z-10 -translate-y-1/2'
+                : 'ml-auto'
             }`}
           >
             <Icon name={isCollapsed ? 'chevron_right' : 'chevron_left'} size={22} />

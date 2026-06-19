@@ -56,8 +56,8 @@ export function PropertyDataSection({
                 onClick={() => onPropertyTypeChange(type)}
                 className={`flex min-h-12 items-center gap-3 rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
                   propertyType === type
-                    ? 'border-primary bg-blue-50 text-primary shadow-sm'
-                    : 'border-outline-variant bg-white text-on-surface-variant hover:border-primary/60'
+                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
+                    : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/60 hover:bg-surface-container-low'
                 }`}
               >
                 <span
@@ -137,7 +137,7 @@ export function PropertyDataSection({
             {isCityDropdownOpen ? (
               <div
                 id="city-options"
-                className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-lg border border-outline-variant bg-white shadow-xl"
+                className="absolute left-0 right-0 top-[calc(100%+8px)] z-30 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-xl"
               >
                 <div className="max-h-64 overflow-y-auto py-2">
                   {isLoadingCities ? (
@@ -154,7 +154,7 @@ export function PropertyDataSection({
                         key={cityOption.id}
                         type="button"
                         onClick={() => onSelectCity(cityOption.nome)}
-                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-body-md transition-colors hover:bg-blue-50 ${
+                        className={`flex w-full items-center justify-between px-4 py-3 text-left text-body-md transition-colors hover:bg-surface-container-low ${
                           city === cityOption.nome
                             ? 'font-semibold text-primary'
                             : 'text-on-surface'

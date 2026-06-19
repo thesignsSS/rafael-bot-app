@@ -20,7 +20,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled ?? loading}
-      className={`flex h-12 w-full items-center justify-center gap-2 rounded-lg bg-primary-container text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary hover:shadow-md active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 ${className}`}
+      className={`flex h-[var(--control-height)] w-full items-center justify-center gap-2 rounded-lg bg-primary-container text-sm font-semibold text-white shadow-sm transition-all hover:bg-primary hover:shadow-md active:scale-[0.98] disabled:pointer-events-none disabled:opacity-70 ${className}`}
       {...props}
     >
       {loading ? (

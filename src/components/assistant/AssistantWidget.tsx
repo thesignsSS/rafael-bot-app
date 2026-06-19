@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useAuth } from '../../contexts/auth-context'
+import { usePreferences } from '../../contexts/preferences-context'
 import {
   ASSISTANT_CONTEXT_EVENT,
   ASSISTANT_OPEN_EVENT,
@@ -84,6 +85,7 @@ function renderInlineFormatting(content: string) {
 export function AssistantWidget() {
   const { pathname } = useLocation()
   const { currentUserProfile } = useAuth()
+  const { preferences } = usePreferences()
   const [isOpen, setIsOpen] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const [isSending, setIsSending] = useState(false)
@@ -106,6 +108,15 @@ export function AssistantWidget() {
   const quickPrompts = useMemo(
     () => (proposalContext ? PROPOSAL_QUICK_PROMPTS : QUICK_PROMPTS),
     [proposalContext],
+  )
+  const chatWallpaperClassName = useMemo(
+    () =>
+      preferences.chatWallpaper === 'none'
+        ? 'chat-wallpaper-none'
+        : preferences.chatWallpaper === 'subtle'
+          ? 'chat-wallpaper-subtle'
+          : 'chat-wallpaper',
+    [preferences.chatWallpaper],
   )
 
   useEffect(() => {
@@ -257,7 +268,7 @@ export function AssistantWidget() {
                   key={prompt}
                   type="button"
                   onClick={() => handleQuickPrompt(prompt)}
-                  className="rounded-full border border-outline-variant bg-white px-3 py-1.5 text-label-sm text-on-surface transition-all hover:border-primary hover:text-primary"
+                  className="rounded-full border border-outline-variant bg-surface-container-lowest px-3 py-1.5 text-label-sm text-on-surface transition-all hover:border-primary hover:bg-surface-container hover:text-primary"
                 >
                   {prompt}
                 </button>
@@ -265,7 +276,9 @@ export function AssistantWidget() {
             </div>
           </div>
 
-          <div className="max-h-[320px] space-y-2.5 overflow-y-auto bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.08),transparent_36%),linear-gradient(180deg,#ffffff_0%,#f5f7ff_100%)] px-3.5 py-3.5">
+          <div
+            className={`${chatWallpaperClassName} max-h-[320px] space-y-2.5 overflow-y-auto px-3.5 py-3.5`}
+          >
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -274,7 +287,7 @@ export function AssistantWidget() {
                 <div
                   className={`max-w-[88%] rounded-2xl px-3.5 py-2.5 text-body-sm shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
                     message.role === 'assistant'
-                      ? 'rounded-bl-md bg-white text-on-surface'
+                      ? 'rounded-bl-md bg-surface-container-lowest text-on-surface'
                       : 'rounded-br-md bg-primary text-on-primary'
                   }`}
                 >
@@ -287,14 +300,17 @@ export function AssistantWidget() {
 
             {isSending ? (
               <div className="flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-white px-3.5 py-2.5 text-body-sm text-on-surface shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+                <div className="rounded-2xl rounded-bl-md bg-surface-container-lowest px-3.5 py-2.5 text-body-sm text-on-surface shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                   Pensando aqui, pera aí...
                 </div>
               </div>
             ) : null}
           </div>
 
-          <form onSubmit={handleSubmit} className="border-t border-outline-variant bg-white p-3.5">
+          <form
+            onSubmit={handleSubmit}
+            className="border-t border-outline-variant bg-surface-container-lowest p-3.5"
+          >
             <label htmlFor="effectus-assistant-input" className="sr-only">
               Digite sua dúvida
             </label>
@@ -303,6 +319,21 @@ export function AssistantWidget() {
                 id="effectus-assistant-input"
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
+                onKeyDown={(event) => {
+                  const shouldSendWithEnter =
+                    preferences.enterBehavior === 'send' &&
+                    event.key === 'Enter' &&
+                    !event.shiftKey
+                  const shouldSendWithShortcut =
+                    preferences.enterBehavior === 'newline' &&
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey)
+
+                  if (shouldSendWithEnter || shouldSendWithShortcut) {
+                    event.preventDefault()
+                    event.currentTarget.form?.requestSubmit()
+                  }
+                }}
                 placeholder="Ex.: o que significa proposta pendente?"
                 rows={2}
                 className="min-h-[48px] flex-1 resize-none rounded-2xl border border-outline-variant bg-surface px-3.5 py-2.5 text-body-sm text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20"

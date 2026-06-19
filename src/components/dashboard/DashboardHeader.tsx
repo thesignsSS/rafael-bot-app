@@ -83,7 +83,7 @@ export function DashboardHeader({
             {isOpen ? (
               <div
                 role="menu"
-                className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-40 overflow-hidden rounded-lg border border-outline-variant bg-white shadow-xl"
+                className="absolute right-0 top-[calc(100%+8px)] z-30 min-w-40 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest shadow-xl"
               >
                 <button
                   type="button"

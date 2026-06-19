@@ -64,8 +64,8 @@ export function DocumentsSection({
         onDrop={handleDrop}
         className={`flex min-h-44 cursor-pointer flex-col items-center justify-center rounded-lg border border-dashed px-6 py-8 text-center transition-colors ${
           isDraggingFiles
-            ? 'border-primary bg-blue-50'
-            : 'border-primary/30 bg-[#fbfcff] hover:border-primary hover:bg-blue-50/50'
+            ? 'border-primary bg-primary/10'
+            : 'border-primary/30 bg-surface-container-low hover:border-primary hover:bg-surface-container'
         }`}
       >
         <Icon
@@ -105,10 +105,10 @@ export function DocumentsSection({
           {extraFiles.map((file) => (
             <div
               key={fileKey(file)}
-              className="flex flex-col gap-3 rounded-lg border border-outline-variant/70 bg-white p-4 sm:flex-row sm:items-center sm:justify-between"
+              className="flex flex-col gap-3 rounded-lg border border-outline-variant/70 bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between"
             >
               <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-primary">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                   <Icon name="draft" size={22} />
                 </div>
                 <div className="min-w-0">

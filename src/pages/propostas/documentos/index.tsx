@@ -109,7 +109,10 @@ function DocumentPreview({
     }
 
     event.preventDefault()
-    setImageRotation((current) => current + (event.deltaY > 0 ? 90 : -90))
+    setImageScale((current) => {
+      const nextScale = current + (event.deltaY > 0 ? -0.1 : 0.1)
+      return Math.min(3, Math.max(MIN_IMAGE_SCALE, Number(nextScale.toFixed(2))))
+    })
   }
 
   return (
@@ -142,10 +145,10 @@ function DocumentPreview({
 
         {document.kind === 'image' ? (
           <>
-            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-outline-variant bg-white px-4 py-3">
+            <div className="mb-3 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-4 py-3">
               <p className="text-body-sm text-on-surface-variant">
                 Ajuste a visualização da imagem com zoom, giro e reset. Atalho:
-                segure Ctrl + scroll para girar.
+                segure Ctrl + scroll para aplicar zoom.
               </p>
 
               <div className="flex flex-wrap items-center gap-2">
@@ -203,7 +206,7 @@ function DocumentPreview({
               </div>
             </div>
 
-            <div className="flex max-h-[calc(100dvh-180px)] justify-center overflow-auto rounded-lg border border-outline-variant bg-white p-3">
+            <div className="flex max-h-[calc(100dvh-180px)] justify-center overflow-auto rounded-lg border border-outline-variant bg-surface-container-lowest p-3">
               <div
                 onMouseDown={handleImageMouseDown}
                 onWheel={handleImageWheel}
@@ -237,7 +240,7 @@ function DocumentPreview({
             title={document.fileName}
             src={document.url}
             onLoad={() => setIsLoading(false)}
-            className="h-[60dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-white sm:h-[calc(100dvh-180px)] sm:min-h-[620px]"
+            className="h-[60dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-surface-container-lowest sm:h-[calc(100dvh-180px)] sm:min-h-[620px]"
           />
         )}
       </div>

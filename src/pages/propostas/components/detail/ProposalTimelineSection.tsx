@@ -23,17 +23,17 @@ type TimelineEvent = {
 }
 
 const toneClassName: Record<TimelineEventTone, string> = {
-  default: 'border-outline-variant bg-white text-on-surface',
-  pending: 'border-amber-200 bg-amber-50/75 text-amber-950',
-  resubmission: 'border-sky-200 bg-sky-50/75 text-sky-950',
-  audit: 'border-violet-200 bg-violet-50/75 text-violet-950',
+  default: 'border-outline-variant bg-surface-container-lowest text-on-surface',
+  pending: 'border-amber-400/30 bg-amber-500/10 text-on-surface',
+  resubmission: 'border-sky-400/30 bg-sky-500/10 text-on-surface',
+  audit: 'border-violet-400/30 bg-violet-500/10 text-on-surface',
 }
 
 const markerClassName: Record<TimelineEventTone, string> = {
-  default: 'border-primary/25 bg-white text-primary',
-  pending: 'border-amber-300 bg-white text-amber-500',
-  resubmission: 'border-sky-300 bg-white text-sky-500',
-  audit: 'border-violet-300 bg-white text-violet-600',
+  default: 'border-primary/25 bg-surface-container-lowest text-primary',
+  pending: 'border-amber-400/40 bg-surface-container-lowest text-amber-400',
+  resubmission: 'border-sky-400/40 bg-surface-container-lowest text-sky-400',
+  audit: 'border-violet-400/40 bg-surface-container-lowest text-violet-400',
 }
 
 function formatEventDate(value: string) {
@@ -167,7 +167,7 @@ export function ProposalTimelineSection({
       </div>
 
       <div className="mt-6">
-        <div className="rounded-[24px] bg-[linear-gradient(180deg,#fbfcff_0%,#f4f7ff_100%)] px-4 py-6 sm:px-6">
+        <div className="rounded-[24px] bg-[linear-gradient(180deg,var(--color-surface-container-low)_0%,var(--color-surface)_100%)] px-4 py-6 sm:px-6">
           <div className="space-y-5">
             {events.map((event, index) => (
               <div key={event.id} className="relative pl-14">

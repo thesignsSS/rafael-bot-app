@@ -1,13 +1,60 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { CHAT_NOTIFICATION_EVENT } from '../lib/chat'
 import {
+  getNotificationPreferenceKey,
+  isNotificationTypeEnabled,
+  usePreferences,
+} from '../contexts/preferences-context'
+import {
   fetchNotifications,
   markAllNotificationsAsRead,
   markNotificationAsRead,
   type NotificationItem,
 } from '../lib/notifications'
 
+function playNotificationSound() {
+  if (typeof window === 'undefined') {
+    return
+  }
+
+  const AudioContextConstructor =
+    window.AudioContext ||
+    (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext
+
+  if (!AudioContextConstructor) {
+    return
+  }
+
+  try {
+    const audioContext = new AudioContextConstructor()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+    const now = audioContext.currentTime
+
+    oscillator.type = 'triangle'
+    oscillator.frequency.setValueAtTime(740, now)
+    oscillator.frequency.exponentialRampToValueAtTime(520, now + 0.18)
+
+    gainNode.gain.setValueAtTime(0.0001, now)
+    gainNode.gain.exponentialRampToValueAtTime(0.04, now + 0.02)
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, now + 0.2)
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    oscillator.start(now)
+    oscillator.stop(now + 0.2)
+
+    oscillator.onended = () => {
+      void audioContext.close().catch(() => undefined)
+    }
+  } catch {
+    return
+  }
+}
+
 export function useNotifications(userId?: string | null) {
+  const { preferences } = usePreferences()
   const [items, setItems] = useState<NotificationItem[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
@@ -46,6 +93,14 @@ export function useNotifications(userId?: string | null) {
         return
       }
 
+      if (!isNotificationTypeEnabled(preferences, notification.type)) {
+        return
+      }
+
+      if (preferences.notifications.sound) {
+        playNotificationSound()
+      }
+
       setItems((currentItems) => {
         if (currentItems.some((item) => item.id === notification.id)) {
           return currentItems
@@ -64,11 +119,19 @@ export function useNotifications(userId?: string | null) {
         handleNotificationCreated as EventListener,
       )
     }
-  }, [load, userId])
+  }, [load, preferences, userId])
+
+  const visibleItems = useMemo(
+    () =>
+      items.filter((item) =>
+        preferences.notifications.types[getNotificationPreferenceKey(item.type)],
+      ),
+    [items, preferences.notifications.types],
+  )
 
   const unreadCount = useMemo(
-    () => items.filter((item) => item.readAt === null).length,
-    [items],
+    () => visibleItems.filter((item) => item.readAt === null).length,
+    [visibleItems],
   )
 
   const handleMarkAsRead = useCallback(
@@ -115,7 +178,7 @@ export function useNotifications(userId?: string | null) {
   }, [load, userId])
 
   return {
-    items,
+    items: visibleItems,
     isLoading,
     unreadCount,
     reload: load,

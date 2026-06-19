@@ -183,7 +183,7 @@ export default function AdminWhatsAppPage() {
 
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
-      <section className="rounded-[28px] border border-outline-variant bg-[linear-gradient(135deg,#ffffff_0%,#f5f8ff_100%)] p-6 shadow-[0px_10px_32px_rgba(19,27,46,0.08)] sm:p-8">
+      <section className="rounded-[28px] border border-outline-variant bg-[linear-gradient(135deg,var(--color-surface-container-lowest)_0%,var(--color-surface-container-low)_100%)] p-6 shadow-[0px_10px_32px_rgba(19,27,46,0.08)] sm:p-8">
         <p className="text-label-sm font-semibold uppercase tracking-[0.16em] text-primary/80">
           Administração
         </p>
@@ -197,7 +197,7 @@ export default function AdminWhatsAppPage() {
       </section>
 
       <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)] sm:p-6">
-        <div className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-[linear-gradient(135deg,#ffffff_0%,#f5f8ff_100%)] p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)] sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-4 rounded-2xl border border-outline-variant bg-[linear-gradient(135deg,var(--color-surface-container-lowest)_0%,var(--color-surface-container-low)_100%)] p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)] sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-headline-md font-semibold text-on-surface">
               Sessão atual
@@ -211,9 +211,9 @@ export default function AdminWhatsAppPage() {
             <span
               className={`rounded-full px-3 py-1 text-label-sm font-semibold ${
                 whatsAppState?.connectionStatus === 'connected'
-                  ? 'bg-emerald-50 text-emerald-700'
+                  ? 'bg-emerald-500/14 text-emerald-400'
                   : whatsAppState?.connectionStatus === 'waiting_qr'
-                    ? 'bg-amber-50 text-amber-700'
+                    ? 'bg-amber-500/14 text-amber-300'
                     : 'bg-surface-container text-on-surface-variant'
               }`}
             >
@@ -232,7 +232,7 @@ export default function AdminWhatsAppPage() {
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[340px_1fr]">
-          <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
             <h3 className="text-headline-sm font-semibold text-on-surface">
               QR Code
             </h3>
@@ -253,7 +253,7 @@ export default function AdminWhatsAppPage() {
                 <img
                   src={whatsAppState.qrCode.dataUrl}
                   alt="QR code do WhatsApp"
-                  className="h-auto w-full max-w-[240px] rounded-xl bg-white"
+                  className="h-auto w-full max-w-[240px] rounded-xl bg-surface-container-lowest"
                 />
               ) : (
                 <p className="text-center text-body-sm text-on-surface-variant">
@@ -269,7 +269,7 @@ export default function AdminWhatsAppPage() {
             ) : null}
           </div>
 
-          <div className="rounded-2xl border border-outline-variant bg-white p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
             <h3 className="text-headline-sm font-semibold text-on-surface">
               Como usar
             </h3>

@@ -4,6 +4,7 @@ import { ChatWidget } from './components/chat/ChatWidget'
 import { Toaster } from 'sonner'
 import { AuthProvider } from './contexts/AuthProvider'
 import { useAuth } from './contexts/auth-context'
+import { PreferencesProvider } from './contexts/preferences-context'
 import { SessionLoadingScreen } from './components/ui/SessionLoadingScreen'
 import { AppRoutes } from './routes/AppRoutes'
 
@@ -57,13 +58,15 @@ function AppContent() {
 
 function App() {
   return (
-    <AuthProvider>
-      <AppContent />
-      <WhatsAppBotNotice />
-      <ChatWidget />
-      <AssistantWidget />
-      <Toaster position="top-center" richColors />
-    </AuthProvider>
+    <PreferencesProvider>
+      <AuthProvider>
+        <AppContent />
+        <WhatsAppBotNotice />
+        <ChatWidget />
+        <AssistantWidget />
+        <Toaster position="top-center" richColors />
+      </AuthProvider>
+    </PreferencesProvider>
   )
 }
 

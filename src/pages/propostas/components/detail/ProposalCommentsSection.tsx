@@ -86,11 +86,11 @@ export function ProposalCommentsSection({
       </div>
 
       {pendingReason ? (
-        <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-label-sm font-semibold uppercase text-amber-900">
+        <div className="mt-5 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3">
+          <p className="text-label-sm font-semibold uppercase text-amber-300">
             Motivo atual da pendência
           </p>
-          <p className="mt-2 whitespace-pre-wrap text-body-md text-amber-950">
+          <p className="mt-2 whitespace-pre-wrap text-body-md text-on-surface">
             {pendingReason}
           </p>
         </div>
@@ -106,9 +106,9 @@ export function ProposalCommentsSection({
             <article
               key={comment.id}
               ref={comment.id === scrollToCommentId ? scrollTargetRef : null}
-              className={`rounded-xl border bg-white p-4 ${
+              className={`rounded-xl border bg-surface-container-lowest p-4 ${
                 comment.id === highlightedCommentId
-                  ? 'border-amber-300 bg-amber-50/70 shadow-[0px_10px_26px_rgba(245,158,11,0.12)] animate-pending-comment-glow'
+                  ? 'border-amber-400/40 bg-amber-500/10 shadow-[0px_10px_26px_rgba(245,158,11,0.12)] animate-pending-comment-glow'
                   : 'border-outline-variant'
               }`}
             >
@@ -136,13 +136,13 @@ export function ProposalCommentsSection({
       </div>
 
       {canAddComment ? (
-        <div className="mt-5 rounded-xl border border-outline-variant bg-surface p-4">
+        <div className="mt-5 rounded-xl border border-outline-variant bg-surface-container-low p-4">
           <textarea
             value={commentDraft}
             onChange={(event) => onCommentDraftChange(event.target.value)}
             rows={4}
             disabled={isSavingComment}
-            className="w-full rounded-xl border border-outline-variant bg-white px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+            className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
             placeholder="Escreva um comentário sobre a pendência ou o material enviado..."
           />
 

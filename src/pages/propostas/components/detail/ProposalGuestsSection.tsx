@@ -91,14 +91,14 @@ export function ProposalGuestsSection({
                 value={inviteQuery}
                 onChange={(event) => onInviteQueryChange(event.target.value)}
                 placeholder="Digite pelo menos 5 letras do nome"
-                className="mt-2 w-full rounded-xl border border-outline-variant bg-white px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                className="mt-2 w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
               />
               <p className="mt-2 text-body-sm text-on-surface-variant">
                 {inviteHelperMessage ?? 'Procure o usuário pelo nome para enviar o convite.'}
               </p>
 
               {inviteCandidates.length > 0 ? (
-                <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-outline-variant bg-white">
+                <div className="mt-3 max-h-56 overflow-y-auto rounded-xl border border-outline-variant bg-surface-container-lowest">
                   {inviteCandidates.map((candidate) => (
                     <button
                       key={candidate.id}
@@ -157,7 +157,7 @@ export function ProposalGuestsSection({
             {pendingInvitations.map((invitation) => (
               <div
                 key={invitation.id}
-                className="rounded-xl border border-outline-variant bg-white px-4 py-3"
+                className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3"
               >
                 <p className="text-body-md font-semibold text-on-surface">
                   {invitation.inviteeName}

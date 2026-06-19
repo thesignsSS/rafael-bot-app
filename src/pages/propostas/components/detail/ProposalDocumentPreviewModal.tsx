@@ -129,7 +129,10 @@ export function ProposalDocumentPreviewModal({
     }
 
     event.preventDefault()
-    setImageRotation((current) => current + (event.deltaY > 0 ? 90 : -90))
+    setImageScale((current) => {
+      const nextScale = current + (event.deltaY > 0 ? -0.1 : 0.1)
+      return Math.min(3, Math.max(MIN_IMAGE_SCALE, Number(nextScale.toFixed(2))))
+    })
   }
 
   if (!isMounted) {
@@ -189,10 +192,10 @@ export function ProposalDocumentPreviewModal({
 
             {kind === 'image' ? (
               <div className="flex h-full min-h-0 flex-col">
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-white px-4 py-3 sm:px-5">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-outline-variant bg-surface-container-lowest px-4 py-3 sm:px-5">
                   <p className="text-body-sm text-on-surface-variant">
                     Use os controles para ajustar a visualização da imagem. Atalho:
-                    segure Ctrl + scroll para girar.
+                    segure Ctrl + scroll para aplicar zoom.
                   </p>
 
                   <div className="flex flex-wrap items-center gap-2">
@@ -251,7 +254,7 @@ export function ProposalDocumentPreviewModal({
                 </div>
 
                 <div className="min-h-0 flex-1 bg-surface-container-low p-4 sm:p-5">
-                  <div className="h-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border border-outline-variant bg-white">
+                  <div className="h-full overflow-x-auto overflow-y-auto overscroll-contain rounded-lg border border-outline-variant bg-surface-container-lowest">
                     <div className="flex min-h-full min-w-full items-start justify-center p-3">
                     <div
                       onMouseDown={handleImageMouseDown}
@@ -303,7 +306,7 @@ export function ProposalDocumentPreviewModal({
                   title={fileName}
                   src={url}
                   onLoad={() => setIsLoading(false)}
-                  className="h-[65dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-white sm:h-[72dvh] sm:min-h-[540px]"
+                  className="h-[65dvh] min-h-[320px] w-full rounded-lg border border-outline-variant bg-surface-container-lowest sm:h-[72dvh] sm:min-h-[540px]"
                 />
               </div>
             )}

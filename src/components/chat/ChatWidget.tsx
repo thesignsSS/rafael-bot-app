@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '../../contexts/auth-context'
+import { usePreferences } from '../../contexts/preferences-context'
 import {
   CHAT_NOTIFICATION_EVENT,
   CHAT_OPEN_EVENT,
@@ -120,6 +121,7 @@ function playIncomingMessageSound() {
 
 export function ChatWidget() {
   const { currentUserProfile } = useAuth()
+  const { preferences } = usePreferences()
   const [isDirectoryOpen, setIsDirectoryOpen] = useState(false)
   const [isOfflineListOpen, setIsOfflineListOpen] = useState(false)
   const [openingUserId, setOpeningUserId] = useState<string | null>(null)
@@ -137,6 +139,7 @@ export function ChatWidget() {
   const socketRef = useRef<WebSocket | null>(null)
   const typingStopTimeoutRef = useRef<number | null>(null)
   const isTypingSentRef = useRef(false)
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null)
   const messagesEndRef = useRef<HTMLDivElement | null>(null)
 
   const currentUserId = currentUserProfile?.id ?? null
@@ -154,6 +157,15 @@ export function ChatWidget() {
 
   const onlineUsersSet = useMemo(() => new Set(onlineUserIds), [onlineUserIds])
   const isAdmin = currentUserProfile?.isAdmin ?? false
+  const chatWallpaperClassName = useMemo(
+    () =>
+      preferences.chatWallpaper === 'none'
+        ? 'chat-wallpaper-none'
+        : preferences.chatWallpaper === 'subtle'
+          ? 'chat-wallpaper-subtle'
+          : 'chat-wallpaper',
+    [preferences.chatWallpaper],
+  )
 
   const directoryItems = useMemo(
     () =>
@@ -393,8 +405,22 @@ export function ChatWidget() {
   }, [])
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, typingConversationId])
+    const container = messagesContainerRef.current
+
+    if (!container) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+      return
+    }
+
+    const frameId = window.requestAnimationFrame(() => {
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: isLoadingConversation ? 'auto' : 'smooth',
+      })
+    })
+
+    return () => window.cancelAnimationFrame(frameId)
+  }, [isLoadingConversation, messages, typingConversationId])
 
   useEffect(() => {
     const handleOpenChat = (event: Event) => {
@@ -685,7 +711,7 @@ export function ChatWidget() {
             void loadDirectoryData()
           }
         }}
-        className="fixed right-4 bottom-24 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-lowest text-primary shadow-[0px_18px_45px_rgba(15,23,42,0.16)] transition-all hover:scale-105 hover:bg-white sm:right-6 sm:bottom-28"
+        className="fixed right-4 bottom-24 z-40 flex h-16 w-16 items-center justify-center rounded-full bg-surface-container-lowest text-primary shadow-[0px_18px_45px_rgba(15,23,42,0.16)] transition-all hover:scale-105 hover:bg-surface-container sm:right-6 sm:bottom-28"
         aria-label="Abrir chat interno"
       >
         <span className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -726,7 +752,7 @@ export function ChatWidget() {
             </div>
           </div>
 
-          <div className="max-h-[420px] overflow-y-auto bg-white px-3 py-3">
+          <div className="max-h-[420px] overflow-y-auto bg-surface-container-lowest px-3 py-3">
             {isLoadingDirectory ? (
               <div className="px-3 py-8 text-center text-body-md text-on-surface-variant">
                 Carregando usuários...
@@ -860,16 +886,19 @@ export function ChatWidget() {
             </div>
           </div>
 
-          <div className="chat-wallpaper h-[300px] overflow-y-auto px-3.5 py-3.5">
+          <div
+            ref={messagesContainerRef}
+            className={`${chatWallpaperClassName} h-[300px] overflow-y-auto px-3.5 py-3.5`}
+          >
             {isLoadingConversation ? (
-              <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+              <div className="rounded-2xl bg-surface-container-lowest px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                 <div className="flex items-center gap-2">
                   <Icon name="progress_activity" size={16} className="animate-spin text-primary" />
                   Carregando conversa...
                 </div>
               </div>
             ) : messages.length === 0 ? (
-              <div className="rounded-2xl bg-white px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+              <div className="rounded-2xl bg-surface-container-lowest px-4 py-3 text-body-sm text-on-surface-variant shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                 Nenhuma mensagem ainda. Pode mandar a primeira.
               </div>
             ) : (
@@ -882,10 +911,10 @@ export function ChatWidget() {
                     className={`mb-3 flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}
                   >
                     <div
-                      className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-body-sm shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
+                        className={`max-w-[84%] rounded-2xl px-3.5 py-2.5 text-body-sm shadow-[0px_6px_20px_rgba(19,27,46,0.06)] ${
                         isOwnMessage
                           ? 'rounded-br-md bg-primary text-on-primary'
-                          : 'rounded-bl-md bg-white text-on-surface'
+                          : 'rounded-bl-md bg-surface-container-lowest text-on-surface'
                       }`}
                     >
                       <p>{message.content}</p>
@@ -904,7 +933,7 @@ export function ChatWidget() {
 
             {typingConversationId === activeConversation.id ? (
               <div className="mb-2 flex justify-start">
-                <div className="rounded-2xl rounded-bl-md bg-white px-4 py-3 shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
+                <div className="rounded-2xl rounded-bl-md bg-surface-container-lowest px-4 py-3 shadow-[0px_6px_20px_rgba(19,27,46,0.06)]">
                   <div className="flex items-center gap-1">
                     {[0, 1, 2].map((index) => (
                       <span
@@ -921,13 +950,22 @@ export function ChatWidget() {
             <div ref={messagesEndRef} />
           </div>
 
-          <div className="border-t border-outline-variant bg-white p-3.5">
+          <div className="border-t border-outline-variant bg-surface-container-lowest p-3.5">
             <div className="flex items-end gap-2.5">
               <textarea
                 value={inputValue}
                 onChange={(event) => setInputValue(event.target.value)}
                 onKeyDown={(event) => {
-                  if (event.key === 'Enter' && !event.shiftKey) {
+                  const shouldSendWithEnter =
+                    preferences.enterBehavior === 'send' &&
+                    event.key === 'Enter' &&
+                    !event.shiftKey
+                  const shouldSendWithShortcut =
+                    preferences.enterBehavior === 'newline' &&
+                    event.key === 'Enter' &&
+                    (event.ctrlKey || event.metaKey)
+
+                  if (shouldSendWithEnter || shouldSendWithShortcut) {
                     event.preventDefault()
                     void handleSendMessage()
                   }
