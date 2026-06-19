@@ -54,10 +54,10 @@ export function PropertyDataSection({
                 key={type}
                 type="button"
                 onClick={() => onPropertyTypeChange(type)}
-                className={`flex min-h-12 items-center gap-3 rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                className={`flex min-h-12 items-center gap-3 rounded-lg border px-4 py-2 text-label-md font-semibold transition-all ${
                   propertyType === type
-                    ? 'border-primary bg-primary/10 text-primary shadow-sm'
-                    : 'border-outline-variant bg-surface-container-lowest text-on-surface-variant hover:border-primary/60 hover:bg-surface-container-low'
+                    ? 'border-primary bg-primary/10 text-primary shadow-[0_0_0_1px_rgba(0,74,198,0.18)]'
+                    : 'border-outline bg-surface-container-lowest text-on-surface-variant hover:border-primary/60 hover:bg-surface-container-low'
                 }`}
               >
                 <span

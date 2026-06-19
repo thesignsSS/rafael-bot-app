@@ -36,6 +36,8 @@ const statusToneClassName: Record<ProposalStatus, string> = {
   aprovado: 'border-emerald-200 bg-emerald-50 text-emerald-800',
 }
 
+const KANBAN_INITIAL_VISIBLE_COUNT = 10
+
 export function ProposalsKanbanBoard({
   items,
   isEmpty,
@@ -57,6 +59,7 @@ export function ProposalsKanbanBoard({
   const suppressNextClickRef = useRef(false)
   const hoverOpenTimeoutRef = useRef<number | null>(null)
   const hoverCloseTimeoutRef = useRef<number | null>(null)
+  const [showAllColumns, setShowAllColumns] = useState(false)
 
   useEffect(() => {
     return () => {
@@ -123,10 +126,16 @@ export function ProposalsKanbanBoard({
       statusOptions.map((statusOption) => ({
         status: statusOption.value,
         label: statusOption.label,
-        items: items.filter(
-          (proposal) =>
-            normalizeProposalStatus(proposal.status) === statusOption.value,
-        ),
+        items: items
+          .filter(
+            (proposal) =>
+              normalizeProposalStatus(proposal.status) === statusOption.value,
+          )
+          .sort(
+            (left, right) =>
+              new Date(right.createdAt).getTime() -
+              new Date(left.createdAt).getTime(),
+          ),
       })),
     [items, statusOptions],
   )
@@ -156,9 +165,32 @@ export function ProposalsKanbanBoard({
   }
 
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 rounded-xl border border-outline-variant bg-surface-container-lowest p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-label-md font-semibold text-on-surface">
+            Visualização do kanban
+          </p>
+          <p className="text-body-sm text-on-surface-variant">
+            Exibindo {showAllColumns ? 'todas as propostas' : `${KANBAN_INITIAL_VISIBLE_COUNT} propostas por coluna`} em ordem de data, das mais recentes para as mais antigas.
+          </p>
+        </div>
+
+        <button
+          type="button"
+          onClick={() => setShowAllColumns((currentValue) => !currentValue)}
+          className="rounded-xl border border-outline-variant bg-surface-container-low px-4 py-2 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container"
+        >
+          {showAllColumns ? 'Mostrar só 15' : 'Listar todas'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
       {columns.map((column) => {
         const isDropTarget = canMoveCards && dragOverStatus === column.status
+        const visibleItems = showAllColumns
+          ? column.items
+          : column.items.slice(0, KANBAN_INITIAL_VISIBLE_COUNT)
 
         return (
           <section
@@ -220,7 +252,7 @@ export function ProposalsKanbanBoard({
                   Sem propostas nesta coluna.
                 </div>
               ) : (
-                column.items.map((proposal) => {
+                visibleItems.map((proposal) => {
                   const isMoving = movingProposalId === proposal.id
                   const isPendingOwnedHighlight =
                     highlightOwnedPendingCards &&
@@ -420,10 +452,17 @@ export function ProposalsKanbanBoard({
                   )
                 })
               )}
+
+              {!showAllColumns && column.items.length > KANBAN_INITIAL_VISIBLE_COUNT ? (
+                <div className="rounded-lg border border-dashed border-outline-variant bg-surface-container-lowest px-4 py-3 text-center text-body-sm text-on-surface-variant">
+                  +{column.items.length - KANBAN_INITIAL_VISIBLE_COUNT} proposta(s) ocultas nesta coluna.
+                </div>
+              ) : null}
             </div>
           </section>
         )
       })}
+      </div>
     </div>
   )
 }
