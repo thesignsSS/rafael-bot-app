@@ -20,30 +20,35 @@ export function DashboardLayout() {
   } = useDashboardLayout()
 
   return (
-    <div className="min-h-screen bg-background text-on-background">
-      <DashboardSidebar
-        isMobileOpen={isSidebarOpen}
-        onMobileClose={closeSidebar}
-        isDesktopCollapsed={isDesktopSidebarCollapsed}
-        onToggleDesktopCollapse={toggleDesktopSidebarCollapse}
-      />
-
-      <div className={isDesktopSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-60'}>
-        <DashboardHeader
-          title={title}
-          currentUserProfile={currentUserProfile}
-          user={user}
-          isAdmin={isAdmin}
-          onOpenProfile={handleOpenProfile}
-          onSignOut={handleSignOut}
-          onOpenSidebar={openSidebar}
+    <div className="brazuca-page-shell min-h-screen bg-background text-on-background">
+      <div className="brazuca-page-decor" aria-hidden="true" />
+      <div className="relative z-[1]">
+        <DashboardSidebar
+          isMobileOpen={isSidebarOpen}
+          onMobileClose={closeSidebar}
+          isDesktopCollapsed={isDesktopSidebarCollapsed}
+          onToggleDesktopCollapse={toggleDesktopSidebarCollapse}
         />
 
-        <main className="min-h-[calc(100vh-4rem)] p-4 sm:p-8">
-          <Outlet />
-        </main>
+        <div
+          className={`relative ${isDesktopSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-60'}`}
+        >
+          <DashboardHeader
+            title={title}
+            currentUserProfile={currentUserProfile}
+            user={user}
+            isAdmin={isAdmin}
+            onOpenProfile={handleOpenProfile}
+            onSignOut={handleSignOut}
+            onOpenSidebar={openSidebar}
+          />
 
-        <DashboardFooter />
+          <main className="dashboard-main-shell min-h-[calc(100vh-4rem)] p-4 sm:p-8">
+            <Outlet />
+          </main>
+
+          <DashboardFooter />
+        </div>
       </div>
     </div>
   )

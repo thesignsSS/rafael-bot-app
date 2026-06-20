@@ -7,6 +7,9 @@ import { useAuth } from './contexts/auth-context'
 import { PreferencesProvider } from './contexts/preferences-context'
 import { SessionLoadingScreen } from './components/ui/SessionLoadingScreen'
 import { AppRoutes } from './routes/AppRoutes'
+import { BrazilThemeCelebration } from './components/theme/BrazilThemeCelebration'
+import { BrazucaThemeNotice } from './components/theme/BrazucaThemeNotice'
+import { PreferencesProfileSync } from './components/theme/PreferencesProfileSync'
 
 function AppContent() {
   const {
@@ -61,6 +64,9 @@ function App() {
     <PreferencesProvider>
       <AuthProvider>
         <AppContent />
+        <PreferencesProfileSync />
+        <BrazilThemeCelebration />
+        <BrazucaThemeNotice />
         <WhatsAppBotNotice />
         <ChatWidget />
         <AssistantWidget />

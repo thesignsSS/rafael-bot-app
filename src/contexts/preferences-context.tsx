@@ -8,6 +8,8 @@ export type AppTheme =
   | 'rose'
   | 'emerald'
   | 'sunset'
+  | 'brazuca'
+  | 'brazuca-dark'
 export type AppFontSize = 'medium' | 'large'
 export type AppDensity = 'default' | 'compact'
 export type ProposalsLayout = 'kanban' | 'table'
@@ -51,6 +53,34 @@ type PreferencesContextValue = {
 }
 
 export const APP_PREFERENCES_STORAGE_KEY = 'effectus-preferences'
+const DEFAULT_FAVICON_PATH = '/favicon.svg'
+const BRAZUCA_FAVICON_PATH = '/favicon-brazuca.svg'
+
+export function isBrazilTheme(theme: AppTheme) {
+  return theme === 'brazuca' || theme === 'brazuca-dark'
+}
+
+export function resolveThemeColorScheme(theme: AppTheme) {
+  return theme === 'light' || theme === 'brazuca' ? 'light' : 'dark'
+}
+
+function applyThemeFavicon(theme: AppTheme) {
+  const faviconPath = isBrazilTheme(theme)
+    ? BRAZUCA_FAVICON_PATH
+    : DEFAULT_FAVICON_PATH
+  const linkElement = document.querySelector<HTMLLinkElement>("link[rel~='icon']")
+
+  if (linkElement) {
+    linkElement.href = faviconPath
+    return
+  }
+
+  const nextLinkElement = document.createElement('link')
+  nextLinkElement.rel = 'icon'
+  nextLinkElement.type = 'image/svg+xml'
+  nextLinkElement.href = faviconPath
+  document.head.appendChild(nextLinkElement)
+}
 
 const DEFAULT_PREFERENCES: AppPreferences = {
   theme: 'light',
@@ -112,8 +142,10 @@ function applyPreferencesToDocument(preferences: AppPreferences) {
   document.documentElement.dataset.theme = preferences.theme
   document.documentElement.dataset.fontSize = preferences.fontSize
   document.documentElement.dataset.density = preferences.density
-  document.documentElement.style.colorScheme =
-    preferences.theme === 'light' ? 'light' : 'dark'
+  document.documentElement.style.colorScheme = resolveThemeColorScheme(
+    preferences.theme,
+  )
+  applyThemeFavicon(preferences.theme)
 }
 
 const PreferencesContext = createContext<PreferencesContextValue | null>(null)

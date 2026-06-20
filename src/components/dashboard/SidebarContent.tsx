@@ -1,7 +1,12 @@
 import type { ReactNode } from 'react'
 import { useAuth } from '../../contexts/auth-context'
+import {
+  isBrazilTheme,
+  usePreferences,
+} from '../../contexts/preferences-context'
 import { usePendingInvitationsIndicator } from '../../hooks/usePendingInvitationsIndicator'
 import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
+import { ThemeBrandMark } from '../brand/ThemeBrandMark'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
@@ -20,6 +25,7 @@ export function SidebarContent({
   onToggleCollapse,
 }: SidebarContentProps) {
   const { currentUserProfile, isAdmin } = useAuth()
+  const { preferences } = usePreferences()
   const { hasPending } = usePendingProposalIndicator({
     brokerUserId: currentUserProfile?.id,
     enabled: !isAdmin,
@@ -31,24 +37,25 @@ export function SidebarContent({
     brokerUserId: currentUserProfile?.id,
     enabled: !isAdmin,
   })
+  const isBrazucaTheme = isBrazilTheme(preferences.theme)
 
   return (
     <>
       <div
-        className={`relative mb-8 flex items-center gap-2 ${
+        className={`dashboard-brand-shell relative mb-8 flex items-center gap-2 ${
           isCollapsed ? 'justify-center px-0 pt-1' : 'justify-between px-2'
         }`}
       >
         <div
           className={`flex min-w-0 items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}
         >
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-on-primary">
-            <Icon name="robot_2" size={24} />
-          </div>
+          <ThemeBrandMark size="sm" />
           {!isCollapsed ? (
             <div className="min-w-0">
               <h1 className="text-headline-md font-bold text-on-surface">Effectus</h1>
-              <p className="text-body-sm text-on-surface-variant">Documentos</p>
+              <p className="text-body-sm text-on-surface-variant">
+                {isBrazucaTheme ? 'Modo Brazuca' : 'Documentos'}
+              </p>
             </div>
           ) : null}
         </div>
@@ -129,7 +136,9 @@ export function SidebarContent({
       </nav>
 
       <div className="mt-auto border-t border-outline-variant pt-4">
-        <div className={`rounded-xl bg-surface-container-low ${isCollapsed ? 'p-3' : 'p-4'}`}>
+        <div
+          className={`dashboard-support-card rounded-xl bg-surface-container-low ${isCollapsed ? 'p-3' : 'p-4'}`}
+        >
           {isCollapsed ? (
             <a
               href="https://wa.me/5585988686633"

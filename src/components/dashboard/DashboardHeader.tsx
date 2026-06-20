@@ -1,6 +1,12 @@
 import type { User } from '@supabase/supabase-js'
+import {
+  isBrazilTheme,
+  usePreferences,
+} from '../../contexts/preferences-context'
 import type { CurrentUserProfile } from '../../lib/current-user-profile'
 import { getProfileAvatarUrl } from '../../lib/profile-avatar'
+import { CopaThemeBadge } from '../brand/CopaThemeBadge'
+import { ThemeBrandMark } from '../brand/ThemeBrandMark'
 import { Icon } from '../ui/Icon'
 import { NotificationsMenu } from './NotificationsMenu'
 import { useUserMenu } from './hooks/useUserMenu'
@@ -25,6 +31,8 @@ export function DashboardHeader({
   onOpenSidebar,
 }: DashboardHeaderProps) {
   const { isOpen, menuRef, toggleMenu, closeMenu } = useUserMenu()
+  const { preferences } = usePreferences()
+  const isBrazucaTheme = isBrazilTheme(preferences.theme)
 
   const displayName =
     currentUserProfile?.fullName ?? user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
@@ -44,7 +52,7 @@ export function DashboardHeader({
   }
 
   return (
-    <header className="sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
+    <header className="dashboard-header-shell sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -58,6 +66,11 @@ export function DashboardHeader({
 
           <div className="hidden sm:block">
             <h2 className="text-headline-lg font-semibold text-on-surface">{title}</h2>
+            {isBrazucaTheme ? (
+              <div className="mt-1">
+                <CopaThemeBadge />
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -78,6 +91,10 @@ export function DashboardHeader({
                   <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold text-on-primary-container">
                     Administrador
                   </span>
+                ) : isBrazucaTheme ? (
+                  <span className="rounded-full bg-primary-container px-2 py-0.5 text-label-sm font-semibold text-on-primary-container">
+                    Brazuca
+                  </span>
                 ) : null}
               </div>
               <div className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full bg-surface-container-highest">
@@ -88,7 +105,7 @@ export function DashboardHeader({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Icon name="person" size={20} className="text-primary" />
+                  <ThemeBrandMark size="sm" className="h-full w-full rounded-full border-0 shadow-none" />
                 )}
               </div>
             </button>

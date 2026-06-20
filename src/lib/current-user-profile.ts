@@ -10,6 +10,7 @@ export type CurrentUserProfile = {
   isAdmin: boolean
   isActive: boolean
   avatarPath: string | null
+  canViewPreferencesInsights: boolean
   updatedAt: string | null
 }
 
@@ -21,6 +22,7 @@ type CurrentUserProfileApiResponse =
       isAdmin: boolean
       isActive: boolean
       avatarPath: string | null
+      canViewPreferencesInsights?: boolean
       updatedAt: string | null
     }
   | {
@@ -85,6 +87,8 @@ export async function fetchCurrentUserProfile(
     isAdmin: data.isAdmin,
     isActive: data.isActive !== false,
     avatarPath: typeof data.avatarPath === 'string' ? data.avatarPath : null,
+    canViewPreferencesInsights:
+      data.canViewPreferencesInsights === true || data.isAdmin === true,
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : null,
   }
 }

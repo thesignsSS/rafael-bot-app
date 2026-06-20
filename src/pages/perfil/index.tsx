@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
 import 'react-easy-crop/react-easy-crop.css'
 import { toast } from 'sonner'
+import { PreferencesInsightsTab } from './components/PreferencesInsightsTab'
 import { useAuth } from '../../contexts/auth-context'
 import { usePreferences } from '../../contexts/preferences-context'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
@@ -13,7 +14,7 @@ import {
 } from '../../lib/profile-avatar'
 import { supabase } from '../../lib/supabase'
 
-type ProfileTab = 'conta' | 'preferencias'
+type ProfileTab = 'conta' | 'preferencias' | 'insights'
 
 export default function PerfilPage() {
   const { user, currentUserProfile, role, refreshProfile } = useAuth()
@@ -59,6 +60,8 @@ export default function PerfilPage() {
     [currentUserProfile?.avatarPath, currentUserProfile?.updatedAt],
   )
   const hasNameChanges = fullName.trim() !== (currentUserProfile?.fullName ?? '').trim()
+  const canViewPreferencesInsights =
+    currentUserProfile?.canViewPreferencesInsights === true
 
   function resetAvatarEditor() {
     setAvatarCrop({ x: 0, y: 0 })
@@ -327,6 +330,9 @@ export default function PerfilPage() {
         {[
           { id: 'conta', label: 'Conta' },
           { id: 'preferencias', label: 'Preferências' },
+          ...(canViewPreferencesInsights
+            ? [{ id: 'insights', label: 'Preferências dos usuários' }]
+            : []),
         ].map((tab) => (
           <button
             key={tab.id}
@@ -519,7 +525,7 @@ export default function PerfilPage() {
             </div>
           </section>
         </div>
-      ) : (
+      ) : activeTab === 'preferencias' ? (
         <div className="space-y-6">
           <section className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
             <div className="flex flex-col gap-2">
@@ -587,6 +593,22 @@ export default function PerfilPage() {
                           inactiveClass:
                             'border-[#7f543b] bg-[#321d17] text-[#f1c6a5] hover:bg-[#4a2a20] hover:text-[#fff2eb]',
                         },
+                        {
+                          value: 'brazuca',
+                          label: 'Brazuca',
+                          activeClass:
+                            'border-[#f7d038] bg-[#f7d038] text-[#0a5b32]',
+                          inactiveClass:
+                            'border-[#1d8f53] bg-[#0e6b3f] text-[#f8f3c4] hover:bg-[#147c49] hover:text-[#fffceb]',
+                        },
+                        {
+                          value: 'brazuca-dark',
+                          label: 'Brazuca Escuro',
+                          activeClass:
+                            'border-[#f7d038] bg-[#11241a] text-[#fff7c5]',
+                          inactiveClass:
+                            'border-[#24513d] bg-[#0a1711] text-[#b8d9c2] hover:bg-[#102118] hover:text-[#fff7c5]',
+                        },
                       ].map(({ value, label, activeClass, inactiveClass }) => (
                         <button
                           key={value}
@@ -609,9 +631,22 @@ export default function PerfilPage() {
                             </span>
                           ) : null}
                           {label}
+                          {value === 'brazuca' || value === 'brazuca-dark' ? (
+                            <span className="rounded-full bg-white/18 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.14em] text-current">
+                              Novo
+                            </span>
+                          ) : null}
                         </button>
                       ))}
                     </div>
+                    <p className="mt-3 text-body-sm text-on-surface-variant">
+                      Os temas <span className="font-semibold text-on-surface">Brazuca</span>{' '}
+                      e{' '}
+                      <span className="font-semibold text-on-surface">
+                        Brazuca Escuro
+                      </span>{' '}
+                      trazem a paleta do Brasil e fundos inspirados em futebol.
+                    </p>
                   </div>
 
                   <div>
@@ -829,7 +864,12 @@ export default function PerfilPage() {
             </div>
           </section>
         </div>
-      )}
+      ) : canViewPreferencesInsights && currentUserProfile ? (
+        <PreferencesInsightsTab
+          userId={currentUserProfile.id}
+          enabled={activeTab === 'insights'}
+        />
+      ) : null}
     </div>
     {avatarDraftUrl ? (
       <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/65 p-4 backdrop-blur-[2px]">

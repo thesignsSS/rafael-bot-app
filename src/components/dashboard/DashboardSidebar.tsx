@@ -17,7 +17,7 @@ export function DashboardSidebar({
   return (
     <>
       <aside
-        className={`fixed inset-y-0 left-0 z-20 hidden border-r border-outline-variant bg-surface px-4 py-4 transition-[width] duration-300 lg:flex lg:flex-col ${
+        className={`dashboard-sidebar-shell fixed inset-y-0 left-0 z-20 hidden border-r border-outline-variant bg-surface px-4 py-4 transition-[width] duration-300 lg:flex lg:flex-col ${
           isDesktopCollapsed ? 'w-20' : 'w-60'
         }`}
       >
@@ -44,7 +44,7 @@ export function DashboardSidebar({
           role="dialog"
           aria-modal={isMobileOpen}
           aria-label="Menu de navegação"
-          className={`absolute inset-y-0 left-0 flex w-60 flex-col border-r border-outline-variant bg-surface px-4 py-4 shadow-xl transition-transform duration-300 ease-out ${
+          className={`dashboard-sidebar-shell absolute inset-y-0 left-0 flex w-60 flex-col border-r border-outline-variant bg-surface px-4 py-4 shadow-xl transition-transform duration-300 ease-out ${
             isMobileOpen ? 'translate-x-0' : '-translate-x-full'
           }`}
         >

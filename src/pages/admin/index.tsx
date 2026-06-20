@@ -12,12 +12,14 @@ type ManagedProfile = {
   full_name: string | null
   role: UserRole
   is_active: boolean
+  can_view_preferences_insights: boolean
   created_at: string
 }
 
 type ProfileDraft = {
   role: UserRole
   isActive: boolean
+  canViewPreferencesInsights: boolean
 }
 
 const PAGE_SIZE = 10
@@ -59,7 +61,7 @@ export default function AdminPage() {
 
         const { data, error } = await supabase
           .from('profiles')
-          .select('id, full_name, role, is_active, created_at')
+          .select('id, full_name, role, is_active, can_view_preferences_insights, created_at')
           .order('created_at', { ascending: false })
 
         if (error) {
@@ -75,6 +77,8 @@ export default function AdminPage() {
           full_name: item.full_name,
           role: item.role === 'admin' ? 'admin' : 'broker',
           is_active: item.is_active !== false,
+          can_view_preferences_insights:
+            item.role === 'admin' || item.can_view_preferences_insights === true,
           created_at: item.created_at,
         })) satisfies ManagedProfile[]
 
@@ -96,6 +100,7 @@ export default function AdminPage() {
               {
                 role: profile.role,
                 isActive: profile.is_active,
+                canViewPreferencesInsights: profile.can_view_preferences_insights,
               },
             ]),
           ),
@@ -208,6 +213,8 @@ export default function AdminPage() {
       [profileId]: {
         role: currentDrafts[profileId]?.role ?? 'broker',
         isActive: currentDrafts[profileId]?.isActive ?? true,
+        canViewPreferencesInsights:
+          currentDrafts[profileId]?.canViewPreferencesInsights ?? false,
         ...nextDraft,
       },
     }))
@@ -228,6 +235,7 @@ export default function AdminPage() {
         .update({
           role: draft.role,
           is_active: draft.isActive,
+          can_view_preferences_insights: draft.canViewPreferencesInsights,
         })
         .eq('id', profile.id)
 
@@ -242,6 +250,7 @@ export default function AdminPage() {
                 ...currentProfile,
                 role: draft.role,
                 is_active: draft.isActive,
+                can_view_preferences_insights: draft.canViewPreferencesInsights,
               }
             : currentProfile,
         ),
@@ -328,9 +337,13 @@ export default function AdminPage() {
               const draft = drafts[profile.id] ?? {
                 role: profile.role,
                 isActive: profile.is_active,
+                canViewPreferencesInsights: profile.can_view_preferences_insights,
               }
               const hasChanges =
-                draft.role !== profile.role || draft.isActive !== profile.is_active
+                draft.role !== profile.role ||
+                draft.isActive !== profile.is_active ||
+                draft.canViewPreferencesInsights !==
+                  profile.can_view_preferences_insights
               const isCurrentUser = currentUserProfile?.id === profile.id
               const isExpanded = expandedProfileId === profile.id
 
@@ -377,6 +390,11 @@ export default function AdminPage() {
                         >
                           {draft.isActive ? 'Ativo' : 'Inativo'}
                         </span>
+                        {draft.canViewPreferencesInsights ? (
+                          <span className="rounded-full bg-primary-container px-2.5 py-1 text-label-sm font-semibold text-on-primary-container">
+                            Insights UX
+                          </span>
+                        ) : null}
                         {hasChanges ? (
                           <span className="rounded-full bg-amber-500/14 px-2.5 py-1 text-label-sm font-semibold text-amber-300">
                             Alterações pendentes
@@ -403,7 +421,7 @@ export default function AdminPage() {
 
                   {isExpanded ? (
                     <div className="mt-5 border-t border-outline-variant pt-5">
-                      <div className="grid gap-4 sm:grid-cols-2 lg:max-w-[420px]">
+                      <div className="grid gap-4 sm:grid-cols-2 lg:max-w-[640px]">
                         <label className="block">
                           <span className="mb-2 block text-label-md font-semibold text-on-surface">
                             Papel
@@ -438,6 +456,29 @@ export default function AdminPage() {
                           >
                             <option value="active">Ativo</option>
                             <option value="inactive">Inativo</option>
+                          </select>
+                        </label>
+
+                        <label className="block sm:col-span-2">
+                          <span className="mb-2 block text-label-md font-semibold text-on-surface">
+                            Permissão extra
+                          </span>
+                          <select
+                            value={draft.canViewPreferencesInsights ? 'enabled' : 'disabled'}
+                            onChange={(event) =>
+                              updateDraft(profile.id, {
+                                canViewPreferencesInsights:
+                                  event.target.value === 'enabled',
+                              })
+                            }
+                            className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                          >
+                            <option value="disabled">
+                              Sem acesso aos insights de preferências
+                            </option>
+                            <option value="enabled">
+                              Pode visualizar preferências dos usuários
+                            </option>
                           </select>
                         </label>
                       </div>
