@@ -1,5 +1,9 @@
 import type { InputHTMLAttributes } from 'react'
-import type { PropertyType, ProposalBank } from '../../../home/types/proposal'
+import {
+  PROPERTY_TYPE_OPTIONS,
+  type PropertyType,
+  type ProposalBank,
+} from '../../../home/types/proposal'
 import { formatBrazilianPhone } from '../../../../lib/phone'
 import type { ProposalEditDraft } from '../../hooks/useProposalDetailPage'
 
@@ -103,9 +107,11 @@ export function ProposalEditForm({
             }
             className="h-10 rounded-lg border border-outline-variant bg-surface px-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
           >
-            <option value="Novo">Novo</option>
-            <option value="Usado">Usado</option>
-            <option value="Adjudicado Caixa">Adjudicado Caixa</option>
+            {PROPERTY_TYPE_OPTIONS.map((type) => (
+              <option key={type} value={type}>
+                {type}
+              </option>
+            ))}
           </select>
         </label>
 

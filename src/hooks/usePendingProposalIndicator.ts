@@ -5,6 +5,16 @@ type PendingSummaryResponse = {
   hasPending: boolean
 }
 
+const PENDING_SUMMARY_CACHE_TTL_MS = 5000
+const pendingSummaryCache = new Map<
+  string,
+  { data: PendingSummaryResponse; fetchedAt: number }
+>()
+const pendingSummaryInflightRequests = new Map<
+  string,
+  Promise<PendingSummaryResponse | null>
+>()
+
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
 const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
@@ -29,6 +39,55 @@ function getRequestHeaders() {
   }
 }
 
+async function fetchPendingSummary(
+  brokerUserId: string,
+): Promise<PendingSummaryResponse | null> {
+  const cachedEntry = pendingSummaryCache.get(brokerUserId)
+
+  if (
+    cachedEntry &&
+    Date.now() - cachedEntry.fetchedAt < PENDING_SUMMARY_CACHE_TTL_MS
+  ) {
+    return cachedEntry.data
+  }
+
+  const inflightRequest = pendingSummaryInflightRequests.get(brokerUserId)
+
+  if (inflightRequest) {
+    return inflightRequest
+  }
+
+  const request = (async () => {
+    const url = new URL(getPendingSummaryApiUrl())
+    url.searchParams.set('brokerUserId', brokerUserId)
+
+    const response = await fetch(url.toString(), {
+      headers: getRequestHeaders(),
+    })
+
+    const data = (await response.json().catch(() => null)) as PendingSummaryResponse | null
+
+    if (!response.ok || !data) {
+      return null
+    }
+
+    pendingSummaryCache.set(brokerUserId, {
+      data,
+      fetchedAt: Date.now(),
+    })
+
+    return data
+  })()
+
+  pendingSummaryInflightRequests.set(brokerUserId, request)
+
+  try {
+    return await request
+  } finally {
+    pendingSummaryInflightRequests.delete(brokerUserId)
+  }
+}
+
 export function usePendingProposalIndicator(options: {
   brokerUserId?: string | null
   enabled: boolean
@@ -42,17 +101,10 @@ export function usePendingProposalIndicator(options: {
       return
     }
 
-    const url = new URL(getPendingSummaryApiUrl())
-    url.searchParams.set('brokerUserId', brokerUserId)
-
     try {
-      const response = await fetch(url.toString(), {
-        headers: getRequestHeaders(),
-      })
+      const data = await fetchPendingSummary(brokerUserId)
 
-      const data = (await response.json().catch(() => null)) as PendingSummaryResponse | null
-
-      if (!response.ok || !data) {
+      if (!data) {
         return
       }
 

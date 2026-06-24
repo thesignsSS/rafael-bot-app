@@ -6,6 +6,7 @@ import { ProposalDocumentUpload } from './ProposalDocumentUpload'
 type ProposalDocumentsSectionProps = {
   documents: ProposalDocument[]
   isBusy?: boolean
+  canManageDocuments?: boolean
   onRename: (documentId: string) => void
   onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
@@ -17,6 +18,7 @@ type ProposalDocumentsSectionProps = {
 export function ProposalDocumentsSection({
   documents,
   isBusy = false,
+  canManageDocuments = true,
   onRename,
   onDownload,
   onDelete,
@@ -59,6 +61,7 @@ export function ProposalDocumentsSection({
               key={document.id}
               document={document}
               isBusy={isBusy}
+              canManage={canManageDocuments}
               onRename={onRename}
               onDownload={onDownload}
               onDelete={onDelete}
@@ -72,7 +75,11 @@ export function ProposalDocumentsSection({
         </div>
       )}
 
-      <ProposalDocumentUpload isBusy={isBusy} onFilesSelected={onFilesSelected} />
+      <ProposalDocumentUpload
+        isBusy={isBusy}
+        canUpload={canManageDocuments}
+        onFilesSelected={onFilesSelected}
+      />
     </section>
   )
 }

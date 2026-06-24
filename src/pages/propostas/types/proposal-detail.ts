@@ -124,17 +124,17 @@ export type ProposalDetail = {
 
 export type UpdateProposalPayload = {
   brokerUserId: string
-  brokerPhone: string
-  clientName: string
-  clientCpf: string
-  clientEmail: string
-  clientPhone: string
-  propertyType: PropertyType
-  propertyCity: string
-  propertyState: string
-  additionalInfo: string
+  brokerPhone?: string
+  clientName?: string
+  clientCpf?: string
+  clientEmail?: string
+  clientPhone?: string
+  propertyType?: PropertyType
+  propertyCity?: string
+  propertyState?: string
+  additionalInfo?: string
   commentMessage?: string
-  formData: Record<string, unknown>
+  formData?: Record<string, unknown>
 }
 
 export type UpdateProposalStatusPayload = {

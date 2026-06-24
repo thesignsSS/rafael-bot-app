@@ -1,5 +1,8 @@
 import type { ProposalComment } from '../../types/proposal-detail'
-import type { ProposalStatus } from '../../types/proposal-status'
+import {
+  getProposalStatusLabel,
+  type ProposalStatus,
+} from '../../types/proposal-status'
 import { getProfileAvatarUrl } from '../../../../lib/profile-avatar'
 import { Icon } from '../../../../components/ui/Icon'
 
@@ -162,15 +165,7 @@ export function ProposalTimelineSection({
           Status atual
         </p>
         <p className="mt-2 text-body-md font-semibold text-on-surface">
-          {status === 'em_analise'
-            ? 'Em análise'
-            : status === 'pendente'
-              ? 'Pendente'
-              : status === 'condicionado'
-                ? 'Condicionado'
-                : status === 'reprovado'
-                  ? 'Reprovado'
-                  : 'Aprovado'}
+          {getProposalStatusLabel(status)}
         </p>
       </div>
 

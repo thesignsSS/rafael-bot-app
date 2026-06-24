@@ -11,7 +11,7 @@ type ProposalStatusControlProps = {
   statusOptions: ProposalStatusOption[]
   canChangeStatus: boolean
   isSaving: boolean
-  onChangeStatus: (status: ProposalStatus) => void
+  onChangeStatus: (status: ProposalStatus) => Promise<boolean> | boolean
 }
 
 const statusClassName: Record<ProposalStatus, string> = {
@@ -20,6 +20,7 @@ const statusClassName: Record<ProposalStatus, string> = {
   condicionado: 'border-sky-200 bg-sky-50 text-sky-800',
   reprovado: 'border-error-container bg-error-container text-on-error-container',
   aprovado: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  validacao_renda: 'border-violet-200 bg-violet-50 text-violet-800',
 }
 
 export function ProposalStatusControl({

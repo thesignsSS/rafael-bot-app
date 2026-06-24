@@ -1,4 +1,11 @@
-export type PropertyType = 'Novo' | 'Usado' | 'Adjudicado Caixa'
+export const PROPERTY_TYPE_OPTIONS = [
+  'Novo',
+  'Usado',
+  'Novo e Usado',
+  'Adjudicado Caixa',
+] as const
+
+export type PropertyType = (typeof PROPERTY_TYPE_OPTIONS)[number]
 export type ProposalBank = 'Caixa' | 'Bradesco' | 'Itaú' | 'Santander' | 'Inter' | 'Todos'
 
 export type IbgeCity = {

@@ -1,8 +1,13 @@
 import type { User } from '@supabase/supabase-js'
+import { useEffect, useState } from 'react'
 import {
   isBrazilTheme,
   usePreferences,
 } from '../../contexts/preferences-context'
+import {
+  DASHBOARD_HEADER_FEEDBACK_EVENT,
+  type DashboardHeaderFeedbackDetail,
+} from '../../lib/dashboard-header-feedback'
 import type { CurrentUserProfile } from '../../lib/current-user-profile'
 import { getProfileAvatarUrl } from '../../lib/profile-avatar'
 import { CopaThemeBadge } from '../brand/CopaThemeBadge'
@@ -33,6 +38,7 @@ export function DashboardHeader({
   const { isOpen, menuRef, toggleMenu, closeMenu } = useUserMenu()
   const { preferences } = usePreferences()
   const isBrazucaTheme = isBrazilTheme(preferences.theme)
+  const [feedbackMessage, setFeedbackMessage] = useState<string | null>(null)
 
   const displayName =
     currentUserProfile?.fullName ?? user?.user_metadata.full_name ?? user?.email ?? 'Corretor'
@@ -50,6 +56,27 @@ export function DashboardHeader({
     closeMenu()
     onOpenProfile()
   }
+
+  useEffect(() => {
+    const handleFeedback = (event: Event) => {
+      const customEvent = event as CustomEvent<DashboardHeaderFeedbackDetail>
+      const isVisible = customEvent.detail?.visible === true
+      const message = customEvent.detail?.message?.trim()
+
+      if (!isVisible) {
+        setFeedbackMessage(null)
+        return
+      }
+
+      setFeedbackMessage(message || 'Salvo com sucesso.')
+    }
+
+    window.addEventListener(DASHBOARD_HEADER_FEEDBACK_EVENT, handleFeedback)
+
+    return () => {
+      window.removeEventListener(DASHBOARD_HEADER_FEEDBACK_EVENT, handleFeedback)
+    }
+  }, [])
 
   return (
     <header className="dashboard-header-shell sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
@@ -74,7 +101,10 @@ export function DashboardHeader({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
+          {feedbackMessage ? (
+            <span className="text-label-sm text-primary">{feedbackMessage}</span>
+          ) : null}
           <NotificationsMenu currentUserProfile={currentUserProfile} />
 
           <div ref={menuRef} className="relative">

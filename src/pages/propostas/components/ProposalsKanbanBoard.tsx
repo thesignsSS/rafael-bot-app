@@ -34,6 +34,7 @@ const statusToneClassName: Record<ProposalStatus, string> = {
   condicionado: 'border-sky-200 bg-sky-50 text-sky-800',
   reprovado: 'border-error-container bg-error-container text-on-error-container',
   aprovado: 'border-emerald-200 bg-emerald-50 text-emerald-800',
+  validacao_renda: 'border-violet-200 bg-violet-50 text-violet-800',
 }
 
 const KANBAN_INITIAL_VISIBLE_COUNT = 10
@@ -185,7 +186,7 @@ export function ProposalsKanbanBoard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-5">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
       {columns.map((column) => {
         const isDropTarget = canMoveCards && dragOverStatus === column.status
         const visibleItems = showAllColumns

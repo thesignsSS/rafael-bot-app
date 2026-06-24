@@ -16,7 +16,11 @@ import {
   filesToSubmissionDocuments,
   submitProposalToBot,
 } from '../lib/submitProposal'
-import type { PropertyType, ProposalBank } from '../types/proposal'
+import {
+  PROPERTY_TYPE_OPTIONS,
+  type PropertyType,
+  type ProposalBank,
+} from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
 
 const PROPOSAL_DRAFT_STORAGE_KEY = 'proposal-form-draft'
@@ -185,9 +189,8 @@ export function useProposalForm() {
       }
 
       if (
-        draft.propertyType === 'Novo' ||
-        draft.propertyType === 'Usado' ||
-        draft.propertyType === 'Adjudicado Caixa'
+        typeof draft.propertyType === 'string' &&
+        PROPERTY_TYPE_OPTIONS.includes(draft.propertyType as PropertyType)
       ) {
         setPropertyType(draft.propertyType)
       }

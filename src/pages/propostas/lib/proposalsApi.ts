@@ -168,7 +168,10 @@ export async function updateProposalStatus(
   const response = await fetch(`${getProposalsApiUrl()}/${proposalId}`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
-    body: JSON.stringify(payload),
+    body: JSON.stringify({
+      ...payload,
+      situacao: payload.status,
+    }),
   })
 
   if (!response.ok) {

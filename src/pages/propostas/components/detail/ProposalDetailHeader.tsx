@@ -5,6 +5,7 @@ type ProposalDetailHeaderProps = {
   ownerName: string
   isOwnedByCurrentUser: boolean
   isSharedWithCurrentUser: boolean
+  canEditProposal: boolean
   canDeleteProposal: boolean
   canShareProposal: boolean
   onBack: () => void
@@ -22,6 +23,7 @@ export function ProposalDetailHeader({
   ownerName,
   isOwnedByCurrentUser,
   isSharedWithCurrentUser,
+  canEditProposal,
   canDeleteProposal,
   canShareProposal,
   onBack,
@@ -66,13 +68,15 @@ export function ProposalDetailHeader({
       </div>
 
       <div className="flex flex-wrap gap-3">
-        <button
-          type="button"
-          onClick={onEdit}
-          className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low active:scale-95"
-        >
-          Editar proposta
-        </button>
+        {canEditProposal ? (
+          <button
+            type="button"
+            onClick={onEdit}
+            className="rounded-lg border border-outline px-4 py-2 text-label-md font-semibold text-primary transition-all hover:bg-surface-container-low active:scale-95"
+          >
+            Editar proposta
+          </button>
+        ) : null}
         <button
           type="button"
           onClick={onDownloadAll}

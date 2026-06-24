@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '../../../contexts/auth-context'
 import { useNotifications } from '../../../hooks/useNotifications'
 import {
@@ -20,6 +21,7 @@ import { ProposalDocumentsSection } from '../components/detail/ProposalDocuments
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
 import { ProposalGuestsSection } from '../components/detail/ProposalGuestsSection'
+import { ProposalIncomeValidationForm } from '../components/detail/ProposalIncomeValidationForm'
 import { ProposalInfoField } from '../components/detail/ProposalInfoField'
 import { ProposalOperationalGuideCard } from '../components/detail/ProposalOperationalGuideCard'
 import { ProposalPropertyCard } from '../components/detail/ProposalPropertyCard'
@@ -31,11 +33,22 @@ import { normalizeProposalStatus } from '../types/proposal-status'
 import { Icon } from '../../../components/ui/Icon'
 
 type DetailTab =
-  | 'informacoes'
+  | 'dados_proposta'
+  | 'validacao_renda'
   | 'tratativa'
   | 'comentarios'
   | 'timeline'
   | 'convidados'
+
+function readIncomeValidationFinalized(formData: Record<string, unknown> | undefined) {
+  const rawValue = formData?.validacao_renda
+
+  if (typeof rawValue !== 'object' || rawValue === null) {
+    return false
+  }
+
+  return (rawValue as { finalized?: boolean }).finalized === true
+}
 
 export default function ProposalDetailPage() {
   const { currentUserProfile } = useAuth()
@@ -50,6 +63,7 @@ export default function ProposalDetailPage() {
     refetch,
     isEditing,
     isAdmin,
+    isBrokerReadOnly,
     canBrokerHandlePending,
     canViewGuests,
     canManageGuests,
@@ -79,6 +93,7 @@ export default function ProposalDetailPage() {
     commentDraft,
     hasPendingUpdates,
     proposalBank,
+    updateProposalState,
     goBack,
     startEditing,
     cancelEditing,
@@ -114,12 +129,23 @@ export default function ProposalDetailPage() {
     setCommentDraft,
     resendForAnalysis,
   } = useProposalDetailPage()
-  const [activeTab, setActiveTab] = useState<DetailTab>('informacoes')
+  const [activeTab, setActiveTab] = useState<DetailTab>('dados_proposta')
+  const [isIncomeValidationFinalized, setIsIncomeValidationFinalized] =
+    useState(false)
+  const [isIncomeValidationTransitionModalOpen, setIsIncomeValidationTransitionModalOpen] =
+    useState(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
+  const hasIncomeValidationStep = normalizedStatus === 'validacao_renda'
+  const canAdvanceToIncomeValidation = normalizedStatus === 'aprovado'
+  const shouldShowStandardTabs =
+    !hasIncomeValidationStep && normalizedStatus !== 'aprovado'
   const shouldHighlightComments = canBrokerHandlePending
   const canResendForAnalysis =
     canBrokerHandlePending &&
     (hasPendingUpdates || pendingDocumentsDraft.length > 0)
+  const isBrokerFullyLocked =
+    isBrokerReadOnly || (!isAdmin && isIncomeValidationFinalized)
+  const canEditProposal = !isBrokerFullyLocked
   const latestComment = proposal?.comments[proposal.comments.length - 1] ?? null
   const shouldShowPendingIndicator = normalizedStatus === 'pendente'
   const shouldShowCommentsIndicator =
@@ -179,10 +205,23 @@ export default function ProposalDetailPage() {
   const shouldShowGuestsIndicator = unreadGuestsCount > 0
 
   useEffect(() => {
+    setIsIncomeValidationFinalized(readIncomeValidationFinalized(proposal?.formData))
+  }, [proposal?.formData])
+
+  useEffect(() => {
     if (canBrokerHandlePending && normalizedStatus === 'pendente') {
       setActiveTab('tratativa')
     }
   }, [canBrokerHandlePending, normalizedStatus])
+
+  useEffect(() => {
+    if (hasIncomeValidationStep && activeTab !== 'dados_proposta' && activeTab !== 'validacao_renda') {
+      setActiveTab('dados_proposta')
+    }
+    if (!hasIncomeValidationStep && activeTab === 'validacao_renda') {
+      setActiveTab('dados_proposta')
+    }
+  }, [activeTab, hasIncomeValidationStep])
 
   useEffect(() => {
     if (activeTab !== 'convidados' || unreadGuestNotifications.length === 0) {
@@ -304,8 +343,9 @@ export default function ProposalDetailPage() {
         ownerName={proposal.ownerName}
         isOwnedByCurrentUser={proposal.isOwnedByCurrentUser}
         isSharedWithCurrentUser={proposal.isSharedWithCurrentUser}
-        canDeleteProposal={canDeleteProposal}
-        canShareProposal={canManageGuests}
+        canEditProposal={canEditProposal}
+        canDeleteProposal={canDeleteProposal && !isBrokerFullyLocked}
+        canShareProposal={canManageGuests && !isBrokerFullyLocked}
         onBack={goBack}
         onEdit={startEditing}
         onDownloadAll={downloadAll}
@@ -326,97 +366,131 @@ export default function ProposalDetailPage() {
       </div>
 
       <div className="mb-6 rounded-xl border border-outline-variant bg-surface-container-lowest p-2 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => setActiveTab('informacoes')}
+            onClick={() => setActiveTab('dados_proposta')}
             className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
-              activeTab === 'informacoes'
+              activeTab === 'dados_proposta'
                 ? 'bg-primary text-on-primary shadow-sm'
                 : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
             }`}
           >
-            Informações gerais
+            Dados da Proposta
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('tratativa')}
-            className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
-              activeTab === 'tratativa'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <span>Tratativa</span>
-              {shouldShowPendingIndicator ? (
-                <span
-                  className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
-                  aria-label="Há tratativa pendente"
-                  title="Há tratativa pendente"
-                />
-              ) : null}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('comentarios')}
-            className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
-              activeTab === 'comentarios'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
-            }`}
-          >
-            <span className="flex items-center gap-2">
-              <span>Comentários</span>
-              {shouldShowCommentsIndicator ? (
-                <span
-                  className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
-                  aria-label="Há comentário pendente do administrador"
-                  title="Há comentário pendente do administrador"
-                />
-              ) : null}
-            </span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('timeline')}
-            className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
-              activeTab === 'timeline'
-                ? 'bg-primary text-on-primary shadow-sm'
-                : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
-            }`}
-          >
-            Linha do tempo
-          </button>
-          {canViewGuests ? (
+          {hasIncomeValidationStep ? (
             <button
               type="button"
-              onClick={() => setActiveTab('convidados')}
+              onClick={() => setActiveTab('validacao_renda')}
               className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
-                activeTab === 'convidados'
+                activeTab === 'validacao_renda'
                   ? 'bg-primary text-on-primary shadow-sm'
                   : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
               }`}
             >
+              Validação de Renda
+            </button>
+          ) : shouldShowStandardTabs ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setActiveTab('tratativa')}
+                className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                  activeTab === 'tratativa'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                }`}
+              >
                 <span className="flex items-center gap-2">
-                  <span>Convidados</span>
-                  {canManageGuests && shouldShowGuestsIndicator ? (
+                  <span>Tratativa</span>
+                  {shouldShowPendingIndicator ? (
                     <span
-                      className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[11px] font-semibold text-white shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
-                      aria-label={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
-                      title={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
-                    >
-                      {unreadGuestsCount > 9 ? '9+' : unreadGuestsCount}
-                    </span>
+                      className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
+                      aria-label="Há tratativa pendente"
+                      title="Há tratativa pendente"
+                    />
                   ) : null}
                 </span>
               </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('comentarios')}
+                className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                  activeTab === 'comentarios'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                }`}
+              >
+                <span className="flex items-center gap-2">
+                  <span>Comentários</span>
+                  {shouldShowCommentsIndicator ? (
+                    <span
+                      className="inline-flex h-2.5 w-2.5 rounded-full bg-amber-500 shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
+                      aria-label="Há comentário pendente do administrador"
+                      title="Há comentário pendente do administrador"
+                    />
+                  ) : null}
+                </span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('timeline')}
+                className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                  activeTab === 'timeline'
+                    ? 'bg-primary text-on-primary shadow-sm'
+                    : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                }`}
+              >
+                Linha do tempo
+              </button>
+              {canViewGuests ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveTab('convidados')}
+                  className={`rounded-lg px-4 py-2 text-label-md font-semibold transition-all ${
+                    activeTab === 'convidados'
+                      ? 'bg-primary text-on-primary shadow-sm'
+                      : 'text-on-surface-variant hover:bg-surface-container-low hover:text-on-surface'
+                  }`}
+                >
+                  <span className="flex items-center gap-2">
+                    <span>Convidados</span>
+                    {canManageGuests && shouldShowGuestsIndicator ? (
+                      <span
+                        className="inline-flex min-h-5 min-w-5 items-center justify-center rounded-full bg-amber-500 px-1 text-[11px] font-semibold text-white shadow-[0_0_0_3px_rgba(245,158,11,0.12)] animate-gentle-pulse"
+                        aria-label={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
+                        title={`${unreadGuestsCount} novo${unreadGuestsCount === 1 ? '' : 's'} convidado${unreadGuestsCount === 1 ? '' : 's'} não visualizado${unreadGuestsCount === 1 ? '' : 's'}`}
+                      >
+                        {unreadGuestsCount > 9 ? '9+' : unreadGuestsCount}
+                      </span>
+                    ) : null}
+                  </span>
+                </button>
+              ) : null}
+            </>
+          ) : null}
+          </div>
+          {canAdvanceToIncomeValidation ? (
+            <button
+              type="button"
+              onClick={() => setIsIncomeValidationTransitionModalOpen(true)}
+              disabled={isSavingStatus}
+              className="rounded-lg bg-primary px-4 py-2 text-label-md font-semibold text-on-primary shadow-[0_0_0_1px_rgba(147,197,253,0.28),0_0_24px_rgba(96,165,250,0.22)] ring-1 ring-primary/30 transition-all hover:bg-primary-container hover:shadow-[0_0_0_1px_rgba(147,197,253,0.4),0_0_32px_rgba(96,165,250,0.3)] disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {isSavingStatus ? 'Alterando...' : 'Seguir para validação de renda'}
+            </button>
           ) : null}
         </div>
       </div>
 
-      {activeTab === 'informacoes' ? (
+      {isBrokerFullyLocked && activeTab === 'dados_proposta' ? (
+        <div className="mb-6 rounded-xl border border-amber-400/30 bg-amber-500/10 px-4 py-3 text-body-md text-on-surface">
+          Essa proposta está aprovada, não é possível modificá-la.
+        </div>
+      ) : null}
+
+      {activeTab === 'dados_proposta' ? (
         <>
           {isEditing && editDraft ? (
             <ProposalEditForm
@@ -480,6 +554,7 @@ export default function ProposalDetailPage() {
               <ProposalDocumentsSection
                 documents={documents}
                 isBusy={isUpdatingDocuments}
+                canManageDocuments={!isBrokerFullyLocked}
                 onRename={renameDocument}
                 onDownload={downloadDocument}
                 onDelete={deleteDocument}
@@ -490,6 +565,19 @@ export default function ProposalDetailPage() {
             </div>
           </div>
         </>
+      ) : activeTab === 'validacao_renda' ? (
+        <ProposalIncomeValidationForm
+          proposal={proposal}
+          isAdmin={isAdmin}
+          isFinalized={isIncomeValidationFinalized}
+          onFinalize={() => setIsIncomeValidationFinalized(true)}
+          onPersistedFormDataChange={(formData) =>
+            updateProposalState((currentProposal) => ({
+              ...currentProposal,
+              formData,
+            }))
+          }
+        />
       ) : activeTab === 'tratativa' ? (
         operationalGuide ? (
           <ProposalOperationalGuideCard
@@ -559,6 +647,60 @@ export default function ProposalDetailPage() {
           />
         )
       )}
+
+      {isIncomeValidationTransitionModalOpen
+        ? createPortal(
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#131b2e]/55 p-4 backdrop-blur-[2px]">
+              <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_24px_60px_rgba(0,0,0,0.25)]">
+                <div className="flex items-start gap-3">
+                  <div className="mt-0.5 rounded-full bg-orange-500/16 p-2 text-orange-400">
+                    <Icon name="warning" size={22} />
+                  </div>
+                  <div className="flex-1">
+                    <h4 className="text-title-lg font-semibold text-on-surface">
+                      Seguir para validação de renda
+                    </h4>
+                    <p className="mt-2 text-body-md text-on-surface-variant">
+                      Siga para validação de renda apenas se o cliente realmente for
+                      continuar com o financiamento.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-6 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setIsIncomeValidationTransitionModalOpen(false)}
+                    disabled={isSavingStatus}
+                    className="rounded-xl border border-outline px-4 py-2.5 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      const hasChangedStatus = await changeProposalStatus(
+                        'validacao_renda',
+                      )
+
+                      if (!hasChangedStatus) {
+                        return
+                      }
+
+                      setIsIncomeValidationTransitionModalOpen(false)
+                      setActiveTab('validacao_renda')
+                    }}
+                    disabled={isSavingStatus}
+                    className="rounded-xl bg-primary px-4 py-2.5 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {isSavingStatus ? 'Alterando...' : 'Confirmar'}
+                  </button>
+                </div>
+              </div>
+            </div>,
+            document.body,
+          )
+        : null}
     </div>
   )
 }

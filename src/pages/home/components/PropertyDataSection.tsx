@@ -1,7 +1,11 @@
 import type { RefObject } from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import { brazilianStates } from '../lib/proposalUtils'
-import type { IbgeCity, PropertyType } from '../types/proposal'
+import {
+  PROPERTY_TYPE_OPTIONS,
+  type IbgeCity,
+  type PropertyType,
+} from '../types/proposal'
 import { Field } from './Field'
 import { FormSection } from './FormSection'
 
@@ -48,8 +52,8 @@ export function PropertyDataSection({
     <FormSection icon="home" title="Dados do Imóvel">
       <div className="grid gap-5">
         <Field label="Tipo do Imóvel" required>
-          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {(['Novo', 'Usado', 'Adjudicado Caixa'] as PropertyType[]).map((type) => (
+          <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {PROPERTY_TYPE_OPTIONS.map((type) => (
               <button
                 key={type}
                 type="button"

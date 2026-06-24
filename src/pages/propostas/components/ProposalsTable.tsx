@@ -28,6 +28,7 @@ export function ProposalsTable({
     condicionado: 'border-sky-400/30 bg-sky-500/10 text-sky-300',
     reprovado: 'border-error/30 bg-error/10 text-error',
     aprovado: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-400',
+    validacao_renda: 'border-violet-400/30 bg-violet-500/10 text-violet-300',
   }
 
   return (

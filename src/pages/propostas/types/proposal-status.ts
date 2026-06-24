@@ -4,6 +4,7 @@ export const PROPOSAL_STATUSES = [
   'condicionado',
   'reprovado',
   'aprovado',
+  'validacao_renda',
 ] as const
 
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
@@ -21,6 +22,7 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   condicionado: 'Condicionado',
   reprovado: 'Reprovado',
   aprovado: 'Aprovado',
+  validacao_renda: 'Validação de Renda',
 }
 
 export const DEFAULT_PROPOSAL_STATUS_OPTIONS: ProposalStatusOption[] =
@@ -65,11 +67,23 @@ export function normalizeProposalStatus(status: unknown): ProposalStatus {
     return 'aprovado'
   }
 
+  if (
+    status === 'validacao_renda' ||
+    status === 'validacao de renda' ||
+    status === 'validação de renda'
+  ) {
+    return 'validacao_renda'
+  }
+
   return DEFAULT_PROPOSAL_STATUS
 }
 
 export function getProposalStatusLabel(status: ProposalStatus) {
   return PROPOSAL_STATUS_LABELS[status]
+}
+
+export function isBrokerReadOnlyProposalStatus(status: ProposalStatus) {
+  return status === 'aprovado' || status === 'validacao_renda'
 }
 
 export function normalizeProposalStatusOptions(

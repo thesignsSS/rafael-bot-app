@@ -10,6 +10,7 @@ import type { ProposalDocument } from '../../types/proposal-detail'
 type ProposalDocumentItemProps = {
   document: ProposalDocument
   isBusy?: boolean
+  canManage?: boolean
   onRename: (documentId: string) => void
   onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
@@ -19,6 +20,7 @@ type ProposalDocumentItemProps = {
 export function ProposalDocumentItem({
   document,
   isBusy = false,
+  canManage = true,
   onRename,
   onDownload,
   onDelete,
@@ -68,15 +70,17 @@ export function ProposalDocumentItem({
       </div>
 
       <div className="flex shrink-0 gap-1 sm:gap-2">
-        <button
-          type="button"
-          title="Renomear"
-          onClick={() => onRename(document.id)}
-          disabled={isBusy}
-          className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary-container/20 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Icon name="edit" size={20} />
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            title="Renomear"
+            onClick={() => onRename(document.id)}
+            disabled={isBusy}
+            className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-primary-container/20 hover:text-primary disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Icon name="edit" size={20} />
+          </button>
+        ) : null}
         <button
           type="button"
           title="Baixar"
@@ -86,15 +90,17 @@ export function ProposalDocumentItem({
         >
           <Icon name="download" size={20} />
         </button>
-        <button
-          type="button"
-          title="Excluir"
-          onClick={() => onDelete(document.id)}
-          disabled={isBusy}
-          className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-error-container/40 hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
-        >
-          <Icon name="delete" size={20} />
-        </button>
+        {canManage ? (
+          <button
+            type="button"
+            title="Excluir"
+            onClick={() => onDelete(document.id)}
+            disabled={isBusy}
+            className="rounded-full p-2 text-on-surface-variant transition-all hover:bg-error-container/40 hover:text-error disabled:cursor-not-allowed disabled:opacity-40"
+          >
+            <Icon name="delete" size={20} />
+          </button>
+        ) : null}
         <button
           type="button"
           title="Visualizar"

@@ -14,6 +14,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de p
 | **Validação** | Zod (`loginSchema`, `signupSchema`, `forgotPasswordSchema`, `resetPasswordSchema`) nos formulários de auth |
 | **Design** | Tokens em `src/index.css` (@theme) conforme [DESIGN.md](../DESIGN.md) |
 | **Estado global** | `AuthProvider` + `useAuth` (sessão Supabase, `currentUserProfile`, `role`, `isAdmin`, `isCorretor`) |
+| **Preferências** | `PreferencesProvider` + `usePreferences` (tema, fonte, densidade, layout de propostas, chat e notificações) |
 | **Permissionamento** | perfil atual carregado de `GET /api/me`; guards em `ProtectedRoute` com `allowedRoles` opcional |
 | **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoints HTTP do bot para perfil atual, criação, listagem, detalhe e situação de propostas; recuperação ainda stub |
 | **Testes** | Não configurados |
@@ -129,7 +130,7 @@ flowchart LR
 
 ### `/propostas` (protegida)
 
-- Tela "Minhas Propostas" com quadro kanban de propostas agrupadas por situação. As colunas vêm de `GET /api/proposals/statuses`; o fallback local usa `Em análise`, `Pendente`, `Condicionado`, `Reprovado` e `Aprovado`.
+- Tela "Minhas Propostas" com quadro kanban de propostas agrupadas por situação. As colunas vêm de `GET /api/proposals/statuses`; o fallback local usa `Em análise`, `Pendente`, `Condicionado`, `Reprovado`, `Aprovado` e `Validação de Renda`.
 - Dados consumidos de `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>`; o frontend busca os lotes necessários para montar todas as colunas do quadro.
 - Busca por cliente, corretor ou código da proposta via parâmetro `search`.
 - Exibe loading, erro, estado vazio e total de itens retornado pelo backend.
@@ -139,12 +140,24 @@ flowchart LR
 - Apenas administradores podem arrastar cards entre colunas. Corretores visualizam o mesmo quadro, mas sem drag and drop.
 - Mudança de coluna atualiza a situação da proposta via `PATCH /api/proposals/:proposalId` com payload mínimo de status.
 
+### `/perfil` (protegida)
+
+- Tela de conta e preferências do usuário.
+- Preferências disponíveis: tema, tamanho da fonte, densidade, layout padrão de propostas, papel de parede do chat, comportamento do Enter e notificações.
+- Temas disponíveis: `Claro`, `Escuro`, `Graphite`, `Rose`, `Emerald`, `Sunset`, `Brazuca` e `Brazuca Escuro`.
+- Os temas `Brazuca` e `Brazuca Escuro` trazem paleta inspirada no Brasil e no universo do futebol.
+- Administradores com permissão podem visualizar a aba `Preferências dos usuários`, com insights agregados de adoção e uso por tema/configuração.
+
 ### `/propostas/:proposalId` (protegida)
 
 - Consome `GET /api/proposals/:proposalId?brokerUserId=<uuid>`.
 - Cabeçalho com código da proposta e corretor.
 - Exibe badge de situação da proposta.
 - Administradores podem alterar a situação da proposta na tela de detalhe; corretores apenas visualizam a situação.
+- Quando a proposta está em `Aprovado` ou `Validação de Renda`, o detalhe prioriza duas abas: `Dados da Proposta` e `Validação de Renda`.
+- A aba `Validação de Renda` traz formulário com produto, cidade do imóvel herdada da proposta, valores financeiros, tipo do imóvel, descrição detalhada da atividade, tipo de renda e campos de documentos por categoria.
+- Os campos de documentos da validação de renda mudam conforme o tipo de renda selecionado (`Renda formal`, `Renda informal` ou `Renda mista`).
+- Após `Aprovado`, corretores ficam em modo somente leitura; apenas administradores podem editar proposta, documentos, compartilhamento e convidados.
 - Cards de dados do cliente, dados do imóvel e informações adicionais.
 - Lista de documentos enviados com nome, tamanho e data de upload.
 - Edição da proposta via PATCH; documentos com visualizar, renomear, excluir, upload adicional e baixar tudo em zip.
@@ -278,7 +291,8 @@ Resposta esperada:
     { "value": "pendente", "label": "Pendente" },
     { "value": "condicionado", "label": "Condicionado" },
     { "value": "reprovado", "label": "Reprovado" },
-    { "value": "aprovado", "label": "Aprovado" }
+    { "value": "aprovado", "label": "Aprovado" },
+    { "value": "validacao_renda", "label": "Validação de Renda" }
   ]
 }
 ```
@@ -300,7 +314,7 @@ type ProposalListItem = {
   propertyType: 'Novo' | 'Usado'
   createdAt: string
   documentsCount: number
-  status?: 'em_analise' | 'pendente' | 'condicionado' | 'reprovado' | 'aprovado'
+  status?: 'em_analise' | 'pendente' | 'condicionado' | 'reprovado' | 'aprovado' | 'validacao_renda'
 }
 ```
 
@@ -317,7 +331,7 @@ Administradores podem alterar a situação pelo kanban ou pelo detalhe da propos
 }
 ```
 
-Valores aceitos pelo frontend: `em_analise`, `pendente`, `condicionado`, `reprovado` e `aprovado`. O backend deve aplicar a regra de permissão para permitir essa mutação apenas para admin.
+Valores aceitos pelo frontend: `em_analise`, `pendente`, `condicionado`, `reprovado`, `aprovado` e `validacao_renda`. O backend deve aplicar a regra de permissão para permitir essa mutação apenas para admin.
 
 Listagem:
 
@@ -345,7 +359,7 @@ Situação:
 PATCH /api/proposals/:proposalId
 ```
 
-Payload: `brokerUserId` e `status` (`em_analise`, `pendente`, `condicionado`, `reprovado` ou `aprovado`).
+Payload: `brokerUserId` e `status` (`em_analise`, `pendente`, `condicionado`, `reprovado`, `aprovado` ou `validacao_renda`).
 
 Documentos:
 

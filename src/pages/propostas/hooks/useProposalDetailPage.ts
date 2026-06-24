@@ -26,6 +26,7 @@ import {
 } from '../lib/proposalsApi'
 import type { ProposalDocumentKind } from '../types/proposal-detail'
 import {
+  isBrokerReadOnlyProposalStatus,
   normalizeProposalStatus,
   type ProposalStatus,
 } from '../types/proposal-status'
@@ -71,7 +72,8 @@ export function useProposalDetailPage() {
   const { proposalId } = useParams<{ proposalId: string }>()
   const { user, isAdmin } = useAuth()
   const brokerUserId = user?.id ?? null
-  const { status, proposal, error, refetch } = useProposalDetail(proposalId)
+  const { status, proposal, error, refetch, updateProposalState } =
+    useProposalDetail(proposalId)
   const { statusOptions, isLoadingStatuses } = useProposalStatuses()
   const [isEditing, setIsEditing] = useState(false)
   const [editDraft, setEditDraft] = useState<ProposalEditDraft | null>(null)
@@ -104,10 +106,11 @@ export function useProposalDetailPage() {
     useState<ProposalDocumentPreview | null>(null)
   const hasHandledMissingProposal = useRef(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
+  const isBrokerReadOnly = !isAdmin && isBrokerReadOnlyProposalStatus(normalizedStatus)
   const canBrokerHandlePending = !isAdmin && normalizedStatus === 'pendente'
-  const canManageGuests = proposal?.isOwnedByCurrentUser ?? false
+  const canManageGuests = (proposal?.isOwnedByCurrentUser ?? false) && !isBrokerReadOnly
   const canViewGuests = canManageGuests || isAdmin
-  const canDeleteProposal = proposal?.canDeleteProposal ?? false
+  const canDeleteProposal = (proposal?.canDeleteProposal ?? false) && !isBrokerReadOnly
   const inviteHelperMessage =
     inviteQuery.trim().length > 0 && inviteQuery.trim().length < 5
       ? 'Digite pelo menos 5 letras para buscar um usuário.'
@@ -214,7 +217,7 @@ export function useProposalDetailPage() {
   }, [navigate])
 
   const startEditing = useCallback(() => {
-    if (!proposal) {
+    if (!proposal || isBrokerReadOnly) {
       return
     }
 
@@ -231,7 +234,7 @@ export function useProposalDetailPage() {
       additionalInfo: proposal.additionalInfo,
     })
     setIsEditing(true)
-  }, [proposal])
+  }, [isBrokerReadOnly, proposal])
 
   const cancelEditing = useCallback(() => {
     setIsEditing(false)
@@ -302,7 +305,7 @@ export function useProposalDetailPage() {
   const updateProposalStatusWithPayload = useCallback(
     async (nextStatus: ProposalStatus) => {
       if (!proposal || normalizeProposalStatus(proposal.status) === nextStatus) {
-        return
+        return true
       }
 
       try {
@@ -312,14 +315,17 @@ export function useProposalDetailPage() {
           brokerUserId: context.brokerUserId,
           status: nextStatus,
         })
+        invalidateProposalsListCache(context.brokerUserId)
         await refetch()
         toast.success('Situação da proposta atualizada.')
+        return true
       } catch (statusError) {
         toast.error(
           statusError instanceof Error
             ? statusError.message
             : 'Não foi possível atualizar a situação da proposta.',
         )
+        return false
       } finally {
         setIsSavingStatus(false)
       }
@@ -334,10 +340,10 @@ export function useProposalDetailPage() {
       if (normalizedNextStatus === 'pendente' && isAdmin) {
         setPendingReasonDraft(proposal?.pendingReason ?? '')
         setIsPendingReasonModalOpen(true)
-        return
+        return false
       }
 
-      await updateProposalStatusWithPayload(normalizedNextStatus)
+      return updateProposalStatusWithPayload(normalizedNextStatus)
     },
     [isAdmin, proposal?.pendingReason, updateProposalStatusWithPayload],
   )
@@ -878,6 +884,7 @@ export function useProposalDetailPage() {
     refetch,
     isEditing,
     isAdmin,
+    isBrokerReadOnly,
     canBrokerHandlePending,
     canViewGuests,
     canManageGuests,
@@ -907,6 +914,7 @@ export function useProposalDetailPage() {
     pendingDocumentsDraft,
     commentDraft,
     hasPendingUpdates,
+    updateProposalState,
     goBack,
     startEditing,
     cancelEditing,

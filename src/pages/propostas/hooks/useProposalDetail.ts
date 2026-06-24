@@ -50,5 +50,14 @@ export function useProposalDetail(proposalId: string | undefined) {
     void loadProposal()
   }, [loadProposal])
 
-  return { status, proposal, error, refetch: loadProposal }
+  const updateProposalState = useCallback(
+    (updater: (currentProposal: ProposalDetail) => ProposalDetail) => {
+      setProposal((currentProposal) =>
+        currentProposal ? updater(currentProposal) : currentProposal,
+      )
+    },
+    [],
+  )
+
+  return { status, proposal, error, refetch: loadProposal, updateProposalState }
 }
