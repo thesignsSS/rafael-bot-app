@@ -308,6 +308,43 @@ export async function deleteProposal(
   }
 }
 
+export async function sendIncomeValidationTestEmail(
+  proposalId: string,
+  payload: {
+    brokerUserId: string
+    to: string[]
+    subject: string
+    text: string
+    html?: string
+    attachments?: Array<
+      | {
+          type: 'proposal_document'
+          documentId: string
+          filename?: string
+        }
+      | {
+          type: 'uploaded_file'
+          filename: string
+          contentType?: string
+          base64Content: string
+        }
+    >
+  },
+): Promise<void> {
+  const response = await fetch(
+    `${getProposalsApiUrl()}/${proposalId}/income-validation-test-email`,
+    {
+      method: 'POST',
+      headers: getJsonRequestHeaders(),
+      body: JSON.stringify(payload),
+    },
+  )
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
+}
+
 export async function viewProposalDocument(
   proposalId: string,
   documentId: string,

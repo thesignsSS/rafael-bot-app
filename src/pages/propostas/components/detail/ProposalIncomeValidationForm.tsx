@@ -4,14 +4,18 @@ import { toast } from 'sonner'
 import { useAuth } from '../../../../contexts/auth-context'
 import { Icon } from '../../../../components/ui/Icon'
 import { filesToSubmissionDocuments } from '../../../home/lib/submitProposal'
+import { inferDocumentKindFromContent } from '../../lib/proposalDetailUtils'
 import {
   deleteProposalDocument,
   fetchProposalDetail,
+  sendIncomeValidationTestEmail,
   updateProposal,
   uploadProposalDocuments,
+  viewProposalDocument,
 } from '../../lib/proposalsApi'
-import type { ProposalDetail } from '../../types/proposal-detail'
+import type { ProposalDetail, ProposalDocumentKind } from '../../types/proposal-detail'
 import { DASHBOARD_HEADER_FEEDBACK_EVENT } from '../../../../lib/dashboard-header-feedback'
+import { ProposalDocumentPreviewModal } from './ProposalDocumentPreviewModal'
 
 const PRODUCT_OPTIONS = [
   'Conta',
@@ -35,6 +39,11 @@ const COMMON_DOCUMENT_FIELDS = [
     id: 'registration_form',
     label: 'Ficha cadastro',
     instructions: 'Anexe a ficha cadastro com ocupação e telefones atualizados.',
+  },
+  {
+    id: 'simulation_document',
+    label: 'Simulação',
+    instructions: 'Anexe a simulação correspondente à proposta.',
   },
   {
     id: 'identity_document',
@@ -82,6 +91,11 @@ const PROFESSIONAL_DOCUMENT_FIELDS = [
 ] as const
 
 const INCOME_VALIDATION_FORM_DATA_KEY = 'validacao_renda'
+const TEST_EMAIL_TO = 'ag4551ce02@caixa.gov.br'
+
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+}
 
 function formatCurrencyInput(value: string) {
   const digits = value.replace(/\D/g, '')
@@ -118,6 +132,22 @@ type SavedIncomeValidationDocument = {
   name: string
   sizeBytes?: number
 }
+
+type EmailAttachment =
+  | {
+      kind: 'proposal_document'
+      documentId: string
+      name: string
+      sizeBytes?: number
+    }
+  | {
+      kind: 'uploaded_file'
+      tempId: string
+      name: string
+      sizeBytes: number
+      contentType?: string
+      base64Content: string
+    }
 
 type DocumentFieldFiles = Record<string, SavedIncomeValidationDocument[]>
 
@@ -161,6 +191,67 @@ function resolveIncomeValidationProducts(
   return ['Conta'] as Array<(typeof PRODUCT_OPTIONS)[number]>
 }
 
+function formatEmailProducts(
+  products: Array<(typeof PRODUCT_OPTIONS)[number]>,
+  financingInstallmentValue: string,
+) {
+  const normalizedProducts = products.map((product) => product.toLowerCase())
+
+  if (financingInstallmentValue.trim()) {
+    normalizedProducts.push(`RD de ${financingInstallmentValue.trim()}`)
+  }
+
+  return normalizedProducts.join(', ')
+}
+
+function formatProductsLabel(products: Array<(typeof PRODUCT_OPTIONS)[number]>) {
+  return products.length > 0 ? products.join(', ') : 'Não informado'
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+function buildInitialEmailAttachments(
+  documentsByField: DocumentFieldFiles,
+): EmailAttachment[] {
+  return Object.values(documentsByField)
+    .flat()
+    .filter(
+      (document): document is SavedIncomeValidationDocument & { id: string } =>
+        typeof document.id === 'string' && document.id.length > 0,
+    )
+    .map((document) => ({
+      kind: 'proposal_document' as const,
+      documentId: document.id,
+      name: document.name,
+      sizeBytes: document.sizeBytes,
+    }))
+}
+
+async function fileToEmailAttachment(file: File): Promise<EmailAttachment> {
+  const bytes = new Uint8Array(await file.arrayBuffer())
+  let binary = ''
+
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte)
+  })
+
+  return {
+    kind: 'uploaded_file',
+    tempId: `${file.name}-${file.size}-${file.lastModified}`,
+    name: file.name,
+    sizeBytes: file.size,
+    contentType: file.type || undefined,
+    base64Content: window.btoa(binary),
+  }
+}
+
 export function ProposalIncomeValidationForm({
   proposal,
   isAdmin,
@@ -168,7 +259,7 @@ export function ProposalIncomeValidationForm({
   onFinalize,
   onPersistedFormDataChange,
 }: ProposalIncomeValidationFormProps) {
-  const { user } = useAuth()
+  const { user, currentUserProfile } = useAuth()
   const savedIncomeValidationData = isSavedIncomeValidationData(
     proposal.formData?.[INCOME_VALIDATION_FORM_DATA_KEY],
   )
@@ -206,6 +297,24 @@ export function ProposalIncomeValidationForm({
   )
   const [uploadingFieldIds, setUploadingFieldIds] = useState<string[]>([])
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false)
+  const [isIncomeTypeChangeModalOpen, setIsIncomeTypeChangeModalOpen] = useState(false)
+  const [pendingIncomeType, setPendingIncomeType] = useState<
+    (typeof INCOME_TYPE_OPTIONS)[number] | null
+  >(null)
+  const [isClearingIncomeTypeDocuments, setIsClearingIncomeTypeDocuments] =
+    useState(false)
+  const [isSendEmailModalOpen, setIsSendEmailModalOpen] = useState(false)
+  const [isSendingTestEmail, setIsSendingTestEmail] = useState(false)
+  const [emailRecipients, setEmailRecipients] = useState<string[]>([TEST_EMAIL_TO])
+  const [isEditingEmailBody, setIsEditingEmailBody] = useState(false)
+  const [emailBodyDraft, setEmailBodyDraft] = useState('')
+  const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([])
+  const [previewingDocumentKey, setPreviewingDocumentKey] = useState<string | null>(null)
+  const [documentPreview, setDocumentPreview] = useState<{
+    fileName: string
+    kind: ProposalDocumentKind
+    url: string
+  } | null>(null)
   const [autosaveState, setAutosaveState] = useState<
     'idle' | 'saving' | 'saved' | 'error'
   >('idle')
@@ -224,6 +333,59 @@ export function ProposalIncomeValidationForm({
   const propertyCity = proposal.property.city
   const clientEmail = proposal.client.email
   const clientPhone = proposal.client.phone
+  const emailSubject = `Validação de renda - ${proposal.client.name.toUpperCase()} - ${proposal.client.cpf}`
+  const senderName = currentUserProfile?.fullName?.trim() || proposal.ownerName
+  const emailProducts = formatEmailProducts(products, financingInstallmentValue)
+  const emailFieldLines = [
+    `Cliente: ${proposal.client.name.trim() || 'Não informado'}`,
+    `CPF: ${proposal.client.cpf.trim() || 'Não informado'}`,
+    `Produtos selecionados: ${formatProductsLabel(products)}`,
+    `Resumo comercial: ${emailProducts || 'Não informado'}`,
+    `Tipo de renda: ${incomeType.trim() || 'Não informado'}`,
+    `Tipo do imóvel: ${propertyValidationType}`,
+    `Localização do imóvel: ${propertyCity.trim() || 'Não informado'}`,
+    `Valor do imóvel: ${propertyValue.trim() || 'Não informado'}`,
+    `Valor da entrada: ${downPaymentValue.trim() || 'Não informado'}`,
+    `Prestação do financiamento: ${financingInstallmentValue.trim() || 'Não informado'}`,
+    ...(propertyValidationType === 'Na Planta'
+      ? [
+          `Prestação a ser paga à construtora: ${builderInstallmentValue.trim() || 'Não informado'}`,
+          `Valor pago após assinatura do contrato: ${postSignatureValue.trim() || 'Não informado'}`,
+        ]
+      : []),
+    `Descrição detalhada da atividade: ${activityDescription.trim() || 'Não informado'}`,
+    `E-mail do cliente: ${clientEmail.trim() || 'Não informado'}`,
+    `Telefone do cliente: ${clientPhone.trim() || 'Não informado'}`,
+  ]
+  const emailLines = [
+    'Bom Dia,',
+    '',
+    'Resumo da validação de renda:',
+    ...emailFieldLines.map((line) => `- ${line}`),
+    '',
+    'At,',
+    senderName,
+  ].filter((line): line is string => line !== null)
+  const defaultEmailText = emailLines.join('\n')
+  const emailText = emailBodyDraft || defaultEmailText
+  const emailHtml = `
+    <div style="font-family: Arial, Helvetica, sans-serif; color: #202124; background: #ffffff; padding: 8px 0;">
+      ${emailText
+        .split('\n')
+        .map((line) =>
+          line.trim().length === 0
+            ? '<div style="height: 12px;"></div>'
+            : `<p style="margin: 0 0 8px; font-size: 18px; line-height: 1.6;">${escapeHtml(line)}</p>`,
+        )
+        .join('')}
+    </div>
+  `.trim()
+  const hasAtLeastOneEmailRecipient = emailRecipients.some(
+    (recipient) => recipient.trim().length > 0,
+  )
+  const hasInvalidEmailRecipients = emailRecipients.some(
+    (recipient) => recipient.trim().length === 0 || !isValidEmail(recipient),
+  )
 
   const showHeaderFeedback = () => {
     if (isFeedbackVisibleRef.current) {
@@ -357,6 +519,38 @@ export function ProposalIncomeValidationForm({
 
   const openFilePicker = (fieldId: string) => {
     inputRefs.current[fieldId]?.click()
+  }
+
+  const clearIncomeValidationDocumentsForIncomeTypeChange = async (
+    nextIncomeType: (typeof INCOME_TYPE_OPTIONS)[number],
+  ) => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado para atualizar o tipo de renda.')
+    }
+
+    const documentIds = Array.from(
+      new Set(
+        Object.values(documentFiles)
+          .flat()
+          .map((document) => document.id)
+          .filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    )
+
+    setAutosaveState('saving')
+    beginSaveRequest()
+
+    try {
+      for (const documentId of documentIds) {
+        await deleteProposalDocument(proposal.id, documentId, user.id)
+      }
+
+      setDocumentFiles({})
+      setIncomeType(nextIncomeType)
+      markAutosaveScheduled()
+    } finally {
+      finishSaveRequest()
+    }
   }
 
   const removeDocument = async (fieldId: string, targetIndex: number) => {
@@ -512,6 +706,34 @@ export function ProposalIncomeValidationForm({
     onPersistedFormDataChange?.(nextFormData)
   }
 
+  const handleSendTestEmail = async () => {
+    if (!user?.id) {
+      throw new Error('Usuário não autenticado para enviar o e-mail.')
+    }
+
+    await sendIncomeValidationTestEmail(proposal.id, {
+      brokerUserId: user.id,
+      to: emailRecipients.map((recipient) => recipient.trim()),
+      subject: emailSubject,
+      text: emailText,
+      html: emailHtml,
+      attachments: emailAttachments.map((attachment) =>
+        attachment.kind === 'proposal_document'
+          ? {
+              type: 'proposal_document' as const,
+              documentId: attachment.documentId,
+              filename: attachment.name,
+            }
+          : {
+              type: 'uploaded_file' as const,
+              filename: attachment.name,
+              contentType: attachment.contentType,
+              base64Content: attachment.base64Content,
+            },
+      ),
+    })
+  }
+
   persistIncomeValidationDataRef.current = persistIncomeValidationData
 
   useEffect(() => {
@@ -656,8 +878,124 @@ export function ProposalIncomeValidationForm({
     )
   }
 
+  const handleIncomeTypeChange = (
+    nextIncomeType: (typeof INCOME_TYPE_OPTIONS)[number],
+  ) => {
+    if (isFormLocked || nextIncomeType === incomeType) {
+      return
+    }
+
+    const hasUploadedDocuments = Object.values(documentFiles).some(
+      (files) => files.length > 0,
+    )
+
+    if (!hasUploadedDocuments) {
+      setIncomeType(nextIncomeType)
+      return
+    }
+
+    setPendingIncomeType(nextIncomeType)
+    setIsIncomeTypeChangeModalOpen(true)
+  }
+
+  const removeEmailAttachment = (targetKey: string) => {
+    setEmailAttachments((currentAttachments) =>
+      currentAttachments.filter((attachment) =>
+        attachment.kind === 'proposal_document'
+          ? attachment.documentId !== targetKey
+          : attachment.tempId !== targetKey,
+      ),
+    )
+  }
+
+  const updateEmailRecipient = (index: number, value: string) => {
+    setEmailRecipients((currentRecipients) =>
+      currentRecipients.map((recipient, recipientIndex) =>
+        recipientIndex === index ? value : recipient,
+      ),
+    )
+  }
+
+  const addEmailRecipient = () => {
+    setEmailRecipients((currentRecipients) => [...currentRecipients, ''])
+  }
+
+  const removeEmailRecipient = (targetIndex: number) => {
+    setEmailRecipients((currentRecipients) =>
+      currentRecipients.length === 1
+        ? currentRecipients
+        : currentRecipients.filter((_, recipientIndex) => recipientIndex !== targetIndex),
+    )
+  }
+
+  const previewProposalDocument = async (
+    documentId: string,
+    fallbackName: string,
+  ) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado para visualizar o documento.')
+      return
+    }
+
+    try {
+      setPreviewingDocumentKey(documentId)
+      const proposalDocument = proposal.documents.find((item) => item.id === documentId)
+      const result = await viewProposalDocument(proposal.id, documentId, user.id)
+
+      setDocumentPreview({
+        fileName:
+          proposalDocument?.displayName ??
+          proposalDocument?.originalFilename ??
+          fallbackName,
+        kind: inferDocumentKindFromContent(
+          proposalDocument?.contentType ?? 'application/pdf',
+          proposalDocument?.filename ?? fallbackName,
+        ),
+        url: result.url,
+      })
+    } catch (previewError) {
+      toast.error(
+        previewError instanceof Error
+          ? previewError.message
+          : 'Não foi possível visualizar o documento.',
+      )
+    } finally {
+      setPreviewingDocumentKey(null)
+    }
+  }
+
+  const previewEmailAttachment = async (attachment: EmailAttachment) => {
+    if (attachment.kind === 'proposal_document') {
+      await previewProposalDocument(attachment.documentId, attachment.name)
+      return
+    }
+
+    try {
+      setPreviewingDocumentKey(attachment.tempId)
+      setDocumentPreview({
+        fileName: attachment.name,
+        kind: inferDocumentKindFromContent(
+          attachment.contentType ?? 'application/pdf',
+          attachment.name,
+        ),
+        url: `data:${attachment.contentType ?? 'application/octet-stream'};base64,${attachment.base64Content}`,
+      })
+    } finally {
+      setPreviewingDocumentKey(null)
+    }
+  }
+
   return (
     <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
+      {documentPreview ? (
+        <ProposalDocumentPreviewModal
+          fileName={documentPreview.fileName}
+          kind={documentPreview.kind}
+          url={documentPreview.url}
+          onClose={() => setDocumentPreview(null)}
+        />
+      ) : null}
+
       <div className="flex items-center gap-2 text-primary">
         <Icon name="fact_check" size={22} />
         <h3 className="text-headline-md font-semibold text-on-surface">
@@ -884,7 +1222,7 @@ export function ProposalIncomeValidationForm({
           <select
             value={incomeType}
             onChange={(event) =>
-              setIncomeType(
+              handleIncomeTypeChange(
                 event.target.value as (typeof INCOME_TYPE_OPTIONS)[number],
               )
             }
@@ -990,11 +1328,15 @@ export function ProposalIncomeValidationForm({
                   ) : files.length > 0 ? (
                     <div className="space-y-3">
                       {files.map((document, index) => (
+                        (() => {
+                          const documentPreviewKey = document.id ?? `${field.id}-${document.name}-${index}`
+
+                          return (
                         <div
                           key={`${field.id}-${document.id ?? document.name}-${index}`}
-                          className="flex items-center justify-between gap-3 rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2"
+                          className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2"
                         >
-                          <div className="min-w-0">
+                          <div className="min-w-0 overflow-hidden">
                             <p className="truncate text-body-md font-medium text-on-surface">
                               {document.name}
                             </p>
@@ -1002,18 +1344,45 @@ export function ProposalIncomeValidationForm({
                               {(((document.sizeBytes ?? 0) || 0) / 1024 / 1024).toFixed(2)} MB
                             </p>
                           </div>
-                          {!isFinalized ? (
-                            <button
-                              type="button"
-                              onClick={() => void removeDocument(field.id, index)}
-                              disabled={isFormLocked}
-                              className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-error/10 hover:text-error"
-                              aria-label={`Remover ${document.name}`}
-                            >
-                              <Icon name="delete" size={18} />
-                            </button>
-                          ) : null}
+                          <div className="shrink-0 flex items-center gap-1">
+                            {document.id ? (
+                              <button
+                                type="button"
+                                onClick={() => void previewProposalDocument(document.id!, document.name)}
+                                disabled={previewingDocumentKey === documentPreviewKey}
+                                className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary"
+                                aria-label={`Visualizar ${document.name}`}
+                              >
+                                <Icon
+                                  name={
+                                    previewingDocumentKey === documentPreviewKey
+                                      ? 'progress_activity'
+                                      : 'visibility'
+                                  }
+                                  size={18}
+                                  className={
+                                    previewingDocumentKey === documentPreviewKey
+                                      ? 'animate-spin'
+                                      : undefined
+                                  }
+                                />
+                              </button>
+                            ) : null}
+                            {!isFinalized || isAdmin ? (
+                              <button
+                                type="button"
+                                onClick={() => void removeDocument(field.id, index)}
+                                disabled={isFormLocked}
+                                className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-error/10 hover:text-error"
+                                aria-label={`Remover ${document.name}`}
+                              >
+                                <Icon name="delete" size={18} />
+                              </button>
+                            ) : null}
+                          </div>
                         </div>
+                          )
+                        })()
                       ))}
                     </div>
                   ) : (
@@ -1081,6 +1450,13 @@ export function ProposalIncomeValidationForm({
           <div className="mt-6 flex justify-end">
             <button
               type="button"
+              onClick={() => {
+                setEmailRecipients([TEST_EMAIL_TO])
+                setEmailBodyDraft(defaultEmailText)
+                setIsEditingEmailBody(false)
+                setEmailAttachments(buildInitialEmailAttachments(documentFiles))
+                setIsSendEmailModalOpen(true)
+              }}
               className="rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container"
             >
               Enviar
@@ -1140,6 +1516,355 @@ export function ProposalIncomeValidationForm({
                 className="rounded-xl bg-primary px-4 py-2.5 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container"
               >
                 Confirmar finalização
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )
+        : null}
+
+      {isIncomeTypeChangeModalOpen
+        ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+          <div className="w-full max-w-xl rounded-2xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_24px_60px_rgba(0,0,0,0.25)]">
+            <div className="flex items-start gap-3">
+              <div className="mt-0.5 rounded-full bg-orange-500/16 p-2 text-orange-400">
+                <Icon name="warning" size={22} />
+              </div>
+              <div className="flex-1">
+                <h4 className="text-title-lg font-semibold text-on-surface">
+                  Alterar tipo de renda
+                </h4>
+                <p className="mt-2 text-body-md text-on-surface-variant">
+                  Ao alterar o tipo de renda, os documentos anexados nesta etapa serão
+                  excluídos para que você reenvie os documentos compatíveis com a nova renda.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-3">
+              <button
+                type="button"
+                disabled={isClearingIncomeTypeDocuments}
+                onClick={() => {
+                  setIsIncomeTypeChangeModalOpen(false)
+                  setPendingIncomeType(null)
+                }}
+                className="rounded-xl border border-outline px-4 py-2.5 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={isClearingIncomeTypeDocuments || pendingIncomeType === null}
+                onClick={async () => {
+                  if (pendingIncomeType === null) {
+                    return
+                  }
+
+                  try {
+                    setIsClearingIncomeTypeDocuments(true)
+                    await clearIncomeValidationDocumentsForIncomeTypeChange(
+                      pendingIncomeType,
+                    )
+                    setIsIncomeTypeChangeModalOpen(false)
+                    setPendingIncomeType(null)
+                    toast.success('Tipo de renda alterado e documentos removidos.')
+                  } catch (changeError) {
+                    toast.error(
+                      changeError instanceof Error
+                        ? changeError.message
+                        : 'Não foi possível alterar o tipo de renda.',
+                    )
+                  } finally {
+                    setIsClearingIncomeTypeDocuments(false)
+                  }
+                }}
+                className="rounded-xl bg-primary px-4 py-2.5 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isClearingIncomeTypeDocuments ? 'Alterando...' : 'Confirmar alteração'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )
+        : null}
+
+      {isSendEmailModalOpen
+        ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 p-4">
+          <div className="flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_60px_rgba(0,0,0,0.28)]">
+            <div className="shrink-0 border-b border-outline-variant bg-surface-container px-5 py-3">
+              <p className="text-label-md font-semibold text-on-surface">
+                Pré-visualização do e-mail
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto bg-surface-container-lowest px-5 py-4">
+              <div className="space-y-3">
+                <div className="border-b border-outline-variant pb-3">
+                  <div className="flex items-start gap-3">
+                    <span className="min-w-16 pt-3 text-body-sm font-medium text-on-surface-variant">
+                      Para
+                    </span>
+                    <div className="flex-1 space-y-2">
+                      {emailRecipients.map((recipient, index) => {
+                        const recipientHasError =
+                          recipient.trim().length > 0 && !isValidEmail(recipient)
+
+                        return (
+                          <div key={`recipient-${index}`} className="flex items-center gap-2">
+                            <input
+                              type="email"
+                              value={recipient}
+                              onChange={(event) =>
+                                updateEmailRecipient(index, event.target.value)
+                              }
+                              placeholder="destinatario@empresa.com"
+                              className={`w-full rounded-xl border bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:ring-2 ${
+                                recipientHasError
+                                  ? 'border-error text-error focus:border-error focus:ring-error/20'
+                                  : 'border-outline-variant focus:border-primary focus:ring-primary/20'
+                              }`}
+                            />
+                            {emailRecipients.length > 1 ? (
+                              <button
+                                type="button"
+                                onClick={() => removeEmailRecipient(index)}
+                                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-outline text-on-surface-variant transition-all hover:border-error/40 hover:bg-error/10 hover:text-error"
+                                aria-label="Remover destinatário"
+                              >
+                                <Icon name="close" size={18} />
+                              </button>
+                            ) : null}
+                            {index === emailRecipients.length - 1 ? (
+                              <button
+                                type="button"
+                                onClick={addEmailRecipient}
+                                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-outline text-primary transition-all hover:bg-surface-container"
+                                aria-label="Adicionar destinatário"
+                              >
+                                <Icon name="add" size={18} />
+                              </button>
+                            ) : null}
+                          </div>
+                        )
+                      })}
+                      {hasInvalidEmailRecipients ? (
+                        <p className="text-body-sm text-error">
+                          Preencha todos os destinatários com e-mails válidos.
+                        </p>
+                      ) : !hasAtLeastOneEmailRecipient ? (
+                        <p className="text-body-sm text-error">
+                          Informe ao menos um destinatário para enviar o e-mail.
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-3 border-b border-outline-variant pb-3">
+                  <span className="min-w-16 text-body-sm font-medium text-on-surface-variant">
+                    Assunto
+                  </span>
+                  <span className="text-body-md text-on-surface">{emailSubject}</span>
+                </div>
+
+                <div className="rounded-2xl border border-outline-variant bg-surface p-5">
+                  <div className="mb-4 flex items-center justify-between gap-3">
+                    <p className="text-label-md font-semibold text-on-surface">
+                      Corpo do e-mail
+                    </p>
+                    <button
+                      type="button"
+                      disabled={isSendingTestEmail}
+                      onClick={() => {
+                        setEmailBodyDraft(emailText)
+                        setIsEditingEmailBody((currentValue) => !currentValue)
+                      }}
+                      className="inline-flex items-center gap-2 rounded-lg border border-outline px-3 py-2 text-label-sm font-semibold text-primary transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      <Icon name="edit" size={16} />
+                      {isEditingEmailBody ? 'Concluir edição' : 'Editar'}
+                    </button>
+                  </div>
+
+                  <div className="text-body-md leading-8 text-on-surface">
+                    {isEditingEmailBody ? (
+                      <textarea
+                        value={emailBodyDraft}
+                        onChange={(event) => setEmailBodyDraft(event.target.value)}
+                        rows={18}
+                        className="min-h-[420px] w-full resize-y rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-4 text-body-md leading-8 text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                      />
+                    ) : (
+                      <div className="space-y-4">
+                        {emailText.split('\n').map((line, index) =>
+                          line.length > 0 ? (
+                            <p
+                              key={`${line}-${index}`}
+                              className="break-words whitespace-pre-wrap"
+                            >
+                              {line}
+                            </p>
+                          ) : (
+                            <div key={`spacer-${index}`} className="h-3" />
+                          ),
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <div className="rounded-2xl border border-outline-variant bg-surface p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <p className="text-label-md font-semibold text-on-surface">
+                      Anexos do e-mail
+                    </p>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-xl border border-outline px-3 py-2 text-label-sm font-semibold text-primary transition-all hover:bg-surface-container">
+                      <Icon name="attach_file" size={18} />
+                      Adicionar arquivo
+                      <input
+                        type="file"
+                        multiple
+                        className="sr-only"
+                        onChange={async (event) => {
+                          const selectedFiles = Array.from(event.target.files ?? [])
+                          event.target.value = ''
+
+                          if (selectedFiles.length === 0) {
+                            return
+                          }
+
+                          try {
+                            const uploadedAttachments = await Promise.all(
+                              selectedFiles.map((file) => fileToEmailAttachment(file)),
+                            )
+                            setEmailAttachments((currentAttachments) => [
+                              ...currentAttachments,
+                              ...uploadedAttachments,
+                            ])
+                          } catch {
+                            toast.error('Não foi possível preparar os anexos do e-mail.')
+                          }
+                        }}
+                      />
+                    </label>
+                  </div>
+
+                  <div className="mt-4 space-y-2">
+                    {emailAttachments.length > 0 ? (
+                      emailAttachments.map((attachment) => {
+                        const attachmentKey =
+                          attachment.kind === 'proposal_document'
+                            ? attachment.documentId
+                            : attachment.tempId
+
+                        return (
+                          <div
+                            key={attachmentKey}
+                            className="grid w-full grid-cols-[minmax(0,1fr)_auto] items-center gap-3 overflow-hidden rounded-xl border border-outline-variant bg-surface-container-lowest px-3 py-2"
+                          >
+                            <div className="min-w-0 overflow-hidden">
+                              <p className="truncate text-body-md font-medium text-on-surface">
+                                {attachment.name}
+                              </p>
+                              <p className="text-body-sm text-on-surface-variant">
+                                {attachment.kind === 'proposal_document'
+                                  ? 'Arquivo da proposta'
+                                  : 'Arquivo extra do e-mail'}
+                              </p>
+                            </div>
+                            <div className="shrink-0 flex items-center gap-1">
+                              <button
+                                type="button"
+                                disabled={isSendingTestEmail}
+                                onClick={() => void previewEmailAttachment(attachment)}
+                                className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                                aria-label={`Visualizar ${attachment.name}`}
+                              >
+                                <Icon
+                                  name={
+                                    previewingDocumentKey === attachmentKey
+                                      ? 'progress_activity'
+                                      : 'visibility'
+                                  }
+                                  size={18}
+                                  className={
+                                    previewingDocumentKey === attachmentKey
+                                      ? 'animate-spin'
+                                      : undefined
+                                  }
+                                />
+                              </button>
+                              <button
+                                type="button"
+                                disabled={isSendingTestEmail}
+                                onClick={() => removeEmailAttachment(attachmentKey)}
+                                className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-error/10 hover:text-error disabled:cursor-not-allowed disabled:opacity-60"
+                                aria-label={`Remover ${attachment.name} do e-mail`}
+                              >
+                                <Icon name="delete" size={18} />
+                              </button>
+                            </div>
+                          </div>
+                        )
+                      })
+                    ) : (
+                      <p className="text-body-sm text-on-surface-variant">
+                        Nenhum anexo selecionado para este e-mail.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="shrink-0 flex justify-end gap-3 border-t border-outline-variant bg-surface-container px-5 py-4">
+              <button
+                type="button"
+                disabled={isSendingTestEmail}
+                onClick={() => setIsSendEmailModalOpen(false)}
+                className="rounded-xl border border-outline bg-surface-container-lowest px-4 py-2.5 text-label-md font-semibold text-on-surface transition-all hover:border-primary/50 hover:bg-surface disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={
+                  isSendingTestEmail ||
+                  !hasAtLeastOneEmailRecipient ||
+                  hasInvalidEmailRecipients
+                }
+                onClick={async () => {
+                  try {
+                    if (!hasAtLeastOneEmailRecipient || hasInvalidEmailRecipients) {
+                      toast.error(
+                        !hasAtLeastOneEmailRecipient
+                          ? 'Informe ao menos um destinatário.'
+                          : 'Preencha todos os destinatários com e-mails válidos.',
+                      )
+                      return
+                    }
+                    setIsSendingTestEmail(true)
+                    await handleSendTestEmail()
+                    toast.success('E-mail enviado com sucesso.')
+                    setIsSendEmailModalOpen(false)
+                  } catch (sendError) {
+                    toast.error(
+                      sendError instanceof Error
+                        ? sendError.message
+                        : 'Não foi possível enviar o e-mail de teste.',
+                    )
+                  } finally {
+                    setIsSendingTestEmail(false)
+                  }
+                }}
+                className="rounded-xl bg-[#0b57d0] px-4 py-2.5 text-label-md font-semibold text-white transition-all hover:bg-[#0842a0] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSendingTestEmail ? 'Enviando...' : 'Confirmar envio'}
               </button>
             </div>
           </div>
