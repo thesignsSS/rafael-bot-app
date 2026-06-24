@@ -628,7 +628,7 @@ export function ProposalIncomeValidationForm({
     (field) => field.optional || (documentFiles[field.id] ?? []).length > 0,
   )
   const canFinalizeIncomeValidation =
-    !isAdmin && !isFinalized && areBaseFieldsFilled && arePlantFieldsFilled && areDocumentsFilled
+    !isFinalized && areBaseFieldsFilled && arePlantFieldsFilled && areDocumentsFilled
   const isFormLocked = isFinalized && !isAdmin
 
   const buildSavedIncomeValidationData =
@@ -1429,32 +1429,30 @@ export function ProposalIncomeValidationForm({
           </p>
         </div>
 
-        {!isAdmin ? (
-          <div className="mt-6 flex flex-col items-end gap-2">
-            {isFinalized ? (
-              <p className="text-body-sm text-primary">
-                Validação de renda finalizada. Esta etapa não pode mais ser alterada.
-              </p>
-            ) : (
-              <p className="text-body-sm text-on-surface-variant">
-                O botão será liberado quando todos os campos e documentos forem preenchidos.
-              </p>
-            )}
+        <div className="mt-6 flex flex-col items-end gap-2">
+          {isFinalized ? (
+            <p className="text-body-sm text-primary">
+              Validação de renda finalizada. Esta etapa não pode mais ser alterada.
+            </p>
+          ) : (
+            <p className="text-body-sm text-on-surface-variant">
+              O botão será liberado quando todos os campos e documentos forem preenchidos.
+            </p>
+          )}
 
-            <div className="flex flex-wrap justify-end gap-3">
-              {!isFinalized ? (
-                <button
-                  type="button"
-                  disabled={!canFinalizeIncomeValidation}
-                  onClick={() => setIsFinalizeModalOpen(true)}
-                  className="rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
-                >
-                  Finalizar
-                </button>
-              ) : null}
-            </div>
+          <div className="flex flex-wrap justify-end gap-3">
+            {!isFinalized ? (
+              <button
+                type="button"
+                disabled={!canFinalizeIncomeValidation}
+                onClick={() => setIsFinalizeModalOpen(true)}
+                className="rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                Finalizar
+              </button>
+            ) : null}
           </div>
-        ) : null}
+        </div>
 
         {isAdmin && isFinalized ? (
           <div className="mt-6 flex justify-end">
