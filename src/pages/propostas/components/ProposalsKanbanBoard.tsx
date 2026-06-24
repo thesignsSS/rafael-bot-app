@@ -186,7 +186,8 @@ export function ProposalsKanbanBoard({
         </button>
       </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-6">
+      <div className="overflow-x-auto pb-2">
+        <div className="flex min-w-max gap-4">
       {columns.map((column) => {
         const isDropTarget = canMoveCards && dragOverStatus === column.status
         const visibleItems = showAllColumns
@@ -224,7 +225,7 @@ export function ProposalsKanbanBoard({
                 onMoveProposal(proposalId, column.status)
               }
             }}
-            className={`min-w-0 min-h-[420px] rounded-xl border bg-surface-container-low p-3 transition-colors ${
+            className={`min-h-[420px] w-[14.75rem] min-w-[14.75rem] rounded-xl border bg-surface-container-low p-3 transition-colors ${
               isDropTarget
                 ? 'border-primary bg-primary-fixed/70'
                 : 'border-outline-variant'
@@ -463,6 +464,7 @@ export function ProposalsKanbanBoard({
           </section>
         )
       })}
+        </div>
       </div>
     </div>
   )

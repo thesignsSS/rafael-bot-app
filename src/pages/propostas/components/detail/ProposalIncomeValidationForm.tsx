@@ -59,6 +59,13 @@ const FORMAL_INCOME_DOCUMENT_FIELDS = [
     instructions:
       'Anexe contracheque, IRPF original e retificadoras, comprovantes de DARFs e demais comprovantes formais, quando houver.',
   },
+  {
+    id: 'formal_income_proof_document',
+    label: 'Comprovação de renda',
+    instructions:
+      'Anexe extratos dos últimos 6 meses de todas as contas correntes e outros documentos que comprovem renda, como notas fiscais e contratos de prestação de serviços.',
+    optional: true,
+  },
 ] as const
 
 const INFORMAL_INCOME_DOCUMENT_FIELDS = [
@@ -1289,26 +1296,29 @@ export function ProposalIncomeValidationForm({
                     inputRefs.current[field.id] = element
                   }}
                   type="file"
+                  multiple
                   className="sr-only"
                   disabled={isFormLocked}
                   onChange={handleFilesChange(field.id)}
                 />
 
-                {files.length === 0 ? (
-                  <button
-                    type="button"
-                    onClick={() => openFilePicker(field.id)}
-                    disabled={isFormLocked || isUploading}
-                    className="mt-4 inline-flex items-center gap-2 rounded-xl border border-outline px-4 py-3 text-label-md font-semibold text-primary transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Icon
-                      name={isUploading ? 'progress_activity' : 'upload_file'}
-                      size={20}
-                      className={isUploading ? 'animate-spin' : undefined}
-                    />
-                    {isUploading ? 'Enviando arquivo...' : 'Adicionar arquivo'}
-                  </button>
-                ) : null}
+                <button
+                  type="button"
+                  onClick={() => openFilePicker(field.id)}
+                  disabled={isFormLocked || isUploading}
+                  className="mt-4 inline-flex items-center gap-2 rounded-xl border border-outline px-4 py-3 text-label-md font-semibold text-primary transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Icon
+                    name={isUploading ? 'progress_activity' : 'upload_file'}
+                    size={20}
+                    className={isUploading ? 'animate-spin' : undefined}
+                  />
+                  {isUploading
+                    ? 'Enviando arquivos...'
+                    : files.length > 0
+                      ? 'Adicionar mais arquivos'
+                      : 'Adicionar arquivos'}
+                </button>
 
                 <div className="mt-4 rounded-xl border border-dashed border-outline-variant bg-surface p-4">
                   {isUploading ? (
