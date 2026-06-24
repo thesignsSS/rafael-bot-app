@@ -160,6 +160,7 @@ type DocumentFieldFiles = Record<string, SavedIncomeValidationDocument[]>
 
 type SavedIncomeValidationData = {
   products?: string[]
+  seguridadeDetails?: string
   propertyValidationType?: 'Individual' | 'Na Planta'
   propertyValue?: string
   downPaymentValue?: string
@@ -198,17 +199,8 @@ function resolveIncomeValidationProducts(
   return ['Conta'] as Array<(typeof PRODUCT_OPTIONS)[number]>
 }
 
-function formatEmailProducts(
-  products: Array<(typeof PRODUCT_OPTIONS)[number]>,
-  financingInstallmentValue: string,
-) {
-  const normalizedProducts = products.map((product) => product.toLowerCase())
-
-  if (financingInstallmentValue.trim()) {
-    normalizedProducts.push(`RD de ${financingInstallmentValue.trim()}`)
-  }
-
-  return normalizedProducts.join(', ')
+function formatEmailProducts(products: Array<(typeof PRODUCT_OPTIONS)[number]>) {
+  return products.map((product) => product.toLowerCase()).join(', ')
 }
 
 function formatProductsLabel(products: Array<(typeof PRODUCT_OPTIONS)[number]>) {
@@ -274,6 +266,9 @@ export function ProposalIncomeValidationForm({
     : null
   const [products, setProducts] = useState<Array<(typeof PRODUCT_OPTIONS)[number]>>(
     resolveIncomeValidationProducts(savedIncomeValidationData),
+  )
+  const [seguridadeDetails, setSeguridadeDetails] = useState(
+    savedIncomeValidationData?.seguridadeDetails ?? '',
   )
   const [propertyValidationType, setPropertyValidationType] = useState<
     'Individual' | 'Na Planta'
@@ -342,11 +337,15 @@ export function ProposalIncomeValidationForm({
   const clientPhone = proposal.client.phone
   const emailSubject = `Validação de renda - ${proposal.client.name.toUpperCase()} - ${proposal.client.cpf}`
   const senderName = currentUserProfile?.fullName?.trim() || proposal.ownerName
-  const emailProducts = formatEmailProducts(products, financingInstallmentValue)
+  const emailProducts = formatEmailProducts(products)
+  const hasSeguridadeSelected = products.includes('Seguridade')
   const emailFieldLines = [
     `Cliente: ${proposal.client.name.trim() || 'Não informado'}`,
     `CPF: ${proposal.client.cpf.trim() || 'Não informado'}`,
     `Produtos selecionados: ${formatProductsLabel(products)}`,
+    ...(hasSeguridadeSelected
+      ? [`Detalhes de seguridade: ${seguridadeDetails.trim() || 'Não informado'}`]
+      : []),
     `Resumo comercial: ${emailProducts || 'Não informado'}`,
     `Tipo de renda: ${incomeType.trim() || 'Não informado'}`,
     `Tipo do imóvel: ${propertyValidationType}`,
@@ -426,6 +425,11 @@ export function ProposalIncomeValidationForm({
       }),
     )
   }
+
+  const hasPendingLocalAutosaveWork = () =>
+    autosaveTimeoutRef.current !== null ||
+    hasScheduledAutosaveRef.current ||
+    pendingSaveRequestsRef.current > 0
 
   const markAutosaveScheduled = () => {
     hasScheduledAutosaveRef.current = true
@@ -613,8 +617,11 @@ export function ProposalIncomeValidationForm({
     ...COMMON_DOCUMENT_FIELDS,
     ...incomeSpecificDocumentFields,
   ]
+  const isSeguridadeFilled =
+    !hasSeguridadeSelected || seguridadeDetails.trim().length > 0
   const areBaseFieldsFilled =
     products.length > 0 &&
+    isSeguridadeFilled &&
     propertyValue.trim().length > 0 &&
     downPaymentValue.trim().length > 0 &&
     financingInstallmentValue.trim().length > 0 &&
@@ -634,6 +641,7 @@ export function ProposalIncomeValidationForm({
   const buildSavedIncomeValidationData =
     (): SavedIncomeValidationData => ({
       products,
+      seguridadeDetails,
       propertyValidationType,
       propertyValue,
       downPaymentValue,
@@ -748,8 +756,13 @@ export function ProposalIncomeValidationForm({
   }, [proposal.formData])
 
   useEffect(() => {
+    if (hasPendingLocalAutosaveWork()) {
+      return
+    }
+
     isHydratingFromProposalRef.current = true
     setProducts(resolveIncomeValidationProducts(savedIncomeValidationData))
+    setSeguridadeDetails(savedIncomeValidationData?.seguridadeDetails ?? '')
     setPropertyValidationType(
       savedIncomeValidationData?.propertyValidationType ?? 'Individual',
     )
@@ -824,6 +837,7 @@ export function ProposalIncomeValidationForm({
     isFinalized,
     postSignatureValue,
     products,
+    seguridadeDetails,
     propertyValidationType,
     propertyValue,
     proposal.additionalInfo,
@@ -1052,6 +1066,25 @@ export function ProposalIncomeValidationForm({
                 )
               })}
             </div>
+
+            {hasSeguridadeSelected ? (
+              <label className="mt-4 flex flex-col gap-2">
+                <span className="text-label-md font-semibold text-on-surface">
+                  Detalhes da seguridade
+                </span>
+                <input
+                  type="text"
+                  value={seguridadeDetails}
+                  onChange={(event) =>
+                    setSeguridadeDetails(event.target.value.slice(0, 500))
+                  }
+                  disabled={isFormLocked}
+                  maxLength={500}
+                  placeholder="Descreva as informações da seguridade."
+                  className="rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+                />
+              </label>
+            ) : null}
           </div>
         </div>
 
