@@ -2,6 +2,7 @@ import type { PropertyType } from '../../home/types/proposal'
 import type { ProposalStatus } from './proposal-status'
 
 export type ProposalDocumentKind = 'pdf' | 'image' | 'text'
+export type ProposalDocumentScope = 'proposal' | 'income_validation'
 
 export type ProposalCommentType =
   | 'comment'
@@ -32,6 +33,7 @@ export type ProposalDocument = {
   uploadedByName?: string
   isUploadedByProposalOwner?: boolean
   storageLocation: string
+  documentScope: ProposalDocumentScope
 }
 
 export type ProposalGuest = {
@@ -117,6 +119,7 @@ export type ProposalDetail = {
   formData: Record<string, unknown>
   comments: ProposalComment[]
   documents: ProposalDocument[]
+  incomeValidationDocuments: ProposalDocument[]
   guests: ProposalGuest[]
   shareLinkToken: string | null
   pendingInvitations: ProposalInvitation[]

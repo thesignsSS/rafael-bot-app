@@ -1,11 +1,15 @@
-import { useEffect, useRef, useState, type ChangeEvent } from 'react'
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { toast } from 'sonner'
 import { useAuth } from '../../../../contexts/auth-context'
 import { Icon } from '../../../../components/ui/Icon'
 import { filesToSubmissionDocuments } from '../../../home/lib/submitProposal'
-import { inferDocumentKindFromContent } from '../../lib/proposalDetailUtils'
 import {
+  filterProposalDocumentsExcludingIncomeValidation,
+  inferDocumentKindFromContent,
+} from '../../lib/proposalDetailUtils'
+import {
+  downloadProposalDocument,
   deleteProposalDocument,
   fetchProposalDetail,
   sendIncomeValidationTestEmail,
@@ -138,6 +142,8 @@ type SavedIncomeValidationDocument = {
   id?: string
   name: string
   sizeBytes?: number
+  source?: 'income_validation' | 'proposal' | 'proposal_reference' | 'proposal_copy'
+  sourceProposalDocumentId?: string
 }
 
 type EmailAttachment =
@@ -233,6 +239,47 @@ function buildInitialEmailAttachments(
     }))
 }
 
+function isProposalReferenceDocument(document: SavedIncomeValidationDocument) {
+  return document.source === 'proposal' || document.source === 'proposal_reference'
+}
+
+function isValidationOwnedDocument(document: SavedIncomeValidationDocument) {
+  return !isProposalReferenceDocument(document)
+}
+
+function getStoredDocumentIds(documentsByField: DocumentFieldFiles) {
+  return new Set(
+    Object.values(documentsByField)
+      .flat()
+      .map((document) => document.id)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  )
+}
+
+function matchesProposalDocumentReference(
+  document: SavedIncomeValidationDocument,
+  proposalDocumentId: string,
+) {
+  return (
+    document.sourceProposalDocumentId === proposalDocumentId ||
+    (isProposalReferenceDocument(document) && document.id === proposalDocumentId)
+  )
+}
+
+function resolveReusableDocumentFileName(document: ProposalDetail['documents'][number]) {
+  const displayName = document.displayName || document.originalFilename || ''
+
+  if (/\.[a-z0-9]+$/i.test(displayName)) {
+    return displayName
+  }
+
+  if (/\.[a-z0-9]+$/i.test(document.originalFilename)) {
+    return document.originalFilename
+  }
+
+  return document.filename
+}
+
 async function fileToEmailAttachment(file: File): Promise<EmailAttachment> {
   const bytes = new Uint8Array(await file.arrayBuffer())
   let binary = ''
@@ -298,6 +345,14 @@ export function ProposalIncomeValidationForm({
     savedIncomeValidationData?.documentsByField ?? {},
   )
   const [uploadingFieldIds, setUploadingFieldIds] = useState<string[]>([])
+  const [proposalDocumentsPickerFieldId, setProposalDocumentsPickerFieldId] = useState<
+    string | null
+  >(null)
+  const [selectedProposalDocumentIds, setSelectedProposalDocumentIds] = useState<string[]>(
+    [],
+  )
+  const [isSubmittingProposalDocumentsPicker, setIsSubmittingProposalDocumentsPicker] =
+    useState(false)
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false)
   const [isIncomeTypeChangeModalOpen, setIsIncomeTypeChangeModalOpen] = useState(false)
   const [pendingIncomeType, setPendingIncomeType] = useState<
@@ -335,6 +390,14 @@ export function ProposalIncomeValidationForm({
   const propertyCity = proposal.property.city
   const clientEmail = proposal.client.email
   const clientPhone = proposal.client.phone
+  const availableProposalDocuments = useMemo(
+    () =>
+      filterProposalDocumentsExcludingIncomeValidation(
+        proposal.documents,
+        proposal.formData,
+      ),
+    [proposal.documents, proposal.formData],
+  )
   const emailSubject = `Validação de renda - ${proposal.client.name.toUpperCase()} - ${proposal.client.cpf}`
   const senderName = currentUserProfile?.fullName?.trim() || proposal.ownerName
   const emailProducts = formatEmailProducts(products)
@@ -472,19 +535,19 @@ export function ProposalIncomeValidationForm({
       )
       beginSaveRequest()
       const documents = await filesToSubmissionDocuments(selectedFiles)
-      await uploadProposalDocuments(proposal.id, user.id, documents)
+      await uploadProposalDocuments(
+        proposal.id,
+        user.id,
+        documents,
+        'income_validation',
+      )
 
       const updatedProposal = await fetchProposalDetail(proposal.id, user.id)
 
-      const usedIds = new Set(
-        Object.values(documentFiles)
-          .flat()
-          .map((document) => document.id)
-          .filter((id): id is string => typeof id === 'string' && id.length > 0),
-      )
+      const usedIds = getStoredDocumentIds(documentFiles)
 
       const uploadedEntries = selectedFiles.map((file) => {
-        const matchedDocument = updatedProposal.documents.find((document) => {
+        const matchedDocument = updatedProposal.incomeValidationDocuments.find((document) => {
           if (usedIds.has(document.id)) {
             return false
           }
@@ -500,6 +563,7 @@ export function ProposalIncomeValidationForm({
           id: matchedDocument?.id,
           name: file.name,
           sizeBytes: matchedDocument?.sizeBytes ?? file.size,
+          source: 'income_validation' as const,
         }
       })
 
@@ -543,6 +607,7 @@ export function ProposalIncomeValidationForm({
       new Set(
         Object.values(documentFiles)
           .flat()
+          .filter(isValidationOwnedDocument)
           .map((document) => document.id)
           .filter((id): id is string => typeof id === 'string' && id.length > 0),
       ),
@@ -571,7 +636,7 @@ export function ProposalIncomeValidationForm({
       return
     }
 
-    if (targetDocument.id && user?.id) {
+    if (targetDocument.id && user?.id && isValidationOwnedDocument(targetDocument)) {
       try {
         setAutosaveState('saving')
         beginSaveRequest()
@@ -595,6 +660,150 @@ export function ProposalIncomeValidationForm({
         (_, index) => index !== targetIndex,
       ),
     }))
+  }
+
+  const openProposalDocumentsPicker = (fieldId: string) => {
+    setProposalDocumentsPickerFieldId(fieldId)
+    setSelectedProposalDocumentIds([])
+  }
+
+  const toggleProposalDocumentSelection = (documentId: string) => {
+    setSelectedProposalDocumentIds((currentIds) =>
+      currentIds.includes(documentId)
+        ? currentIds.filter((currentId) => currentId !== documentId)
+        : [...currentIds, documentId],
+    )
+  }
+
+  const attachSelectedProposalDocuments = async () => {
+    if (!proposalDocumentsPickerFieldId || selectedProposalDocumentIds.length === 0) {
+      setProposalDocumentsPickerFieldId(null)
+      setSelectedProposalDocumentIds([])
+      return
+    }
+
+    const targetFieldId = proposalDocumentsPickerFieldId
+
+    if (!user?.id) {
+      toast.error('Usuário não autenticado para usar documentos da proposta.')
+      return
+    }
+
+    const selectedDocuments = availableProposalDocuments.filter((document) =>
+      selectedProposalDocumentIds.includes(document.id),
+    )
+
+    const currentFieldFiles = documentFiles[targetFieldId] ?? []
+    const documentsToCopy = selectedDocuments.filter(
+      (document) =>
+        !currentFieldFiles.some((currentFile) =>
+          matchesProposalDocumentReference(currentFile, document.id),
+        ),
+    )
+
+    if (documentsToCopy.length === 0) {
+      setProposalDocumentsPickerFieldId(null)
+      setSelectedProposalDocumentIds([])
+      return
+    }
+
+    try {
+      setIsSubmittingProposalDocumentsPicker(true)
+      setAutosaveState('saving')
+      setUploadingFieldIds((currentFieldIds) =>
+        currentFieldIds.includes(targetFieldId)
+          ? currentFieldIds
+          : [...currentFieldIds, targetFieldId],
+      )
+      beginSaveRequest()
+
+      const copiedFiles = await Promise.all(
+        documentsToCopy.map(async (document) => {
+          const result = await downloadProposalDocument(proposal.id, document.id, user.id)
+
+          return new File(
+            [result.blob],
+            resolveReusableDocumentFileName(document),
+            {
+              type: result.blob.type || document.contentType || 'application/octet-stream',
+              lastModified: Date.now(),
+            },
+          )
+        }),
+      )
+      const documents = await filesToSubmissionDocuments(copiedFiles)
+
+      await uploadProposalDocuments(
+        proposal.id,
+        user.id,
+        documents,
+        'income_validation',
+      )
+
+      const updatedProposal = await fetchProposalDetail(proposal.id, user.id)
+      const usedIds = getStoredDocumentIds(documentFiles)
+
+      const copiedEntries = documentsToCopy.map((document, index) => {
+        const copiedFile = copiedFiles[index]
+        const matchedDocument = updatedProposal.incomeValidationDocuments.find(
+          (incomeValidationDocument) => {
+            if (usedIds.has(incomeValidationDocument.id)) {
+              return false
+            }
+
+            return incomeValidationDocument.originalFilename === copiedFile.name
+          },
+        )
+
+        if (matchedDocument) {
+          usedIds.add(matchedDocument.id)
+        }
+
+        return {
+          id: matchedDocument?.id,
+          name:
+            matchedDocument?.displayName ||
+            matchedDocument?.originalFilename ||
+            document.displayName ||
+            document.originalFilename ||
+            document.filename,
+          sizeBytes: matchedDocument?.sizeBytes ?? document.sizeBytes,
+          source: 'proposal_copy' as const,
+          sourceProposalDocumentId: document.id,
+        }
+      })
+
+      markAutosaveScheduled()
+      setDocumentFiles((currentFiles) => ({
+        ...currentFiles,
+        [targetFieldId]: [
+          ...(currentFiles[targetFieldId] ?? []),
+          ...copiedEntries,
+        ],
+      }))
+      setProposalDocumentsPickerFieldId(null)
+      setSelectedProposalDocumentIds([])
+      toast.success(
+        copiedEntries.length === 1
+          ? 'Documento da proposta copiado para a validação de renda.'
+          : 'Documentos da proposta copiados para a validação de renda.',
+      )
+    } catch (copyError) {
+      setAutosaveState('error')
+      toast.error(
+        copyError instanceof Error
+          ? copyError.message
+          : 'Não foi possível copiar os documentos da proposta.',
+      )
+    } finally {
+      setIsSubmittingProposalDocumentsPicker(false)
+      setUploadingFieldIds((currentFieldIds) =>
+        currentFieldIds.filter(
+          (currentFieldId) => currentFieldId !== targetFieldId,
+        ),
+      )
+      finishSaveRequest()
+    }
   }
 
   const incomeSpecificDocumentFields: DocumentFieldConfig[] =
@@ -961,16 +1170,20 @@ export function ProposalIncomeValidationForm({
     try {
       setPreviewingDocumentKey(documentId)
       const proposalDocument = proposal.documents.find((item) => item.id === documentId)
+      const incomeValidationDocument = proposal.incomeValidationDocuments.find(
+        (item) => item.id === documentId,
+      )
+      const currentDocument = proposalDocument ?? incomeValidationDocument
       const result = await viewProposalDocument(proposal.id, documentId, user.id)
 
       setDocumentPreview({
         fileName:
-          proposalDocument?.displayName ??
-          proposalDocument?.originalFilename ??
+          currentDocument?.displayName ??
+          currentDocument?.originalFilename ??
           fallbackName,
         kind: inferDocumentKindFromContent(
-          proposalDocument?.contentType ?? 'application/pdf',
-          proposalDocument?.filename ?? fallbackName,
+          currentDocument?.contentType ?? 'application/pdf',
+          currentDocument?.filename ?? fallbackName,
         ),
         url: result.url,
       })
@@ -1353,6 +1566,16 @@ export function ProposalIncomeValidationForm({
                       : 'Adicionar arquivos'}
                 </button>
 
+                <button
+                  type="button"
+                  onClick={() => openProposalDocumentsPicker(field.id)}
+                  disabled={isFormLocked || availableProposalDocuments.length === 0}
+                  className="mt-3 inline-flex items-center gap-2 rounded-xl border border-outline px-4 py-3 text-label-md font-semibold text-primary transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  <Icon name="folder_open" size={20} />
+                  Usar documentos da proposta
+                </button>
+
                 <div className="mt-4 rounded-xl border border-dashed border-outline-variant bg-surface p-4">
                   {isUploading ? (
                     <div className="flex items-center gap-3 rounded-lg border border-primary/20 bg-primary/5 px-3 py-3 text-primary">
@@ -1625,6 +1848,113 @@ export function ProposalIncomeValidationForm({
                 className="rounded-xl bg-primary px-4 py-2.5 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
               >
                 {isClearingIncomeTypeDocuments ? 'Alterando...' : 'Confirmar alteração'}
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
+      )
+        : null}
+
+      {proposalDocumentsPickerFieldId
+        ? createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/55 px-4">
+          <div className="relative flex max-h-[calc(100vh-2rem)] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-outline-variant bg-surface-container-lowest shadow-[0px_24px_60px_rgba(0,0,0,0.25)]">
+            {isSubmittingProposalDocumentsPicker ? (
+              <div className="absolute inset-0 z-10 flex items-center justify-center bg-surface-container-lowest/80 backdrop-blur-[1px]">
+                <div className="flex items-center gap-3 rounded-xl border border-outline-variant bg-surface px-4 py-3 text-on-surface shadow-[0px_8px_24px_rgba(0,0,0,0.08)]">
+                  <Icon name="progress_activity" size={18} className="animate-spin text-primary" />
+                  <div>
+                    <p className="text-body-md font-semibold">Adicionando documentos...</p>
+                    <p className="text-body-sm text-on-surface-variant">
+                      Aguarde a conclusão do envio.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+            <div className="border-b border-outline-variant px-5 py-4">
+              <h4 className="text-title-lg font-semibold text-on-surface">
+                Usar documentos da proposta
+              </h4>
+              <p className="mt-1 text-body-sm text-on-surface-variant">
+                Selecione um ou mais documentos já enviados na proposta para reutilizar
+                neste campo.
+              </p>
+            </div>
+
+            <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+              {availableProposalDocuments.length > 0 ? (
+                <div className="space-y-3">
+                  {availableProposalDocuments.map((document) => {
+                    const isSelected = selectedProposalDocumentIds.includes(document.id)
+                    const displayName =
+                      document.displayName || document.originalFilename || document.filename
+
+                    return (
+                      <button
+                        key={document.id}
+                        type="button"
+                        onClick={() => toggleProposalDocumentSelection(document.id)}
+                        disabled={isSubmittingProposalDocumentsPicker}
+                        className={`grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
+                          isSelected
+                            ? 'border-primary bg-primary/10'
+                            : 'border-outline-variant bg-surface hover:border-primary/40'
+                        } ${isSubmittingProposalDocumentsPicker ? 'cursor-not-allowed opacity-60' : ''}`}
+                      >
+                        <span
+                          className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${
+                            isSelected
+                              ? 'border-primary bg-primary text-white'
+                              : 'border-outline-variant text-transparent'
+                          }`}
+                        >
+                          <Icon name="check" size={12} />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block truncate text-body-md font-medium text-on-surface">
+                            {displayName}
+                          </span>
+                          <span className="mt-1 block text-body-sm text-on-surface-variant">
+                            {((document.sizeBytes || 0) / 1024 / 1024).toFixed(2)} MB
+                          </span>
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-body-md text-on-surface-variant">
+                  Nenhum documento disponível na proposta para reutilização.
+                </p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-3 border-t border-outline-variant px-5 py-4">
+              <button
+                type="button"
+                disabled={isSubmittingProposalDocumentsPicker}
+                onClick={() => {
+                  setProposalDocumentsPickerFieldId(null)
+                  setSelectedProposalDocumentIds([])
+                }}
+                className="rounded-xl border border-outline px-4 py-2.5 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={
+                  selectedProposalDocumentIds.length === 0 ||
+                  isSubmittingProposalDocumentsPicker
+                }
+                onClick={attachSelectedProposalDocuments}
+                className="rounded-xl bg-primary px-4 py-2.5 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {isSubmittingProposalDocumentsPicker
+                  ? 'Adicionando...'
+                  : 'Adicionar selecionados'}
               </button>
             </div>
           </div>

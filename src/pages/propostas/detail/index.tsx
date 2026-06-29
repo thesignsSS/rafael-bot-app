@@ -10,6 +10,7 @@ import {
   buildProposalAssistantContext,
   buildProposalOperationalGuide,
 } from '../lib/proposalOperationalGuide'
+import { filterProposalDocumentsExcludingIncomeValidation } from '../lib/proposalDetailUtils'
 import { DeleteProposalModal } from '../components/detail/DeleteProposalModal'
 import { PendingReasonModal } from '../components/detail/PendingReasonModal'
 import { PendingDocumentsUploadModal } from '../components/detail/PendingDocumentsUploadModal'
@@ -61,7 +62,6 @@ export default function ProposalDetailPage() {
   const {
     status,
     proposal,
-    documents,
     error,
     refetch,
     isEditing,
@@ -206,6 +206,16 @@ export default function ProposalDetailPage() {
   )
   const unreadGuestsCount = unreadGuestNotifications.length
   const shouldShowGuestsIndicator = unreadGuestsCount > 0
+  const proposalDocumentsOnly = useMemo(
+    () =>
+      proposal
+        ? filterProposalDocumentsExcludingIncomeValidation(
+            proposal.documents,
+            proposal.formData,
+          )
+        : [],
+    [proposal],
+  )
   useEffect(() => {
     setIsIncomeValidationFinalized(readIncomeValidationFinalized(proposal?.formData))
   }, [proposal?.formData])
@@ -593,7 +603,7 @@ export default function ProposalDetailPage() {
 
             <div className="lg:col-span-2">
               <ProposalDocumentsSection
-                documents={documents}
+                documents={proposalDocumentsOnly}
                 isBusy={isUpdatingDocuments}
                 canManageDocuments={!isBrokerFullyLocked}
                 onRename={renameDocument}

@@ -4,6 +4,7 @@ import {
   useRef,
   useState,
   type KeyboardEvent,
+  type MouseEvent as ReactMouseEvent,
 } from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import { getProfileAvatarUrl } from '../../../lib/profile-avatar'
@@ -38,6 +39,7 @@ const statusToneClassName: Record<ProposalStatus, string> = {
 }
 
 const KANBAN_INITIAL_VISIBLE_COUNT = 10
+const TOP_SCROLLBAR_MIN_THUMB_WIDTH = 56
 
 export function ProposalsKanbanBoard({
   items,
@@ -61,6 +63,30 @@ export function ProposalsKanbanBoard({
   const hoverOpenTimeoutRef = useRef<number | null>(null)
   const hoverCloseTimeoutRef = useRef<number | null>(null)
   const [showAllColumns, setShowAllColumns] = useState(false)
+  const topScrollbarTrackRef = useRef<HTMLDivElement | null>(null)
+  const bottomScrollbarRef = useRef<HTMLDivElement | null>(null)
+  const boardContentRef = useRef<HTMLDivElement | null>(null)
+  const [topScrollbarThumbWidth, setTopScrollbarThumbWidth] = useState(0)
+  const [topScrollbarThumbOffset, setTopScrollbarThumbOffset] = useState(0)
+
+  const columns = useMemo(
+    () =>
+      statusOptions.map((statusOption) => ({
+        status: statusOption.value,
+        label: statusOption.label,
+        items: items
+          .filter(
+            (proposal) =>
+              normalizeProposalStatus(proposal.status) === statusOption.value,
+          )
+          .sort(
+            (left, right) =>
+              new Date(right.createdAt).getTime() -
+              new Date(left.createdAt).getTime(),
+          ),
+      })),
+    [items, statusOptions],
+  )
 
   useEffect(() => {
     return () => {
@@ -73,6 +99,124 @@ export function ProposalsKanbanBoard({
       }
     }
   }, [])
+
+  useEffect(() => {
+    const topScrollbarTrack = topScrollbarTrackRef.current
+    const bottomScrollbar = bottomScrollbarRef.current
+    const boardContent = boardContentRef.current
+
+    if (!topScrollbarTrack || !bottomScrollbar || !boardContent) {
+      return
+    }
+
+    const syncTopScrollbar = () => {
+      const viewportWidth = bottomScrollbar.clientWidth
+      const contentWidth = boardContent.scrollWidth
+      const maxScrollLeft = Math.max(contentWidth - viewportWidth, 0)
+      const trackWidth = topScrollbarTrack.clientWidth
+
+      if (contentWidth <= 0 || viewportWidth <= 0 || trackWidth <= 0) {
+        setTopScrollbarThumbWidth(0)
+        setTopScrollbarThumbOffset(0)
+        return
+      }
+
+      const nextThumbWidth =
+        contentWidth <= viewportWidth
+          ? trackWidth
+          : Math.max(
+              (viewportWidth / contentWidth) * trackWidth,
+              TOP_SCROLLBAR_MIN_THUMB_WIDTH,
+            )
+      const maxThumbOffset = Math.max(trackWidth - nextThumbWidth, 0)
+      const nextThumbOffset =
+        maxScrollLeft === 0
+          ? 0
+          : (bottomScrollbar.scrollLeft / maxScrollLeft) * maxThumbOffset
+
+      setTopScrollbarThumbWidth(nextThumbWidth)
+      setTopScrollbarThumbOffset(nextThumbOffset)
+    }
+
+    const handleBottomScroll = () => {
+      syncTopScrollbar()
+    }
+
+    syncTopScrollbar()
+
+    const resizeObserver = new ResizeObserver(() => {
+      syncTopScrollbar()
+    })
+
+    resizeObserver.observe(topScrollbarTrack)
+    resizeObserver.observe(bottomScrollbar)
+    resizeObserver.observe(boardContent)
+    bottomScrollbar.addEventListener('scroll', handleBottomScroll)
+    window.addEventListener('resize', syncTopScrollbar)
+
+    return () => {
+      resizeObserver.disconnect()
+      bottomScrollbar.removeEventListener('scroll', handleBottomScroll)
+      window.removeEventListener('resize', syncTopScrollbar)
+    }
+  }, [columns.length, showAllColumns])
+
+  const handleTopScrollbarPointerDown = (
+    event: ReactMouseEvent<HTMLDivElement>,
+  ) => {
+    const track = topScrollbarTrackRef.current
+    const bottomScrollbar = bottomScrollbarRef.current
+    const thumbWidth = topScrollbarThumbWidth
+
+    if (!track || !bottomScrollbar || thumbWidth <= 0) {
+      return
+    }
+
+    const trackRect = track.getBoundingClientRect()
+    const maxThumbOffset = Math.max(trackRect.width - thumbWidth, 0)
+    const maxScrollLeft = Math.max(
+      boardContentRef.current
+        ? boardContentRef.current.scrollWidth - bottomScrollbar.clientWidth
+        : 0,
+      0,
+    )
+
+    if (maxScrollLeft <= 0 || maxThumbOffset <= 0) {
+      return
+    }
+
+    const pointerOffsetInsideThumb = event.clientX - trackRect.left - topScrollbarThumbOffset
+    const startedFromThumb =
+      pointerOffsetInsideThumb >= 0 && pointerOffsetInsideThumb <= thumbWidth
+
+    const updateScrollFromClientX = (clientX: number) => {
+      const nextThumbOffset = startedFromThumb
+        ? clientX - trackRect.left - pointerOffsetInsideThumb
+        : clientX - trackRect.left - thumbWidth / 2
+      const clampedThumbOffset = Math.min(
+        Math.max(nextThumbOffset, 0),
+        maxThumbOffset,
+      )
+      const nextScrollLeft =
+        (clampedThumbOffset / maxThumbOffset) * maxScrollLeft
+
+      bottomScrollbar.scrollLeft = nextScrollLeft
+    }
+
+    updateScrollFromClientX(event.clientX)
+
+    const handlePointerMove = (moveEvent: MouseEvent) => {
+      updateScrollFromClientX(moveEvent.clientX)
+    }
+
+    const handlePointerUp = () => {
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('mouseup', handlePointerUp)
+    }
+
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('mouseup', handlePointerUp)
+  }
 
   const clearHoverTimers = () => {
     if (hoverOpenTimeoutRef.current !== null) {
@@ -122,25 +266,6 @@ export function ProposalsKanbanBoard({
     onSelectProposal(proposalId)
   }
 
-  const columns = useMemo(
-    () =>
-      statusOptions.map((statusOption) => ({
-        status: statusOption.value,
-        label: statusOption.label,
-        items: items
-          .filter(
-            (proposal) =>
-              normalizeProposalStatus(proposal.status) === statusOption.value,
-          )
-          .sort(
-            (left, right) =>
-              new Date(right.createdAt).getTime() -
-              new Date(left.createdAt).getTime(),
-          ),
-      })),
-    [items, statusOptions],
-  )
-
   if (isLoading) {
     return (
       <div className="rounded-xl border border-outline-variant bg-surface-container-lowest p-8 text-center text-body-md text-on-surface-variant shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
@@ -186,8 +311,32 @@ export function ProposalsKanbanBoard({
         </button>
       </div>
 
-      <div className="overflow-x-auto pb-2">
-        <div className="flex min-w-max gap-4">
+      <div
+        ref={topScrollbarTrackRef}
+        role="scrollbar"
+        aria-label="Barra de rolagem superior do kanban"
+        aria-controls="proposals-kanban-board"
+        aria-orientation="horizontal"
+        aria-valuemin={0}
+        aria-valuenow={Math.round(topScrollbarThumbOffset)}
+        className="relative h-2 cursor-pointer rounded-full bg-outline-variant/45"
+        onMouseDown={handleTopScrollbarPointerDown}
+      >
+        <div
+          className="absolute top-0 h-2 rounded-full bg-outline/55 transition-colors hover:bg-outline/75"
+          style={{
+            width: `${topScrollbarThumbWidth}px`,
+            transform: `translateX(${topScrollbarThumbOffset}px)`,
+          }}
+        />
+      </div>
+
+      <div
+        id="proposals-kanban-board"
+        ref={bottomScrollbarRef}
+        className="overflow-x-auto pb-2"
+      >
+        <div ref={boardContentRef} className="flex min-w-max gap-4">
       {columns.map((column) => {
         const isDropTarget = canMoveCards && dragOverStatus === column.status
         const visibleItems = showAllColumns

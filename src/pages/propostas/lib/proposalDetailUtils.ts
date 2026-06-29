@@ -1,4 +1,4 @@
-import type { ProposalDocumentKind } from '../types/proposal-detail'
+import type { ProposalDocument, ProposalDocumentKind } from '../types/proposal-detail'
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
 const TEXT_EXTENSIONS = new Set(['txt'])
@@ -72,4 +72,61 @@ export function getDocumentIconStyles(kind: ProposalDocumentKind) {
     container: 'bg-blue-50 text-blue-600',
     icon: 'image',
   } as const
+}
+
+export function extractIncomeValidationDocumentIds(
+  formData: Record<string, unknown> | undefined,
+): Set<string> {
+  const rawIncomeValidation = formData?.validacao_renda
+
+  if (typeof rawIncomeValidation !== 'object' || rawIncomeValidation === null) {
+    return new Set()
+  }
+
+  const documentsByField = (rawIncomeValidation as { documentsByField?: unknown })
+    .documentsByField
+
+  if (typeof documentsByField !== 'object' || documentsByField === null) {
+    return new Set()
+  }
+
+  const ids = new Set<string>()
+
+  Object.values(documentsByField as Record<string, unknown>).forEach((documents) => {
+    if (!Array.isArray(documents)) {
+      return
+    }
+
+    documents.forEach((document) => {
+      if (typeof document !== 'object' || document === null) {
+        return
+      }
+
+      const documentSource = (document as { source?: unknown }).source
+      const documentId = (document as { id?: unknown }).id
+
+      if (documentSource === 'proposal') {
+        return
+      }
+
+      if (typeof documentId === 'string' && documentId.trim().length > 0) {
+        ids.add(documentId)
+      }
+    })
+  })
+
+  return ids
+}
+
+export function filterProposalDocumentsExcludingIncomeValidation(
+  documents: ProposalDocument[],
+  formData: Record<string, unknown> | undefined,
+): ProposalDocument[] {
+  const incomeValidationDocumentIds = extractIncomeValidationDocumentIds(formData)
+
+  if (incomeValidationDocumentIds.size === 0) {
+    return documents
+  }
+
+  return documents.filter((document) => !incomeValidationDocumentIds.has(document.id))
 }

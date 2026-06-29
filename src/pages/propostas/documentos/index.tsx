@@ -1,9 +1,12 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../../../components/ui/Icon'
 import { useAuth } from '../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../hooks/useDocumentTitle'
-import { inferDocumentKindFromContent } from '../lib/proposalDetailUtils'
+import {
+  filterProposalDocumentsExcludingIncomeValidation,
+  inferDocumentKindFromContent,
+} from '../lib/proposalDetailUtils'
 import { viewProposalDocument } from '../lib/proposalsApi'
 import { useProposalDetail } from '../hooks/useProposalDetail'
 import type { ProposalDocumentKind } from '../types/proposal-detail'
@@ -263,6 +266,16 @@ export default function ProposalDocumentsPage() {
   const pageTitle = proposal
     ? `Documentos ${proposal.proposalCode} | Effectus`
     : 'Documentos da Proposta | Effectus'
+  const proposalDocumentsOnly = useMemo(
+    () =>
+      proposal
+        ? filterProposalDocumentsExcludingIncomeValidation(
+            proposal.documents,
+            proposal.formData,
+          )
+        : [],
+    [proposal],
+  )
 
   useDocumentTitle(pageTitle)
 
@@ -280,7 +293,7 @@ export default function ProposalDocumentsPage() {
       return
     }
 
-    if (proposal.documents.length === 0) {
+    if (proposalDocumentsOnly.length === 0) {
       setPreviewDocuments([])
       setDocumentsError(null)
       setDocumentsStatus('ready')
@@ -289,6 +302,7 @@ export default function ProposalDocumentsPage() {
 
     let shouldIgnore = false
     const currentProposal = proposal
+    const currentProposalId = currentProposal.id
     const currentBrokerUserId = brokerUserId
 
     async function loadDocuments() {
@@ -297,9 +311,9 @@ export default function ProposalDocumentsPage() {
         setDocumentsError(null)
 
         const nextPreviewDocuments = await Promise.all(
-          currentProposal.documents.map(async (document) => {
+          proposalDocumentsOnly.map(async (document) => {
             const result = await viewProposalDocument(
-              currentProposal.id,
+              currentProposalId,
               document.id,
               currentBrokerUserId,
             )
@@ -341,7 +355,7 @@ export default function ProposalDocumentsPage() {
     return () => {
       shouldIgnore = true
     }
-  }, [brokerUserId, proposal, status])
+  }, [brokerUserId, proposal, proposalDocumentsOnly, status])
 
   if (isAuthLoading || status === 'loading') {
     return (
@@ -384,9 +398,9 @@ export default function ProposalDocumentsPage() {
               Todos os documentos
             </h1>
             <p className="text-body-sm text-on-surface-variant">
-              {proposal.documents.length === 1
+              {proposalDocumentsOnly.length === 1
                 ? '1 arquivo enviado'
-                : `${proposal.documents.length} arquivos enviados`}
+                : `${proposalDocumentsOnly.length} arquivos enviados`}
             </p>
           </div>
 
