@@ -170,6 +170,7 @@ type SavedIncomeValidationData = {
   propertyValidationType?: 'Individual' | 'Na Planta'
   propertyValue?: string
   downPaymentValue?: string
+  financedAmountValue?: string
   financingInstallmentValue?: string
   builderInstallmentValue?: string
   postSignatureValue?: string
@@ -326,6 +327,9 @@ export function ProposalIncomeValidationForm({
   const [downPaymentValue, setDownPaymentValue] = useState(
     savedIncomeValidationData?.downPaymentValue ?? '',
   )
+  const [financedAmountValue, setFinancedAmountValue] = useState(
+    savedIncomeValidationData?.financedAmountValue ?? '',
+  )
   const [financingInstallmentValue, setFinancingInstallmentValue] = useState(
     savedIncomeValidationData?.financingInstallmentValue ?? '',
   )
@@ -415,6 +419,7 @@ export function ProposalIncomeValidationForm({
     `Localização do imóvel: ${propertyCity.trim() || 'Não informado'}`,
     `Valor do imóvel: ${propertyValue.trim() || 'Não informado'}`,
     `Valor da entrada: ${downPaymentValue.trim() || 'Não informado'}`,
+    `Valor financiado: ${financedAmountValue.trim() || 'Não informado'}`,
     `Prestação do financiamento: ${financingInstallmentValue.trim() || 'Não informado'}`,
     ...(propertyValidationType === 'Na Planta'
       ? [
@@ -833,6 +838,7 @@ export function ProposalIncomeValidationForm({
     isSeguridadeFilled &&
     propertyValue.trim().length > 0 &&
     downPaymentValue.trim().length > 0 &&
+    financedAmountValue.trim().length > 0 &&
     financingInstallmentValue.trim().length > 0 &&
     activityDescription.trim().length > 0 &&
     incomeType.trim().length > 0
@@ -854,6 +860,7 @@ export function ProposalIncomeValidationForm({
       propertyValidationType,
       propertyValue,
       downPaymentValue,
+      financedAmountValue,
       financingInstallmentValue,
       builderInstallmentValue,
       postSignatureValue,
@@ -977,6 +984,7 @@ export function ProposalIncomeValidationForm({
     )
     setPropertyValue(savedIncomeValidationData?.propertyValue ?? '')
     setDownPaymentValue(savedIncomeValidationData?.downPaymentValue ?? '')
+    setFinancedAmountValue(savedIncomeValidationData?.financedAmountValue ?? '')
     setFinancingInstallmentValue(
       savedIncomeValidationData?.financingInstallmentValue ?? '',
     )
@@ -1041,6 +1049,7 @@ export function ProposalIncomeValidationForm({
     builderInstallmentValue,
     documentFiles,
     downPaymentValue,
+    financedAmountValue,
     incomeType,
     isFormLocked,
     isFinalized,
@@ -1411,6 +1420,23 @@ export function ProposalIncomeValidationForm({
           ))}
         </div>
         </div>
+      </div>
+
+      <div className="mt-5 grid gap-5 md:grid-cols-2">
+        <label className="flex flex-col gap-2">
+          <span className="text-label-md font-semibold text-on-surface">
+            Valor Financiado
+          </span>
+          <input
+            type="text"
+            inputMode="numeric"
+            value={financedAmountValue}
+            onChange={handleCurrencyChange(setFinancedAmountValue)}
+            disabled={isFormLocked}
+            placeholder="R$ 0,00"
+            className="rounded-xl border border-outline-variant bg-surface px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+          />
+        </label>
       </div>
 
       {propertyValidationType === 'Na Planta' ? (
