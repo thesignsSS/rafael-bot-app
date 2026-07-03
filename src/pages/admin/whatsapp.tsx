@@ -63,11 +63,18 @@ export default function AdminWhatsAppPage() {
     }
 
     let isMounted = true
+    let isRequestInFlight = false
     const currentUserId = currentUserProfile.id
 
-    async function loadWhatsAppState(showError = true) {
+    async function loadWhatsAppState(showError = true, background = false) {
+      if (isRequestInFlight) {
+        return
+      }
+
       try {
-        if (isMounted) {
+        isRequestInFlight = true
+
+        if (isMounted && !background) {
           setIsLoadingWhatsAppState(true)
         }
 
@@ -107,6 +114,8 @@ export default function AdminWhatsAppPage() {
           )
         }
       } finally {
+        isRequestInFlight = false
+
         if (isMounted) {
           setIsLoadingWhatsAppState(false)
         }
@@ -115,7 +124,7 @@ export default function AdminWhatsAppPage() {
 
     void loadWhatsAppState()
     const intervalId = window.setInterval(() => {
-      void loadWhatsAppState(false)
+      void loadWhatsAppState(false, true)
     }, 10000)
 
     return () => {
@@ -241,7 +250,7 @@ export default function AdminWhatsAppPage() {
             </p>
 
             <div className="mt-5 flex min-h-[280px] items-center justify-center rounded-2xl border border-dashed border-outline-variant bg-surface-container-low p-4">
-              {isLoadingWhatsAppState ? (
+              {isLoadingWhatsAppState && !whatsAppState ? (
                 <p className="text-body-sm text-on-surface-variant">
                   Carregando QR code...
                 </p>

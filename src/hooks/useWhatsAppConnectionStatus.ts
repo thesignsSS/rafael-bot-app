@@ -35,10 +35,17 @@ export function useWhatsAppConnectionStatus(enabled = true) {
     }
 
     let isMounted = true
+    let isRequestInFlight = false
     const currentUserId = currentUserProfile.id
 
     async function loadWhatsAppState() {
+      if (isRequestInFlight) {
+        return
+      }
+
       try {
+        isRequestInFlight = true
+
         const url = new URL(getAdminApiUrl('/admin/whatsapp/state'))
         url.searchParams.set('userId', currentUserId)
 
@@ -63,6 +70,8 @@ export function useWhatsAppConnectionStatus(enabled = true) {
         if (isMounted) {
           setConnectionStatus(null)
         }
+      } finally {
+        isRequestInFlight = false
       }
     }
 
