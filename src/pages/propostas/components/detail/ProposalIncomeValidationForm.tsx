@@ -281,6 +281,48 @@ function resolveReusableDocumentFileName(document: ProposalDetail['documents'][n
   return document.filename
 }
 
+function normalizeDocumentFiles(
+  documentsByField: DocumentFieldFiles | undefined,
+  proposal: ProposalDetail,
+): DocumentFieldFiles {
+  if (!documentsByField) {
+    return {}
+  }
+
+  const proposalDocumentIds = new Set(proposal.documents.map((document) => document.id))
+  const incomeValidationDocumentIds = new Set(
+    proposal.incomeValidationDocuments.map((document) => document.id),
+  )
+
+  return Object.fromEntries(
+    Object.entries(documentsByField).map(([fieldId, documents]) => [
+      fieldId,
+      documents.map((document) => {
+        if (!document.id) {
+          return document
+        }
+
+        if (incomeValidationDocumentIds.has(document.id)) {
+          return {
+            ...document,
+            source: document.source === 'proposal_copy' ? 'proposal_copy' : 'income_validation',
+          }
+        }
+
+        if (proposalDocumentIds.has(document.id)) {
+          return {
+            ...document,
+            source: 'proposal_reference',
+            sourceProposalDocumentId: document.sourceProposalDocumentId ?? document.id,
+          }
+        }
+
+        return document
+      }),
+    ]),
+  )
+}
+
 async function fileToEmailAttachment(file: File): Promise<EmailAttachment> {
   const bytes = new Uint8Array(await file.arrayBuffer())
   let binary = ''
@@ -346,7 +388,7 @@ export function ProposalIncomeValidationForm({
     (typeof INCOME_TYPE_OPTIONS)[number]
   >(savedIncomeValidationData?.incomeType ?? 'Renda formal')
   const [documentFiles, setDocumentFiles] = useState<DocumentFieldFiles>(
-    savedIncomeValidationData?.documentsByField ?? {},
+    normalizeDocumentFiles(savedIncomeValidationData?.documentsByField, proposal),
   )
   const [uploadingFieldIds, setUploadingFieldIds] = useState<string[]>([])
   const [proposalDocumentsPickerFieldId, setProposalDocumentsPickerFieldId] = useState<
@@ -401,6 +443,10 @@ export function ProposalIncomeValidationForm({
         proposal.formData,
       ),
     [proposal.documents, proposal.formData],
+  )
+  const incomeValidationDocumentIds = useMemo(
+    () => new Set(proposal.incomeValidationDocuments.map((document) => document.id)),
+    [proposal.incomeValidationDocuments],
   )
   const emailSubject = `Validação de renda - ${proposal.client.name.toUpperCase()} - ${proposal.client.cpf}`
   const senderName = currentUserProfile?.fullName?.trim() || proposal.ownerName
@@ -641,7 +687,13 @@ export function ProposalIncomeValidationForm({
       return
     }
 
-    if (targetDocument.id && user?.id && isValidationOwnedDocument(targetDocument)) {
+    const shouldDeleteStoredIncomeValidationDocument =
+      !!targetDocument.id &&
+      !!user?.id &&
+      isValidationOwnedDocument(targetDocument) &&
+      incomeValidationDocumentIds.has(targetDocument.id)
+
+    if (shouldDeleteStoredIncomeValidationDocument && targetDocument.id && user?.id) {
       try {
         setAutosaveState('saving')
         beginSaveRequest()
@@ -994,8 +1046,15 @@ export function ProposalIncomeValidationForm({
     setPostSignatureValue(savedIncomeValidationData?.postSignatureValue ?? '')
     setActivityDescription(savedIncomeValidationData?.activityDescription ?? '')
     setIncomeType(savedIncomeValidationData?.incomeType ?? 'Renda formal')
-    setDocumentFiles(savedIncomeValidationData?.documentsByField ?? {})
-  }, [proposal.id, savedIncomeValidationData])
+    setDocumentFiles(
+      normalizeDocumentFiles(savedIncomeValidationData?.documentsByField, proposal),
+    )
+  }, [
+    proposal.id,
+    proposal.documents,
+    proposal.incomeValidationDocuments,
+    savedIncomeValidationData,
+  ])
 
   useEffect(() => {
     if (!hasHydratedAutosaveRef.current) {
