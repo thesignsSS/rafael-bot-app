@@ -6,6 +6,7 @@ import { PreferencesInsightsTab } from './components/PreferencesInsightsTab'
 import { useAuth } from '../../contexts/auth-context'
 import { usePreferences } from '../../contexts/preferences-context'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { Checkbox } from '../../components/ui/Checkbox'
 import {
   buildProfileAvatarPath,
   createCroppedAvatarBlob,
@@ -23,6 +24,9 @@ export default function PerfilPage() {
   const [fullName, setFullName] = useState(currentUserProfile?.fullName ?? '')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [appearsInChat, setAppearsInChat] = useState(
+    currentUserProfile?.appearsInChat ?? true,
+  )
   const [isSavingProfile, setIsSavingProfile] = useState(false)
   const [isSavingPassword, setIsSavingPassword] = useState(false)
   const [isSavingAvatar, setIsSavingAvatar] = useState(false)
@@ -37,6 +41,10 @@ export default function PerfilPage() {
   useEffect(() => {
     setFullName(currentUserProfile?.fullName ?? '')
   }, [currentUserProfile?.fullName])
+
+  useEffect(() => {
+    setAppearsInChat(currentUserProfile?.appearsInChat ?? true)
+  }, [currentUserProfile?.appearsInChat])
 
   useEffect(() => {
     return () => {
@@ -60,6 +68,8 @@ export default function PerfilPage() {
     [currentUserProfile?.avatarPath, currentUserProfile?.updatedAt],
   )
   const hasNameChanges = fullName.trim() !== (currentUserProfile?.fullName ?? '').trim()
+  const hasChatVisibilityChanges =
+    appearsInChat !== (currentUserProfile?.appearsInChat ?? true)
   const canViewPreferencesInsights =
     currentUserProfile?.canViewPreferencesInsights === true
 
@@ -237,6 +247,7 @@ export default function PerfilPage() {
           .from('profiles')
           .update({
             full_name: normalizedFullName,
+            appears_in_chat: role === 'admin' ? appearsInChat : true,
           })
           .eq('id', user.id),
         supabase
@@ -448,14 +459,33 @@ export default function PerfilPage() {
                 />
               </div>
 
+              {role === 'admin' ? (
+                <div className="rounded-2xl border border-outline-variant bg-surface-container-low p-4">
+                  <p className="text-label-md font-semibold text-on-surface">
+                    Visibilidade no chat
+                  </p>
+                  <p className="mt-1 text-body-sm text-on-surface-variant">
+                    Desative esta opção para deixar de aparecer no chat para outros usuários.
+                  </p>
+                  <div className="mt-4">
+                    <Checkbox
+                      id="profile-appears-in-chat"
+                      checked={appearsInChat}
+                      onChange={(event) => setAppearsInChat(event.target.checked)}
+                      label="Aparecer no chat para outros usuários"
+                    />
+                  </div>
+                </div>
+              ) : null}
+
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={() => void handleSaveProfile()}
-                  disabled={isSavingProfile || !hasNameChanges}
+                  disabled={isSavingProfile || (!hasNameChanges && !hasChatVisibilityChanges)}
                   className="rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                 >
-                  {isSavingProfile ? 'Salvando...' : 'Salvar nome'}
+                  {isSavingProfile ? 'Salvando...' : 'Salvar alterações'}
                 </button>
               </div>
             </div>

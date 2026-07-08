@@ -29,6 +29,7 @@ function buildFallbackProfile(user: User): CurrentUserProfile {
     role,
     isAdmin: isAdminRole(role),
     isActive: true,
+    appearsInChat: true,
     avatarPath: null,
     canViewPreferencesInsights: isAdminRole(role),
     updatedAt: null,
@@ -55,6 +56,7 @@ function readStoredProfile(userId: string): CurrentUserProfile | null {
       typeof parsedValue.role !== 'string' ||
       typeof parsedValue.isAdmin !== 'boolean' ||
       typeof parsedValue.isActive !== 'boolean' ||
+      typeof parsedValue.appearsInChat !== 'boolean' ||
       typeof parsedValue.canViewPreferencesInsights !== 'boolean' ||
       !(
         parsedValue.avatarPath === null ||

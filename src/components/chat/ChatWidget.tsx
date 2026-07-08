@@ -157,6 +157,7 @@ export function ChatWidget() {
 
   const onlineUsersSet = useMemo(() => new Set(onlineUserIds), [onlineUserIds])
   const isAdmin = currentUserProfile?.isAdmin ?? false
+  const appearsInChat = currentUserProfile?.appearsInChat !== false
   const chatWallpaperClassName = useMemo(
     () =>
       preferences.chatWallpaper === 'none'
@@ -299,8 +300,18 @@ export function ChatWidget() {
       return
     }
 
+    if (!appearsInChat) {
+      setUsers([])
+      setConversations([])
+      setMessages([])
+      setActiveConversation(null)
+      setTypingConversationId(null)
+      setInputValue('')
+      return
+    }
+
     void loadDirectoryData()
-  }, [currentUserId, loadDirectoryData])
+  }, [appearsInChat, currentUserId, loadDirectoryData])
 
   useEffect(() => {
     if (!currentUserId) {

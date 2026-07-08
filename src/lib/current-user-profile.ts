@@ -9,6 +9,7 @@ export type CurrentUserProfile = {
   role: UserRole
   isAdmin: boolean
   isActive: boolean
+  appearsInChat: boolean
   avatarPath: string | null
   canViewPreferencesInsights: boolean
   updatedAt: string | null
@@ -21,6 +22,7 @@ type CurrentUserProfileApiResponse =
       role: string
       isAdmin: boolean
       isActive: boolean
+      appearsInChat?: boolean
       avatarPath: string | null
       canViewPreferencesInsights?: boolean
       updatedAt: string | null
@@ -86,6 +88,7 @@ export async function fetchCurrentUserProfile(
     role: parseUserRole(data.role),
     isAdmin: data.isAdmin,
     isActive: data.isActive !== false,
+    appearsInChat: data.appearsInChat !== false,
     avatarPath: typeof data.avatarPath === 'string' ? data.avatarPath : null,
     canViewPreferencesInsights:
       data.canViewPreferencesInsights === true || data.isAdmin === true,

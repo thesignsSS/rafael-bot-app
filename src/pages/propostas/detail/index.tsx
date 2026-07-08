@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
+import { useSearchParams } from 'react-router-dom'
 import { useAuth } from '../../../contexts/auth-context'
 import { useNotifications } from '../../../hooks/useNotifications'
 import {
@@ -55,6 +56,7 @@ function readIncomeValidationFinalized(formData: Record<string, unknown> | undef
 }
 
 export default function ProposalDetailPage() {
+  const [searchParams] = useSearchParams()
   const { currentUserProfile } = useAuth()
   const { items: notifications, markAsRead } = useNotifications(
     currentUserProfile?.id,
@@ -145,7 +147,7 @@ export default function ProposalDetailPage() {
   const shouldHighlightComments = canBrokerHandlePending
   const canResendForAnalysis =
     canBrokerHandlePending &&
-    (hasPendingUpdates || pendingDocumentsDraft.length > 0)
+    (hasPendingUpdates || commentDraft.trim().length > 0 || pendingDocumentsDraft.length > 0)
   const isBrokerFullyLocked =
     isBrokerReadOnly || (!isAdmin && isIncomeValidationFinalized)
   const canEditProposal = !isBrokerFullyLocked
@@ -221,10 +223,15 @@ export default function ProposalDetailPage() {
   }, [proposal?.formData])
 
   useEffect(() => {
+    if (searchParams.get('tab') === 'comentarios') {
+      setActiveProposalSectionTab('comentarios')
+      return
+    }
+
     if (canBrokerHandlePending && normalizedStatus === 'pendente') {
       setActiveProposalSectionTab('tratativa')
     }
-  }, [canBrokerHandlePending, normalizedStatus])
+  }, [canBrokerHandlePending, normalizedStatus, searchParams])
 
   useEffect(() => {
     if (!hasIncomeValidationStep && activeMainTab === 'validacao_renda') {

@@ -809,7 +809,9 @@ export function useProposalDetailPage() {
   }, [canBrokerHandlePending, commentDraft, proposal, refetch, requireProposalContext])
 
   const resendForAnalysis = useCallback(async () => {
-    const canResendNow = hasPendingUpdates || pendingDocumentsDraft.length > 0
+    const hasDraftComment = commentDraft.trim().length > 0
+    const canResendNow =
+      hasPendingUpdates || hasDraftComment || pendingDocumentsDraft.length > 0
 
     if (!canBrokerHandlePending || !canResendNow) {
       return
