@@ -5,6 +5,11 @@ export const PROPOSAL_STATUSES = [
   'reprovado',
   'aprovado',
   'validacao_renda',
+  'renda_validada',
+  'renda_nao_validada',
+  'engenharia',
+  'formularios',
+  'conformidade',
 ] as const
 
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
@@ -23,6 +28,11 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   reprovado: 'Reprovado',
   aprovado: 'Aprovado',
   validacao_renda: 'Validação de Renda',
+  renda_validada: 'Renda Validada',
+  renda_nao_validada: 'Renda Não Validada',
+  engenharia: 'Engenharia',
+  formularios: 'Formulários',
+  conformidade: 'Conformidade',
 }
 
 export const DEFAULT_PROPOSAL_STATUS_OPTIONS: ProposalStatusOption[] =
@@ -75,6 +85,38 @@ export function normalizeProposalStatus(status: unknown): ProposalStatus {
     return 'validacao_renda'
   }
 
+  if (
+    status === 'renda_validada' ||
+    status === 'renda validada'
+  ) {
+    return 'renda_validada'
+  }
+
+  if (
+    status === 'renda_nao_validada' ||
+    status === 'renda nao validada' ||
+    status === 'renda não validada'
+  ) {
+    return 'renda_nao_validada'
+  }
+
+  if (status === 'engenharia') {
+    return 'engenharia'
+  }
+
+  if (
+    status === 'formularios' ||
+    status === 'formulários' ||
+    status === 'formulario' ||
+    status === 'formulário'
+  ) {
+    return 'formularios'
+  }
+
+  if (status === 'conformidade') {
+    return 'conformidade'
+  }
+
   return DEFAULT_PROPOSAL_STATUS
 }
 
@@ -83,7 +125,15 @@ export function getProposalStatusLabel(status: ProposalStatus) {
 }
 
 export function isBrokerReadOnlyProposalStatus(status: ProposalStatus) {
-  return status === 'aprovado' || status === 'validacao_renda'
+  return (
+    status === 'aprovado' ||
+    status === 'validacao_renda' ||
+    status === 'renda_validada' ||
+    status === 'renda_nao_validada' ||
+    status === 'engenharia' ||
+    status === 'formularios' ||
+    status === 'conformidade'
+  )
 }
 
 export function normalizeProposalStatusOptions(

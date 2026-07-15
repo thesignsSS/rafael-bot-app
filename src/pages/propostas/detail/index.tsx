@@ -37,6 +37,8 @@ import { Icon } from '../../../components/ui/Icon'
 type MainDetailTab =
   | 'dados_proposta'
   | 'validacao_renda'
+  | 'seller_documents'
+  | 'property_documents'
 
 type ProposalSectionTab =
   | 'visao_geral'
@@ -142,7 +144,13 @@ export default function ProposalDetailPage() {
   const [isIncomeValidationTransitionModalOpen, setIsIncomeValidationTransitionModalOpen] =
     useState(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
-  const hasIncomeValidationStep = normalizedStatus === 'validacao_renda'
+  const hasIncomeValidationStep =
+    normalizedStatus === 'validacao_renda' ||
+    normalizedStatus === 'renda_validada' ||
+    normalizedStatus === 'renda_nao_validada' ||
+    normalizedStatus === 'engenharia' ||
+    normalizedStatus === 'formularios' ||
+    normalizedStatus === 'conformidade'
   const canAdvanceToIncomeValidation = normalizedStatus === 'aprovado'
   const shouldHighlightComments = canBrokerHandlePending
   const canResendForAnalysis =
@@ -218,6 +226,8 @@ export default function ProposalDetailPage() {
         : [],
     [proposal],
   )
+  const sellerDocuments = proposal?.sellerDocuments ?? []
+  const propertyDocuments = proposal?.propertyDocuments ?? []
   useEffect(() => {
     setIsIncomeValidationFinalized(readIncomeValidationFinalized(proposal?.formData))
   }, [proposal?.formData])
@@ -415,6 +425,32 @@ export default function ProposalDetailPage() {
                   Validação de Renda
                 </button>
               ) : null}
+
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('seller_documents')}
+                aria-pressed={activeMainTab === 'seller_documents'}
+                className={`rounded-xl border px-4 py-2.5 text-label-md font-semibold transition-all ${
+                  activeMainTab === 'seller_documents'
+                    ? 'border-primary/30 bg-primary/12 text-on-surface shadow-[0_8px_24px_rgba(96,165,250,0.14)]'
+                    : 'border-outline bg-surface-container-low text-on-surface-variant hover:border-primary/30 hover:bg-surface hover:text-on-surface'
+                }`}
+              >
+                Vendedor
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setActiveMainTab('property_documents')}
+                aria-pressed={activeMainTab === 'property_documents'}
+                className={`rounded-xl border px-4 py-2.5 text-label-md font-semibold transition-all ${
+                  activeMainTab === 'property_documents'
+                    ? 'border-primary/30 bg-primary/12 text-on-surface shadow-[0_8px_24px_rgba(96,165,250,0.14)]'
+                    : 'border-outline bg-surface-container-low text-on-surface-variant hover:border-primary/30 hover:bg-surface hover:text-on-surface'
+                }`}
+              >
+                Imóvel
+              </button>
             </div>
           </div>
 
@@ -610,6 +646,7 @@ export default function ProposalDetailPage() {
 
             <div className="lg:col-span-2">
               <ProposalDocumentsSection
+                title="Documentos da Proposta"
                 documents={proposalDocumentsOnly}
                 isBusy={isUpdatingDocuments}
                 canManageDocuments={!isBrokerFullyLocked}
@@ -635,6 +672,32 @@ export default function ProposalDetailPage() {
               formData,
             }))
           }
+        />
+      ) : activeMainTab === 'seller_documents' ? (
+        <ProposalDocumentsSection
+          title="Documentos do Vendedor"
+          documents={sellerDocuments}
+          isBusy={isUpdatingDocuments}
+          canManageDocuments={!isBrokerFullyLocked}
+          onRename={renameDocument}
+          onDownload={downloadDocument}
+          onDelete={deleteDocument}
+          onView={viewDocument}
+          onViewAll={openAllDocumentsPreview}
+          onFilesSelected={(files) => void addDocuments(files, 'seller')}
+        />
+      ) : activeMainTab === 'property_documents' ? (
+        <ProposalDocumentsSection
+          title="Documentos do Imóvel"
+          documents={propertyDocuments}
+          isBusy={isUpdatingDocuments}
+          canManageDocuments={!isBrokerFullyLocked}
+          onRename={renameDocument}
+          onDownload={downloadDocument}
+          onDelete={deleteDocument}
+          onView={viewDocument}
+          onViewAll={openAllDocumentsPreview}
+          onFilesSelected={(files) => void addDocuments(files, 'property')}
         />
       ) : activeProposalSectionTab === 'tratativa' ? (
         operationalGuide ? (

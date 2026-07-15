@@ -4,6 +4,7 @@ import { ProposalDocumentItem } from './ProposalDocumentItem'
 import { ProposalDocumentUpload } from './ProposalDocumentUpload'
 
 type ProposalDocumentsSectionProps = {
+  title?: string
   documents: ProposalDocument[]
   isBusy?: boolean
   canManageDocuments?: boolean
@@ -16,6 +17,7 @@ type ProposalDocumentsSectionProps = {
 }
 
 export function ProposalDocumentsSection({
+  title = 'Documentos Enviados',
   documents,
   isBusy = false,
   canManageDocuments = true,
@@ -34,7 +36,7 @@ export function ProposalDocumentsSection({
         <div className="flex items-center gap-2 text-primary">
           <Icon name="folder_shared" size={22} />
           <h3 className="text-headline-md font-semibold text-on-surface">
-            Documentos Enviados
+            {title}
           </h3>
         </div>
         <div className="flex items-center gap-3">

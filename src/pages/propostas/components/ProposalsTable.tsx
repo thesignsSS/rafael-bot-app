@@ -29,6 +29,11 @@ export function ProposalsTable({
     reprovado: 'border-error/30 bg-error/10 text-error',
     aprovado: 'border-emerald-400/30 bg-emerald-500/10 text-emerald-400',
     validacao_renda: 'border-violet-400/30 bg-violet-500/10 text-violet-300',
+    renda_validada: 'border-lime-400/30 bg-lime-500/10 text-lime-300',
+    renda_nao_validada: 'border-rose-400/30 bg-rose-500/10 text-rose-300',
+    engenharia: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300',
+    formularios: 'border-indigo-400/30 bg-indigo-500/10 text-indigo-300',
+    conformidade: 'border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-300',
   }
 
   return (

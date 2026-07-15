@@ -241,7 +241,7 @@ export async function uploadProposalDocuments(
   proposalId: string,
   brokerUserId: string,
   documents: FormSubmissionDocument[],
-  documentScope: 'proposal' | 'income_validation' = 'proposal',
+  documentScope: 'proposal' | 'income_validation' | 'seller' | 'property' = 'proposal',
 ): Promise<void> {
   const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/documents`, {
     method: 'POST',

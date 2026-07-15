@@ -266,13 +266,18 @@ export default function ProposalDocumentsPage() {
   const pageTitle = proposal
     ? `Documentos ${proposal.proposalCode} | Effectus`
     : 'Documentos da Proposta | Effectus'
-  const proposalDocumentsOnly = useMemo(
+  const allProposalDocuments = useMemo(
     () =>
       proposal
-        ? filterProposalDocumentsExcludingIncomeValidation(
-            proposal.documents,
-            proposal.formData,
-          )
+        ? [
+            ...filterProposalDocumentsExcludingIncomeValidation(
+              proposal.documents,
+              proposal.formData,
+            ),
+            ...proposal.sellerDocuments,
+            ...proposal.propertyDocuments,
+            ...proposal.incomeValidationDocuments,
+          ]
         : [],
     [proposal],
   )
@@ -293,7 +298,7 @@ export default function ProposalDocumentsPage() {
       return
     }
 
-    if (proposalDocumentsOnly.length === 0) {
+    if (allProposalDocuments.length === 0) {
       setPreviewDocuments([])
       setDocumentsError(null)
       setDocumentsStatus('ready')
@@ -311,7 +316,7 @@ export default function ProposalDocumentsPage() {
         setDocumentsError(null)
 
         const nextPreviewDocuments = await Promise.all(
-          proposalDocumentsOnly.map(async (document) => {
+          allProposalDocuments.map(async (document) => {
             const result = await viewProposalDocument(
               currentProposalId,
               document.id,
@@ -355,7 +360,7 @@ export default function ProposalDocumentsPage() {
     return () => {
       shouldIgnore = true
     }
-  }, [brokerUserId, proposal, proposalDocumentsOnly, status])
+  }, [allProposalDocuments, brokerUserId, proposal, status])
 
   if (isAuthLoading || status === 'loading') {
     return (
@@ -398,9 +403,9 @@ export default function ProposalDocumentsPage() {
               Todos os documentos
             </h1>
             <p className="text-body-sm text-on-surface-variant">
-              {proposalDocumentsOnly.length === 1
+              {allProposalDocuments.length === 1
                 ? '1 arquivo enviado'
-                : `${proposalDocumentsOnly.length} arquivos enviados`}
+                : `${allProposalDocuments.length} arquivos enviados`}
             </p>
           </div>
 

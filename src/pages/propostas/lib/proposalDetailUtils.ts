@@ -1,4 +1,8 @@
-import type { ProposalDocument, ProposalDocumentKind } from '../types/proposal-detail'
+import type {
+  ProposalDocument,
+  ProposalDocumentKind,
+  ProposalDocumentScope,
+} from '../types/proposal-detail'
 
 const IMAGE_EXTENSIONS = new Set(['jpg', 'jpeg', 'png', 'webp', 'gif'])
 const TEXT_EXTENSIONS = new Set(['txt'])
@@ -129,4 +133,11 @@ export function filterProposalDocumentsExcludingIncomeValidation(
   }
 
   return documents.filter((document) => !incomeValidationDocumentIds.has(document.id))
+}
+
+export function filterProposalDocumentsByScope(
+  documents: ProposalDocument[],
+  scope: ProposalDocumentScope,
+) {
+  return documents.filter((document) => document.documentScope === scope)
 }

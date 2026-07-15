@@ -2,7 +2,11 @@ import type { PropertyType } from '../../home/types/proposal'
 import type { ProposalStatus } from './proposal-status'
 
 export type ProposalDocumentKind = 'pdf' | 'image' | 'text'
-export type ProposalDocumentScope = 'proposal' | 'income_validation'
+export type ProposalDocumentScope =
+  | 'proposal'
+  | 'income_validation'
+  | 'seller'
+  | 'property'
 
 export type ProposalCommentType =
   | 'comment'
@@ -120,6 +124,8 @@ export type ProposalDetail = {
   comments: ProposalComment[]
   documents: ProposalDocument[]
   incomeValidationDocuments: ProposalDocument[]
+  sellerDocuments: ProposalDocument[]
+  propertyDocuments: ProposalDocument[]
   guests: ProposalGuest[]
   shareLinkToken: string | null
   pendingInvitations: ProposalInvitation[]

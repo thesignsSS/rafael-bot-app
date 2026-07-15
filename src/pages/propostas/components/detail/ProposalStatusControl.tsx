@@ -21,6 +21,11 @@ const statusClassName: Record<ProposalStatus, string> = {
   reprovado: 'border-error-container bg-error-container text-on-error-container',
   aprovado: 'border-emerald-200 bg-emerald-50 text-emerald-800',
   validacao_renda: 'border-violet-200 bg-violet-50 text-violet-800',
+  renda_validada: 'border-lime-200 bg-lime-50 text-lime-800',
+  renda_nao_validada: 'border-rose-200 bg-rose-50 text-rose-800',
+  engenharia: 'border-cyan-200 bg-cyan-50 text-cyan-800',
+  formularios: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  conformidade: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
 }
 
 export function ProposalStatusControl({

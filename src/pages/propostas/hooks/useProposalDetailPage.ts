@@ -24,7 +24,10 @@ import {
   uploadProposalDocuments,
   viewProposalDocument,
 } from '../lib/proposalsApi'
-import type { ProposalDocumentKind } from '../types/proposal-detail'
+import type {
+  ProposalDocumentKind,
+  ProposalDocumentScope,
+} from '../types/proposal-detail'
 import {
   isBrokerReadOnlyProposalStatus,
   normalizeProposalStatus,
@@ -401,9 +404,16 @@ export function useProposalDetailPage() {
     }
   }, [requireProposalContext])
 
+  const allProposalDocuments = [
+    ...(proposal?.documents ?? []),
+    ...(proposal?.sellerDocuments ?? []),
+    ...(proposal?.propertyDocuments ?? []),
+    ...(proposal?.incomeValidationDocuments ?? []),
+  ]
+
   const renameDocument = useCallback(
     async (documentId: string) => {
-      const document = proposal?.documents.find((item) => item.id === documentId)
+      const document = allProposalDocuments.find((item) => item.id === documentId)
       const currentName =
         document?.displayName ?? document?.originalFilename ?? document?.filename ?? ''
       const displayName = window.prompt('Novo nome do arquivo', currentName)?.trim()
@@ -436,14 +446,14 @@ export function useProposalDetailPage() {
         setIsUpdatingDocuments(false)
       }
     },
-    [proposal?.documents, refetch, requireProposalContext],
+    [allProposalDocuments, refetch, requireProposalContext],
   )
 
   const downloadDocument = useCallback(
     async (documentId: string) => {
       try {
         const context = requireProposalContext()
-        const document = proposal?.documents.find((item) => item.id === documentId)
+        const document = allProposalDocuments.find((item) => item.id === documentId)
         const result = await downloadProposalDocument(
           context.proposalId,
           documentId,
@@ -466,12 +476,12 @@ export function useProposalDetailPage() {
         )
       }
     },
-    [proposal?.documents, requireProposalContext],
+    [allProposalDocuments, requireProposalContext],
   )
 
   const deleteDocument = useCallback(
     async (documentId: string) => {
-      const document = proposal?.documents.find((item) => item.id === documentId)
+      const document = allProposalDocuments.find((item) => item.id === documentId)
       const displayName =
         document?.displayName ?? document?.originalFilename ?? document?.filename
 
@@ -502,14 +512,14 @@ export function useProposalDetailPage() {
         setIsUpdatingDocuments(false)
       }
     },
-    [proposal?.documents, refetch, requireProposalContext],
+    [allProposalDocuments, refetch, requireProposalContext],
   )
 
   const viewDocument = useCallback(
     async (documentId: string) => {
       try {
         const context = requireProposalContext()
-        const document = proposal?.documents.find((item) => item.id === documentId)
+        const document = allProposalDocuments.find((item) => item.id === documentId)
         const result = await viewProposalDocument(
           context.proposalId,
           documentId,
@@ -536,20 +546,20 @@ export function useProposalDetailPage() {
         )
       }
     },
-    [proposal?.documents, requireProposalContext],
+    [allProposalDocuments, requireProposalContext],
   )
 
   const openAllDocumentsPreview = useCallback(() => {
-    if (!proposal?.documents.length) {
+    if (!allProposalDocuments.length || !proposal?.id) {
       return
     }
 
     const documentsUrl = `/propostas/${proposal.id}/documentos`
     window.open(documentsUrl, '_blank', 'noopener,noreferrer')
-  }, [proposal?.documents.length, proposal?.id])
+  }, [allProposalDocuments.length, proposal?.id])
 
   const addDocuments = useCallback(
-    async (selectedFiles: File[]) => {
+    async (selectedFiles: File[], documentScope: ProposalDocumentScope = 'proposal') => {
       if (selectedFiles.length === 0) {
         return
       }
@@ -562,6 +572,7 @@ export function useProposalDetailPage() {
           context.proposalId,
           context.brokerUserId,
           documents,
+          documentScope,
         )
         await refetch()
         if (canBrokerHandlePending) {
@@ -582,7 +593,7 @@ export function useProposalDetailPage() {
         setIsUpdatingDocuments(false)
       }
     },
-    [refetch, requireProposalContext],
+    [canBrokerHandlePending, refetch, requireProposalContext],
   )
 
   const generateShareLink = useCallback(async () => {
