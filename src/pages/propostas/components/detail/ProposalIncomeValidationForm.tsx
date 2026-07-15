@@ -12,6 +12,7 @@ import {
   downloadProposalDocument,
   deleteProposalDocument,
   fetchProposalDetail,
+  renameProposalDocument,
   sendIncomeValidationTestEmail,
   updateProposal,
   uploadProposalDocuments,
@@ -397,6 +398,16 @@ export function ProposalIncomeValidationForm({
   const [selectedProposalDocumentIds, setSelectedProposalDocumentIds] = useState<string[]>(
     [],
   )
+  const [editingProposalDocumentId, setEditingProposalDocumentId] = useState<string | null>(
+    null,
+  )
+  const [editingProposalDocumentName, setEditingProposalDocumentName] = useState('')
+  const [renamingProposalDocumentId, setRenamingProposalDocumentId] = useState<string | null>(
+    null,
+  )
+  const [proposalDocumentNameOverrides, setProposalDocumentNameOverrides] = useState<
+    Record<string, string>
+  >({})
   const [isSubmittingProposalDocumentsPicker, setIsSubmittingProposalDocumentsPicker] =
     useState(false)
   const [isFinalizeModalOpen, setIsFinalizeModalOpen] = useState(false)
@@ -441,8 +452,15 @@ export function ProposalIncomeValidationForm({
       filterProposalDocumentsExcludingIncomeValidation(
         proposal.documents,
         proposal.formData,
-      ),
-    [proposal.documents, proposal.formData],
+      ).map((document) => ({
+        ...document,
+        displayName:
+          proposalDocumentNameOverrides[document.id] ||
+          document.displayName ||
+          document.originalFilename ||
+          document.filename,
+      })),
+    [proposal.documents, proposal.formData, proposalDocumentNameOverrides],
   )
   const incomeValidationDocumentIds = useMemo(
     () => new Set(proposal.incomeValidationDocuments.map((document) => document.id)),
@@ -1246,6 +1264,7 @@ export function ProposalIncomeValidationForm({
 
       setDocumentPreview({
         fileName:
+          proposalDocumentNameOverrides[documentId] ??
           currentDocument?.displayName ??
           currentDocument?.originalFilename ??
           fallbackName,
@@ -1263,6 +1282,51 @@ export function ProposalIncomeValidationForm({
       )
     } finally {
       setPreviewingDocumentKey(null)
+    }
+  }
+
+  const startEditingProposalDocumentName = (
+    documentId: string,
+    currentName: string,
+  ) => {
+    setEditingProposalDocumentId(documentId)
+    setEditingProposalDocumentName(currentName)
+  }
+
+  const cancelEditingProposalDocumentName = () => {
+    setEditingProposalDocumentId(null)
+    setEditingProposalDocumentName('')
+  }
+
+  const saveProposalDocumentName = async (documentId: string) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado para renomear o documento.')
+      return
+    }
+
+    const nextName = editingProposalDocumentName.trim()
+    if (!nextName) {
+      toast.error('Informe um nome para o documento.')
+      return
+    }
+
+    try {
+      setRenamingProposalDocumentId(documentId)
+      await renameProposalDocument(proposal.id, documentId, user.id, nextName)
+      setProposalDocumentNameOverrides((currentOverrides) => ({
+        ...currentOverrides,
+        [documentId]: nextName,
+      }))
+      cancelEditingProposalDocumentName()
+      toast.success('Nome do documento atualizado.')
+    } catch (renameError) {
+      toast.error(
+        renameError instanceof Error
+          ? renameError.message
+          : 'Não foi possível atualizar o nome do documento.',
+      )
+    } finally {
+      setRenamingProposalDocumentId(null)
     }
   }
 
@@ -1975,18 +2039,33 @@ export function ProposalIncomeValidationForm({
                     const isSelected = selectedProposalDocumentIds.includes(document.id)
                     const displayName =
                       document.displayName || document.originalFilename || document.filename
+                    const isEditingName = editingProposalDocumentId === document.id
+                    const isRenamingName = renamingProposalDocumentId === document.id
 
                     return (
-                      <button
+                      <div
                         key={document.id}
-                        type="button"
-                        onClick={() => toggleProposalDocumentSelection(document.id)}
-                        disabled={isSubmittingProposalDocumentsPicker}
+                        onClick={() => {
+                          if (!isSubmittingProposalDocumentsPicker) {
+                            toggleProposalDocumentSelection(document.id)
+                          }
+                        }}
                         className={`grid w-full grid-cols-[auto_minmax(0,1fr)] items-start gap-3 rounded-xl border px-4 py-3 text-left transition-all ${
                           isSelected
                             ? 'border-primary bg-primary/10'
                             : 'border-outline-variant bg-surface hover:border-primary/40'
                         } ${isSubmittingProposalDocumentsPicker ? 'cursor-not-allowed opacity-60' : ''}`}
+                        role="button"
+                        tabIndex={isSubmittingProposalDocumentsPicker ? -1 : 0}
+                        onKeyDown={(event) => {
+                          if (
+                            !isSubmittingProposalDocumentsPicker &&
+                            (event.key === 'Enter' || event.key === ' ')
+                          ) {
+                            event.preventDefault()
+                            toggleProposalDocumentSelection(document.id)
+                          }
+                        }}
                       >
                         <span
                           className={`mt-0.5 flex h-5 w-5 items-center justify-center rounded-full border ${
@@ -1998,14 +2077,90 @@ export function ProposalIncomeValidationForm({
                           <Icon name="check" size={12} />
                         </span>
                         <span className="min-w-0">
-                          <span className="block truncate text-body-md font-medium text-on-surface">
-                            {displayName}
-                          </span>
+                          {isEditingName ? (
+                            <span className="block">
+                              <input
+                                type="text"
+                                value={editingProposalDocumentName}
+                                onChange={(event) =>
+                                  setEditingProposalDocumentName(event.target.value)
+                                }
+                                onClick={(event) => event.stopPropagation()}
+                                onKeyDown={(event) => {
+                                  event.stopPropagation()
+
+                                  if (event.key === 'Enter') {
+                                    event.preventDefault()
+                                    void saveProposalDocumentName(document.id)
+                                  }
+
+                                  if (event.key === 'Escape') {
+                                    event.preventDefault()
+                                    cancelEditingProposalDocumentName()
+                                  }
+                                }}
+                                disabled={isRenamingName}
+                                className="w-full rounded-lg border border-outline-variant bg-surface-container-lowest px-3 py-2 text-body-sm text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
+                              />
+                              <span className="mt-2 flex flex-wrap gap-2">
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    void saveProposalDocumentName(document.id)
+                                  }}
+                                  disabled={isRenamingName || !editingProposalDocumentName.trim()}
+                                  className="rounded-lg bg-primary px-3 py-1.5 text-label-sm font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  {isRenamingName ? 'Salvando...' : 'Salvar nome'}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={(event) => {
+                                    event.stopPropagation()
+                                    cancelEditingProposalDocumentName()
+                                  }}
+                                  disabled={isRenamingName}
+                                  className="rounded-lg border border-outline px-3 py-1.5 text-label-sm font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                                >
+                                  Cancelar
+                                </button>
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="block truncate text-body-md font-medium text-on-surface">
+                              {displayName}
+                            </span>
+                          )}
                           <span className="mt-1 block text-body-sm text-on-surface-variant">
                             {((document.sizeBytes || 0) / 1024 / 1024).toFixed(2)} MB
                           </span>
+                          <span className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void previewProposalDocument(document.id, displayName)
+                              }}
+                              disabled={isSubmittingProposalDocumentsPicker}
+                              className="rounded-lg border border-outline px-3 py-1.5 text-label-sm font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Visualizar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                startEditingProposalDocumentName(document.id, displayName)
+                              }}
+                              disabled={isSubmittingProposalDocumentsPicker || isRenamingName}
+                              className="rounded-lg border border-outline px-3 py-1.5 text-label-sm font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              Editar nome
+                            </button>
+                          </span>
                         </span>
-                      </button>
+                      </div>
                     )
                   })}
                 </div>
@@ -2023,6 +2178,7 @@ export function ProposalIncomeValidationForm({
                 onClick={() => {
                   setProposalDocumentsPickerFieldId(null)
                   setSelectedProposalDocumentIds([])
+                  cancelEditingProposalDocumentName()
                 }}
                 className="rounded-xl border border-outline px-4 py-2.5 text-label-md font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
               >
