@@ -802,7 +802,7 @@ export function useProposalDetailPage() {
     )
   }, [])
 
-  const addComment = useCallback(async (scope: ProposalCommentScope = 'proposal') => {
+  const addComment = useCallback(async (scope: ProposalCommentScope) => {
     const message = commentDrafts[scope].trim()
 
     if (!message) {

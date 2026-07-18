@@ -686,7 +686,7 @@ export default function ProposalDetailPage() {
               isSavingComment={isSavingComment}
               canAddComment
               onCommentDraftChange={setCommentDraft}
-              onAddComment={addComment}
+              onAddComment={() => void addComment('proposal')}
             />
           </div>
         </>
@@ -806,7 +806,7 @@ export default function ProposalDetailPage() {
           isSavingComment={isSavingComment}
           canAddComment
           onCommentDraftChange={setCommentDraft}
-          onAddComment={addComment}
+          onAddComment={() => void addComment('proposal')}
         />
       ) : (
         activeProposalSectionTab === 'convidados' && canViewGuests ? (
