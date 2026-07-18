@@ -57,6 +57,8 @@ export function ProposalCommentsSection({
   onAddComment,
 }: ProposalCommentsSectionProps) {
   const scrollTargetRef = useRef<HTMLElement | null>(null)
+  const commentsListRef = useRef<HTMLDivElement | null>(null)
+  const latestCommentId = comments[comments.length - 1]?.id ?? null
 
   useEffect(() => {
     if (!scrollToCommentId || !scrollTargetRef.current) {
@@ -68,6 +70,19 @@ export function ProposalCommentsSection({
       block: 'center',
     })
   }, [scrollToCommentId])
+
+  useEffect(() => {
+    const commentsList = commentsListRef.current
+
+    if (scrollToCommentId || comments.length <= 5 || !commentsList) {
+      return
+    }
+
+    commentsList.scrollTo({
+      top: commentsList.scrollHeight,
+      behavior: 'smooth',
+    })
+  }, [comments.length, latestCommentId, scrollToCommentId])
 
   return (
     <section
@@ -98,6 +113,7 @@ export function ProposalCommentsSection({
       ) : null}
 
       <div
+        ref={commentsListRef}
         className={`mt-5 space-y-3 ${
           comments.length > 5 ? 'max-h-[460px] overflow-y-auto pr-2' : ''
         }`}
