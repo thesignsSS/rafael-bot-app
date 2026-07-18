@@ -424,6 +424,7 @@ export function ProposalIncomeValidationForm({
   const [emailBodyDraft, setEmailBodyDraft] = useState('')
   const [emailAttachments, setEmailAttachments] = useState<EmailAttachment[]>([])
   const [previewingDocumentKey, setPreviewingDocumentKey] = useState<string | null>(null)
+  const [downloadingDocumentId, setDownloadingDocumentId] = useState<string | null>(null)
   const [documentPreview, setDocumentPreview] = useState<{
     fileName: string
     kind: ProposalDocumentKind
@@ -466,6 +467,13 @@ export function ProposalIncomeValidationForm({
     () => new Set(proposal.incomeValidationDocuments.map((document) => document.id)),
     [proposal.incomeValidationDocuments],
   )
+  const canDeleteIncomeValidationDocument = (documentId: string) => {
+    const persistedDocument = proposal.incomeValidationDocuments.find(
+      (document) => document.id === documentId,
+    )
+
+    return isAdmin || persistedDocument?.uploadedByUserId === user?.id
+  }
   const emailSubject = `Validação de renda - ${proposal.client.name.toUpperCase()} - ${proposal.client.cpf}`
   const senderName = currentUserProfile?.fullName?.trim() || proposal.ownerName
   const emailProducts = formatEmailProducts(products)
@@ -677,6 +685,10 @@ export function ProposalIncomeValidationForm({
         Object.values(documentFiles)
           .flat()
           .filter(isValidationOwnedDocument)
+          .filter(
+            (document) =>
+              !document.id || canDeleteIncomeValidationDocument(document.id),
+          )
           .map((document) => document.id)
           .filter((id): id is string => typeof id === 'string' && id.length > 0),
       ),
@@ -1285,6 +1297,35 @@ export function ProposalIncomeValidationForm({
     }
   }
 
+  const downloadStoredDocument = async (
+    documentId: string,
+    fallbackName: string,
+  ) => {
+    if (!user?.id) {
+      toast.error('Usuário não autenticado para baixar o documento.')
+      return
+    }
+
+    try {
+      setDownloadingDocumentId(documentId)
+      const result = await downloadProposalDocument(proposal.id, documentId, user.id)
+      const url = URL.createObjectURL(result.blob)
+      const anchor = document.createElement('a')
+      anchor.href = url
+      anchor.download = result.filename || fallbackName || 'documento'
+      anchor.click()
+      URL.revokeObjectURL(url)
+    } catch (downloadError) {
+      toast.error(
+        downloadError instanceof Error
+          ? downloadError.message
+          : 'Não foi possível baixar o documento.',
+      )
+    } finally {
+      setDownloadingDocumentId(null)
+    }
+  }
+
   const startEditingProposalDocumentName = (
     documentId: string,
     currentName: string,
@@ -1745,6 +1786,10 @@ export function ProposalIncomeValidationForm({
                       {files.map((document, index) => (
                         (() => {
                           const documentPreviewKey = document.id ?? `${field.id}-${document.name}-${index}`
+                          const canRemoveDocument =
+                            !document.id ||
+                            !isValidationOwnedDocument(document) ||
+                            canDeleteIncomeValidationDocument(document.id)
 
                           return (
                         <div
@@ -1761,29 +1806,52 @@ export function ProposalIncomeValidationForm({
                           </div>
                           <div className="shrink-0 flex items-center gap-1">
                             {document.id ? (
-                              <button
-                                type="button"
-                                onClick={() => void previewProposalDocument(document.id!, document.name)}
-                                disabled={previewingDocumentKey === documentPreviewKey}
-                                className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary"
-                                aria-label={`Visualizar ${document.name}`}
-                              >
-                                <Icon
-                                  name={
-                                    previewingDocumentKey === documentPreviewKey
-                                      ? 'progress_activity'
-                                      : 'visibility'
-                                  }
-                                  size={18}
-                                  className={
-                                    previewingDocumentKey === documentPreviewKey
-                                      ? 'animate-spin'
-                                      : undefined
-                                  }
-                                />
-                              </button>
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => void downloadStoredDocument(document.id!, document.name)}
+                                  disabled={downloadingDocumentId === document.id}
+                                  className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary disabled:cursor-not-allowed disabled:opacity-60"
+                                  aria-label={`Baixar ${document.name}`}
+                                >
+                                  <Icon
+                                    name={
+                                      downloadingDocumentId === document.id
+                                        ? 'progress_activity'
+                                        : 'download'
+                                    }
+                                    size={18}
+                                    className={
+                                      downloadingDocumentId === document.id
+                                        ? 'animate-spin'
+                                        : undefined
+                                    }
+                                  />
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => void previewProposalDocument(document.id!, document.name)}
+                                  disabled={previewingDocumentKey === documentPreviewKey}
+                                  className="rounded-lg p-2 text-on-surface-variant transition-all hover:bg-primary/10 hover:text-primary"
+                                  aria-label={`Visualizar ${document.name}`}
+                                >
+                                  <Icon
+                                    name={
+                                      previewingDocumentKey === documentPreviewKey
+                                        ? 'progress_activity'
+                                        : 'visibility'
+                                    }
+                                    size={18}
+                                    className={
+                                      previewingDocumentKey === documentPreviewKey
+                                        ? 'animate-spin'
+                                        : undefined
+                                    }
+                                  />
+                                </button>
+                              </>
                             ) : null}
-                            {!isFinalized || isAdmin ? (
+                            {(!isFinalized || isAdmin) && canRemoveDocument ? (
                               <button
                                 type="button"
                                 onClick={() => void removeDocument(field.id, index)}
@@ -2146,6 +2214,22 @@ export function ProposalIncomeValidationForm({
                               className="rounded-lg border border-outline px-3 py-1.5 text-label-sm font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
                             >
                               Visualizar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(event) => {
+                                event.stopPropagation()
+                                void downloadStoredDocument(document.id, displayName)
+                              }}
+                              disabled={
+                                isSubmittingProposalDocumentsPicker ||
+                                downloadingDocumentId === document.id
+                              }
+                              className="rounded-lg border border-outline px-3 py-1.5 text-label-sm font-semibold text-on-surface transition-all hover:bg-surface-container disabled:cursor-not-allowed disabled:opacity-60"
+                            >
+                              {downloadingDocumentId === document.id
+                                ? 'Baixando...'
+                                : 'Baixar'}
                             </button>
                             <button
                               type="button"

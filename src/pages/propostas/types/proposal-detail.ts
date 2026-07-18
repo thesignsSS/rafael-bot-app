@@ -8,6 +8,8 @@ export type ProposalDocumentScope =
   | 'seller'
   | 'property'
 
+export type ProposalCommentScope = ProposalDocumentScope
+
 export type ProposalCommentType =
   | 'comment'
   | 'pending_reason'
@@ -23,6 +25,7 @@ export type ProposalComment = {
   createdAt: string
   message: string
   type: ProposalCommentType
+  scope: ProposalCommentScope
 }
 
 export type ProposalDocument = {
@@ -143,6 +146,7 @@ export type UpdateProposalPayload = {
   propertyState?: string
   additionalInfo?: string
   commentMessage?: string
+  commentScope?: ProposalCommentScope
   formData?: Record<string, unknown>
 }
 

@@ -10,7 +10,8 @@ import type { ProposalDocument } from '../../types/proposal-detail'
 type ProposalDocumentItemProps = {
   document: ProposalDocument
   isBusy?: boolean
-  canManage?: boolean
+  canRename?: boolean
+  canDelete?: boolean
   onRename: (documentId: string) => void
   onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
@@ -20,7 +21,8 @@ type ProposalDocumentItemProps = {
 export function ProposalDocumentItem({
   document,
   isBusy = false,
-  canManage = true,
+  canRename = true,
+  canDelete = true,
   onRename,
   onDownload,
   onDelete,
@@ -70,7 +72,7 @@ export function ProposalDocumentItem({
       </div>
 
       <div className="flex shrink-0 gap-1 sm:gap-2">
-        {canManage ? (
+        {canRename ? (
           <button
             type="button"
             title="Renomear"
@@ -90,7 +92,7 @@ export function ProposalDocumentItem({
         >
           <Icon name="download" size={20} />
         </button>
-        {canManage ? (
+        {canDelete ? (
           <button
             type="button"
             title="Excluir"

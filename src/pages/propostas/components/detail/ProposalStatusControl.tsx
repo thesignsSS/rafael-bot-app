@@ -25,7 +25,13 @@ const statusClassName: Record<ProposalStatus, string> = {
   renda_nao_validada: 'border-rose-200 bg-rose-50 text-rose-800',
   engenharia: 'border-cyan-200 bg-cyan-50 text-cyan-800',
   formularios: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  aguardando_reserva: 'border-orange-200 bg-orange-50 text-orange-800',
   conformidade: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
+  agendamento_agencia: 'border-teal-200 bg-teal-50 text-teal-800',
+  itbi: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+  assinatura_contrato: 'border-purple-200 bg-purple-50 text-purple-800',
+  registro: 'border-slate-200 bg-slate-50 text-slate-800',
+  finalizado: 'border-green-200 bg-green-50 text-green-800',
 }
 
 export function ProposalStatusControl({

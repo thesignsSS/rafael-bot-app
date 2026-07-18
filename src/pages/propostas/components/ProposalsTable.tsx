@@ -33,7 +33,13 @@ export function ProposalsTable({
     renda_nao_validada: 'border-rose-400/30 bg-rose-500/10 text-rose-300',
     engenharia: 'border-cyan-400/30 bg-cyan-500/10 text-cyan-300',
     formularios: 'border-indigo-400/30 bg-indigo-500/10 text-indigo-300',
+    aguardando_reserva: 'border-orange-400/30 bg-orange-500/10 text-orange-300',
     conformidade: 'border-fuchsia-400/30 bg-fuchsia-500/10 text-fuchsia-300',
+    agendamento_agencia: 'border-teal-400/30 bg-teal-500/10 text-teal-300',
+    itbi: 'border-yellow-400/30 bg-yellow-500/10 text-yellow-300',
+    assinatura_contrato: 'border-purple-400/30 bg-purple-500/10 text-purple-300',
+    registro: 'border-slate-400/30 bg-slate-500/10 text-slate-300',
+    finalizado: 'border-green-400/30 bg-green-500/10 text-green-300',
   }
 
   return (

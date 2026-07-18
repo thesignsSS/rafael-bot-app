@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { getProfileAvatarUrl } from '../../../../lib/profile-avatar'
 import type { ProposalComment } from '../../types/proposal-detail'
 
 type ProposalCommentsSectionProps = {
@@ -81,7 +82,7 @@ export function ProposalCommentsSection({
           Comentários
         </h3>
         <p className="text-body-sm text-on-surface-variant">
-          Acompanhe o que foi solicitado e registre o retorno antes do reenvio.
+          Acompanhe o histórico e registre informações sobre a proposta.
         </p>
       </div>
 
@@ -103,30 +104,52 @@ export function ProposalCommentsSection({
       >
         {comments.length > 0 ? (
           comments.map((comment) => (
-            <article
-              key={comment.id}
-              ref={comment.id === scrollToCommentId ? scrollTargetRef : null}
-              className={`rounded-xl border bg-surface-container-lowest p-4 ${
-                comment.id === highlightedCommentId
-                  ? 'border-amber-400/40 bg-amber-500/10 shadow-[0px_10px_26px_rgba(245,158,11,0.12)] animate-pending-comment-glow'
-                  : 'border-outline-variant'
-              }`}
-            >
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="text-label-md font-semibold text-on-surface">
-                  {comment.authorName}
-                </span>
-                <span className="rounded-full bg-surface-container px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
-                  {getCommentTypeLabel(comment.type)}
-                </span>
-                <span className="text-body-sm text-on-surface-variant">
-                  {formatCommentDate(comment.createdAt)}
-                </span>
-              </div>
-              <p className="mt-3 whitespace-pre-wrap text-body-md text-on-surface">
-                {comment.message}
-              </p>
-            </article>
+            (() => {
+              const avatarUrl = getProfileAvatarUrl(comment.authorAvatarPath)
+
+              return (
+                <article
+                  key={comment.id}
+                  ref={comment.id === scrollToCommentId ? scrollTargetRef : null}
+                  className={`rounded-xl border bg-surface-container-lowest p-4 ${
+                    comment.id === highlightedCommentId
+                      ? 'border-amber-400/40 bg-amber-500/10 shadow-[0px_10px_26px_rgba(245,158,11,0.12)] animate-pending-comment-glow'
+                      : 'border-outline-variant'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-outline-variant bg-surface-container-high text-sm font-semibold text-primary">
+                      {avatarUrl ? (
+                        <img
+                          src={avatarUrl}
+                          alt={`Foto de ${comment.authorName}`}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        comment.authorName.trim().charAt(0).toUpperCase() || 'U'
+                      )}
+                    </span>
+
+                    <div className="min-w-0 flex-1">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="text-label-md font-semibold text-on-surface">
+                          {comment.authorName}
+                        </span>
+                        <span className="rounded-full bg-surface-container px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-on-surface-variant">
+                          {getCommentTypeLabel(comment.type)}
+                        </span>
+                        <span className="text-body-sm text-on-surface-variant">
+                          {formatCommentDate(comment.createdAt)}
+                        </span>
+                      </div>
+                      <p className="mt-3 whitespace-pre-wrap text-body-md text-on-surface">
+                        {comment.message}
+                      </p>
+                    </div>
+                  </div>
+                </article>
+              )
+            })()
           ))
         ) : (
           <div className="rounded-xl border border-dashed border-outline-variant px-4 py-8 text-center text-body-md text-on-surface-variant">
@@ -143,12 +166,12 @@ export function ProposalCommentsSection({
             rows={4}
             disabled={isSavingComment}
             className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-60"
-            placeholder="Escreva um comentário sobre a pendência ou o material enviado..."
+            placeholder="Escreva um comentário sobre a proposta..."
           />
 
           <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-body-sm text-on-surface-variant">
-              Use este espaço para registrar contexto da tratativa sem misturar com o envio final.
+              O comentário ficará identificado com seu nome, foto, data e horário.
             </p>
 
             <div className="flex flex-wrap justify-end gap-3">

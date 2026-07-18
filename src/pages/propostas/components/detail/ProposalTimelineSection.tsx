@@ -78,6 +78,19 @@ function resolveCommentEvent(
   }
 
   if (comment.type === 'audit') {
+    const isDocumentUpload = /^Documentos? enviados?\b/i.test(comment.message)
+
+    if (isDocumentUpload) {
+      return {
+        title: comment.message.startsWith('Documentos enviados')
+          ? 'Documentos anexados'
+          : 'Documento anexado',
+        description: comment.message,
+        tone: 'audit',
+        icon: 'upload_file',
+      }
+    }
+
     return {
       title: 'Auditoria registrada',
       description: comment.message,

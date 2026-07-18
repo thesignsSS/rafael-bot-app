@@ -170,14 +170,25 @@ The shape language is consistent and "Rounded," using a base radius of 8px (0.5r
 - **Focus State:** Primary Blue border with a soft blue outer glow (ring).
 - **Placeholder:** Light gray text (#94A3B8) in 14px Inter.
 
+### Advanced Filters
+- Advanced list filters open in a centered, elevated modal with a constrained viewport height and independently scrollable content.
+- Hierarchical dimensions use dependent single selects: choosing one broker enables a client select populated only with that broker's clients. Multiple-choice dimensions use grouped checkboxes inside `surface` fieldsets; date ranges use paired native date inputs.
+- Applied filters are summarized by a numeric badge on the trigger button. Active state uses `primary-fixed`, while the default trigger remains outlined.
+- Within one dimension, selected values use `OR`; different dimensions use `AND`. Dependent fields, such as the end date, remain disabled until their prerequisite is filled.
+
+### Login Announcements
+- Important product or operational communications open as centered, elevated modals after an authenticated profile is available.
+- Announcement artwork follows the Effectus blue, navy and white palette and scales proportionally to remain fully visible inside the constrained viewport without internal scrolling.
+- Every announcement offers a top-right close icon, a secondary `Fechar` action and a primary `Não exibir mais` action. Temporary dismissal lasts for the current app visit; permanent dismissal is stored per announcement and per user in `localStorage`.
+
 ### Cards
 - Used for grouping related form sections. Always white with a 1px border and the "Surface" shadow level.
 
 ### Kanban de Propostas
-- Use operational columns from the backend status endpoint. The default order is `Em análise`, `Pendente`, `Condicionado`, `Reprovado` and `Aprovado`.
+- Use operational columns from the backend status endpoint. The canonical order is `Em análise`, `Pendente`, `Condicionado`, `Reprovado`, `Aprovado`, `Validação de Renda`, `Renda Validada`, `Renda Não Validada`, `Engenharia`, `Formulários`, `Aguardando Reserva`, `Conformidade`, `Agendamento na Agência`, `ITBI`, `Assinatura de Contrato`, `Registro` and `Finalizado`.
 - Columns use `surface-container-low` with 1px `outline-variant` border and compact internal spacing to support scanning.
 - Cards use `surface-container-lowest`, 8px radius, subtle border and soft shadow. Keep metadata dense: proposal code, client, broker, property type, creation date and document count.
-- Status color is functional, not decorative: primary blue for analysis, amber for pending, sky blue for conditioned, error container red for rejected and restrained green for approved.
+- Status color is functional, not decorative: primary blue for analysis, amber for pending, sky blue for conditioned, error container red for rejected and restrained green for approved. Later operational stages use distinct, restrained Tailwind tones to remain scannable without changing the shared palette tokens.
 - Drag affordances only appear when the user can move cards. Read-only users should see the same board without drag handles or movement states.
 
 ### Progress Indicators

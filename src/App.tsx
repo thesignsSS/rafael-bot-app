@@ -10,6 +10,7 @@ import { AppRoutes } from './routes/AppRoutes'
 import { BrazilThemeCelebration } from './components/theme/BrazilThemeCelebration'
 import { BrazucaThemeNotice } from './components/theme/BrazucaThemeNotice'
 import { PreferencesProfileSync } from './components/theme/PreferencesProfileSync'
+import { IncomeFormalAnnouncementModal } from './components/announcements/IncomeFormalAnnouncementModal'
 
 function AppContent() {
   const {
@@ -66,6 +67,7 @@ function App() {
         <AppContent />
         <PreferencesProfileSync />
         <BrazilThemeCelebration />
+        <IncomeFormalAnnouncementModal />
         <BrazucaThemeNotice />
         <WhatsAppBotNotice />
         <ChatWidget />

@@ -25,6 +25,7 @@ import {
   viewProposalDocument,
 } from '../lib/proposalsApi'
 import type {
+  ProposalCommentScope,
   ProposalDocumentKind,
   ProposalDocumentScope,
 } from '../types/proposal-detail'
@@ -89,7 +90,26 @@ export function useProposalDetailPage() {
   const [isDeleteProposalModalOpen, setIsDeleteProposalModalOpen] = useState(false)
   const [pendingReasonDraft, setPendingReasonDraft] = useState('')
   const [pendingDocumentsDraft, setPendingDocumentsDraft] = useState<File[]>([])
-  const [commentDraft, setCommentDraft] = useState('')
+  const [commentDrafts, setCommentDrafts] = useState<Record<ProposalCommentScope, string>>({
+    proposal: '',
+    income_validation: '',
+    seller: '',
+    property: '',
+  })
+  const commentDraft = commentDrafts.proposal
+  const setScopedCommentDraft = useCallback(
+    (scope: ProposalCommentScope, value: string) => {
+      setCommentDrafts((currentDrafts) => ({
+        ...currentDrafts,
+        [scope]: value,
+      }))
+    },
+    [],
+  )
+  const setCommentDraft = useCallback(
+    (value: string) => setScopedCommentDraft('proposal', value),
+    [setScopedCommentDraft],
+  )
   const [hasPendingUpdates, setHasPendingUpdates] = useState(false)
   const [isDeletingProposal, setIsDeletingProposal] = useState(false)
   const [isManagingGuests, setIsManagingGuests] = useState(false)
@@ -161,7 +181,12 @@ export function useProposalDetailPage() {
   useEffect(() => {
     setPendingReasonDraft(proposal?.pendingReason ?? '')
     setPendingDocumentsDraft([])
-    setCommentDraft('')
+    setCommentDrafts({
+      proposal: '',
+      income_validation: '',
+      seller: '',
+      property: '',
+    })
     setHasPendingUpdates(false)
     setShareLink(
       proposal?.shareLinkToken
@@ -777,8 +802,8 @@ export function useProposalDetailPage() {
     )
   }, [])
 
-  const addComment = useCallback(async () => {
-    const message = commentDraft.trim()
+  const addComment = useCallback(async (scope: ProposalCommentScope = 'proposal') => {
+    const message = commentDrafts[scope].trim()
 
     if (!message) {
       toast.error('Escreva um comentário antes de enviar.')
@@ -790,20 +815,11 @@ export function useProposalDetailPage() {
       setIsSavingComment(true)
       await updateProposal(context.proposalId, {
         brokerUserId: context.brokerUserId,
-        brokerPhone: proposal?.brokerPhone ?? '',
-        clientName: proposal?.client.name ?? '',
-        clientCpf: proposal?.client.cpf ?? '',
-        clientEmail: proposal?.client.email ?? '',
-        clientPhone: proposal?.client.phone ?? '',
-        propertyType: proposal?.property.type ?? 'Novo',
-        propertyCity: proposal?.property.city ?? '',
-        propertyState: proposal?.property.state ?? '',
-        additionalInfo: proposal?.additionalInfo ?? '',
-        formData: proposal?.formData ?? {},
         commentMessage: message,
+        commentScope: scope,
       })
       await refetch()
-      setCommentDraft('')
+      setScopedCommentDraft(scope, '')
       if (canBrokerHandlePending) {
         setHasPendingUpdates(true)
       }
@@ -817,7 +833,7 @@ export function useProposalDetailPage() {
     } finally {
       setIsSavingComment(false)
     }
-  }, [canBrokerHandlePending, commentDraft, proposal, refetch, requireProposalContext])
+  }, [canBrokerHandlePending, commentDrafts, refetch, requireProposalContext, setScopedCommentDraft])
 
   const resendForAnalysis = useCallback(async () => {
     const hasDraftComment = commentDraft.trim().length > 0
@@ -867,6 +883,7 @@ export function useProposalDetailPage() {
     pendingDocumentsDraft,
     refetch,
     requireProposalContext,
+    setCommentDraft,
   ])
 
   const confirmDeleteProposal = useCallback(async () => {
@@ -926,6 +943,7 @@ export function useProposalDetailPage() {
     pendingReasonDraft,
     pendingDocumentsDraft,
     commentDraft,
+    commentDrafts,
     hasPendingUpdates,
     updateProposalState,
     goBack,
@@ -961,6 +979,7 @@ export function useProposalDetailPage() {
     removePendingDocument,
     addComment,
     setCommentDraft,
+    setScopedCommentDraft,
     resendForAnalysis,
     proposalBank: proposal ? extractProposalBank(proposal.formData) : '',
   }

@@ -1,5 +1,9 @@
 import { Icon } from '../../../components/ui/Icon'
 import type { ProposalsLayout } from '../../../contexts/preferences-context'
+import type {
+  ProposalStatus,
+  ProposalStatusOption,
+} from '../types/proposal-status'
 
 type ProposalsToolbarProps = {
   query: string
@@ -8,9 +12,14 @@ type ProposalsToolbarProps = {
   isAdmin?: boolean
   brokerOptions?: string[]
   selectedBroker?: string
+  statusOptions: ProposalStatusOption[]
+  selectedStatus: ProposalStatus | ''
+  advancedFiltersCount?: number
   onQueryChange: (value: string) => void
   onChangeLayout: (layout: ProposalsLayout) => void
   onBrokerChange?: (value: string) => void
+  onStatusChange: (value: ProposalStatus | '') => void
+  onOpenAdvancedFilters: () => void
 }
 
 export function ProposalsToolbar({
@@ -20,9 +29,14 @@ export function ProposalsToolbar({
   isAdmin = false,
   brokerOptions = [],
   selectedBroker = '',
+  statusOptions,
+  selectedStatus,
+  advancedFiltersCount = 0,
   onQueryChange,
   onChangeLayout,
   onBrokerChange,
+  onStatusChange,
+  onOpenAdvancedFilters,
 }: ProposalsToolbarProps) {
   return (
     <div className="mb-6 flex flex-col gap-4 rounded-xl border border-outline-variant bg-surface-container-lowest p-4">
@@ -45,6 +59,7 @@ export function ProposalsToolbar({
 
           {isAdmin && onBrokerChange ? (
             <select
+              aria-label="Filtrar por corretor"
               value={selectedBroker}
               onChange={(event) => onBrokerChange(event.target.value)}
               className="min-w-[220px] rounded-lg border border-outline-variant bg-surface px-4 py-2 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -57,6 +72,22 @@ export function ProposalsToolbar({
               ))}
             </select>
           ) : null}
+
+          <select
+            aria-label="Filtrar por situação"
+            value={selectedStatus}
+            onChange={(event) =>
+              onStatusChange(event.target.value as ProposalStatus | '')
+            }
+            className="min-w-[220px] rounded-lg border border-outline-variant bg-surface px-4 py-2 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
+          >
+            <option value="">Todas as situações</option>
+            {statusOptions.map((statusOption) => (
+              <option key={statusOption.value} value={statusOption.value}>
+                {statusOption.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="inline-flex rounded-xl border border-outline-variant bg-surface-container-low p-1">
@@ -85,11 +116,31 @@ export function ProposalsToolbar({
         </div>
       </div>
 
-      <div className="w-fit whitespace-nowrap rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2">
-        <span className="text-body-md font-semibold text-on-surface">
-          Total enviado:{' '}
-          <span className="text-primary">{totalSent}</span>
-        </span>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="w-fit whitespace-nowrap rounded-lg border border-outline-variant bg-surface-container-low px-4 py-2">
+          <span className="text-body-md font-semibold text-on-surface">
+            Total enviado:{' '}
+            <span className="text-primary">{totalSent}</span>
+          </span>
+        </div>
+
+        <button
+          type="button"
+          onClick={onOpenAdvancedFilters}
+          className={`inline-flex items-center justify-center gap-2 rounded-lg border px-4 py-2 text-label-md font-semibold transition-colors ${
+            advancedFiltersCount > 0
+              ? 'border-primary bg-primary-fixed text-on-primary-fixed'
+              : 'border-outline text-primary hover:bg-surface-container'
+          }`}
+        >
+          <Icon name="filter_list" size={19} />
+          Filtros avançados
+          {advancedFiltersCount > 0 ? (
+            <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 py-0.5 text-[11px] font-semibold text-on-primary">
+              {advancedFiltersCount}
+            </span>
+          ) : null}
+        </button>
       </div>
     </div>
   )

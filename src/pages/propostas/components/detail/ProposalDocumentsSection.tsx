@@ -8,6 +8,7 @@ type ProposalDocumentsSectionProps = {
   documents: ProposalDocument[]
   isBusy?: boolean
   canManageDocuments?: boolean
+  canDeleteDocument?: (document: ProposalDocument) => boolean
   onRename: (documentId: string) => void
   onDownload: (documentId: string) => void
   onDelete: (documentId: string) => void
@@ -21,6 +22,7 @@ export function ProposalDocumentsSection({
   documents,
   isBusy = false,
   canManageDocuments = true,
+  canDeleteDocument,
   onRename,
   onDownload,
   onDelete,
@@ -63,7 +65,11 @@ export function ProposalDocumentsSection({
               key={document.id}
               document={document}
               isBusy={isBusy}
-              canManage={canManageDocuments}
+              canRename={canManageDocuments}
+              canDelete={
+                canManageDocuments &&
+                (canDeleteDocument ? canDeleteDocument(document) : true)
+              }
               onRename={onRename}
               onDownload={onDownload}
               onDelete={onDelete}

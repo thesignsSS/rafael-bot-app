@@ -32,6 +32,7 @@ import { ProposalStatusControl } from '../components/detail/ProposalStatusContro
 import { ProposalTimelineSection } from '../components/detail/ProposalTimelineSection'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
 import { normalizeProposalStatus } from '../types/proposal-status'
+import type { ProposalCommentScope } from '../types/proposal-detail'
 import { Icon } from '../../../components/ui/Icon'
 
 type MainDetailTab =
@@ -98,6 +99,7 @@ export default function ProposalDetailPage() {
     pendingReasonDraft,
     pendingDocumentsDraft,
     commentDraft,
+    commentDrafts,
     hasPendingUpdates,
     proposalBank,
     updateProposalState,
@@ -134,6 +136,7 @@ export default function ProposalDetailPage() {
     removePendingDocument,
     addComment,
     setCommentDraft,
+    setScopedCommentDraft,
     resendForAnalysis,
   } = useProposalDetailPage()
   const [activeMainTab, setActiveMainTab] = useState<MainDetailTab>('dados_proposta')
@@ -144,13 +147,22 @@ export default function ProposalDetailPage() {
   const [isIncomeValidationTransitionModalOpen, setIsIncomeValidationTransitionModalOpen] =
     useState(false)
   const normalizedStatus = normalizeProposalStatus(proposal?.status)
+  const commentsForScope = (scope: ProposalCommentScope) =>
+    proposal?.comments.filter((comment) => comment.scope === scope) ?? []
+  const proposalComments = commentsForScope('proposal')
   const hasIncomeValidationStep =
     normalizedStatus === 'validacao_renda' ||
     normalizedStatus === 'renda_validada' ||
     normalizedStatus === 'renda_nao_validada' ||
     normalizedStatus === 'engenharia' ||
     normalizedStatus === 'formularios' ||
-    normalizedStatus === 'conformidade'
+    normalizedStatus === 'aguardando_reserva' ||
+    normalizedStatus === 'conformidade' ||
+    normalizedStatus === 'agendamento_agencia' ||
+    normalizedStatus === 'itbi' ||
+    normalizedStatus === 'assinatura_contrato' ||
+    normalizedStatus === 'registro' ||
+    normalizedStatus === 'finalizado'
   const canAdvanceToIncomeValidation = normalizedStatus === 'aprovado'
   const shouldHighlightComments = canBrokerHandlePending
   const canResendForAnalysis =
@@ -159,7 +171,7 @@ export default function ProposalDetailPage() {
   const isBrokerFullyLocked =
     isBrokerReadOnly || (!isAdmin && isIncomeValidationFinalized)
   const canEditProposal = !isBrokerFullyLocked
-  const latestComment = proposal?.comments[proposal.comments.length - 1] ?? null
+  const latestComment = proposalComments[proposalComments.length - 1] ?? null
   const shouldShowPendingIndicator = normalizedStatus === 'pendente'
   const shouldShowCommentsIndicator =
     normalizedStatus === 'pendente' && latestComment?.authorRole === 'admin'
@@ -649,7 +661,10 @@ export default function ProposalDetailPage() {
                 title="Documentos da Proposta"
                 documents={proposalDocumentsOnly}
                 isBusy={isUpdatingDocuments}
-                canManageDocuments={!isBrokerFullyLocked}
+                canManageDocuments
+                canDeleteDocument={(document) =>
+                  isAdmin || document.uploadedByUserId === currentUserProfile?.id
+                }
                 onRename={renameDocument}
                 onDownload={downloadDocument}
                 onDelete={deleteDocument}
@@ -659,46 +674,102 @@ export default function ProposalDetailPage() {
               />
             </div>
           </div>
+
+          <div className="mt-6">
+            <ProposalCommentsSection
+              pendingReason={proposal.pendingReason}
+              comments={proposalComments}
+              emphasized={shouldHighlightComments}
+              highlightedCommentId={latestAdminCommentId}
+              scrollToCommentId={null}
+              commentDraft={commentDraft}
+              isSavingComment={isSavingComment}
+              canAddComment
+              onCommentDraftChange={setCommentDraft}
+              onAddComment={addComment}
+            />
+          </div>
         </>
       ) : activeMainTab === 'validacao_renda' ? (
-        <ProposalIncomeValidationForm
-          proposal={proposal}
-          isAdmin={isAdmin}
-          isFinalized={isIncomeValidationFinalized}
-          onFinalize={() => setIsIncomeValidationFinalized(true)}
-          onPersistedFormDataChange={(formData) =>
-            updateProposalState((currentProposal) => ({
-              ...currentProposal,
-              formData,
-            }))
-          }
-        />
+        <div className="space-y-6">
+          <ProposalIncomeValidationForm
+            proposal={proposal}
+            isAdmin={isAdmin}
+            isFinalized={isIncomeValidationFinalized}
+            onFinalize={() => setIsIncomeValidationFinalized(true)}
+            onPersistedFormDataChange={(formData) =>
+              updateProposalState((currentProposal) => ({
+                ...currentProposal,
+                formData,
+              }))
+            }
+          />
+          <ProposalCommentsSection
+            pendingReason=""
+            comments={commentsForScope('income_validation')}
+            commentDraft={commentDrafts.income_validation}
+            isSavingComment={isSavingComment}
+            canAddComment
+            onCommentDraftChange={(value) =>
+              setScopedCommentDraft('income_validation', value)
+            }
+            onAddComment={() => void addComment('income_validation')}
+          />
+        </div>
       ) : activeMainTab === 'seller_documents' ? (
-        <ProposalDocumentsSection
-          title="Documentos do Vendedor"
-          documents={sellerDocuments}
-          isBusy={isUpdatingDocuments}
-          canManageDocuments={!isBrokerFullyLocked}
-          onRename={renameDocument}
-          onDownload={downloadDocument}
-          onDelete={deleteDocument}
-          onView={viewDocument}
-          onViewAll={openAllDocumentsPreview}
-          onFilesSelected={(files) => void addDocuments(files, 'seller')}
-        />
+        <div className="space-y-6">
+          <ProposalDocumentsSection
+            title="Documentos do Vendedor"
+            documents={sellerDocuments}
+            isBusy={isUpdatingDocuments}
+            canManageDocuments
+            canDeleteDocument={(document) =>
+              isAdmin || document.uploadedByUserId === currentUserProfile?.id
+            }
+            onRename={renameDocument}
+            onDownload={downloadDocument}
+            onDelete={deleteDocument}
+            onView={viewDocument}
+            onViewAll={openAllDocumentsPreview}
+            onFilesSelected={(files) => void addDocuments(files, 'seller')}
+          />
+          <ProposalCommentsSection
+            pendingReason=""
+            comments={commentsForScope('seller')}
+            commentDraft={commentDrafts.seller}
+            isSavingComment={isSavingComment}
+            canAddComment
+            onCommentDraftChange={(value) => setScopedCommentDraft('seller', value)}
+            onAddComment={() => void addComment('seller')}
+          />
+        </div>
       ) : activeMainTab === 'property_documents' ? (
-        <ProposalDocumentsSection
-          title="Documentos do Imóvel"
-          documents={propertyDocuments}
-          isBusy={isUpdatingDocuments}
-          canManageDocuments={!isBrokerFullyLocked}
-          onRename={renameDocument}
-          onDownload={downloadDocument}
-          onDelete={deleteDocument}
-          onView={viewDocument}
-          onViewAll={openAllDocumentsPreview}
-          onFilesSelected={(files) => void addDocuments(files, 'property')}
-        />
+        <div className="space-y-6">
+          <ProposalDocumentsSection
+            title="Documentos do Imóvel"
+            documents={propertyDocuments}
+            isBusy={isUpdatingDocuments}
+            canManageDocuments
+            canDeleteDocument={(document) =>
+              isAdmin || document.uploadedByUserId === currentUserProfile?.id
+            }
+            onRename={renameDocument}
+            onDownload={downloadDocument}
+            onDelete={deleteDocument}
+            onView={viewDocument}
+            onViewAll={openAllDocumentsPreview}
+            onFilesSelected={(files) => void addDocuments(files, 'property')}
+          />
+          <ProposalCommentsSection
+            pendingReason=""
+            comments={commentsForScope('property')}
+            commentDraft={commentDrafts.property}
+            isSavingComment={isSavingComment}
+            canAddComment
+            onCommentDraftChange={(value) => setScopedCommentDraft('property', value)}
+            onAddComment={() => void addComment('property')}
+          />
+        </div>
       ) : activeProposalSectionTab === 'tratativa' ? (
         operationalGuide ? (
           <ProposalOperationalGuideCard
@@ -727,13 +798,13 @@ export default function ProposalDetailPage() {
       ) : activeProposalSectionTab === 'comentarios' ? (
         <ProposalCommentsSection
           pendingReason={proposal.pendingReason}
-          comments={proposal.comments}
+          comments={proposalComments}
           emphasized={shouldHighlightComments}
           highlightedCommentId={latestAdminCommentId}
           scrollToCommentId={null}
           commentDraft={commentDraft}
           isSavingComment={isSavingComment}
-          canAddComment={isAdmin || canBrokerHandlePending}
+          canAddComment
           onCommentDraftChange={setCommentDraft}
           onAddComment={addComment}
         />

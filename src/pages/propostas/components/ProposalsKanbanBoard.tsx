@@ -11,6 +11,7 @@ import { getProfileAvatarUrl } from '../../../lib/profile-avatar'
 import { formatCreatedAt } from '../lib/proposalListUtils'
 import type { ProposalListItem } from '../types/proposal-list-item'
 import {
+  PROPOSAL_STATUSES,
   type ProposalStatus,
   type ProposalStatusOption,
   normalizeProposalStatus,
@@ -40,11 +41,20 @@ const statusToneClassName: Record<ProposalStatus, string> = {
   renda_nao_validada: 'border-rose-200 bg-rose-50 text-rose-800',
   engenharia: 'border-cyan-200 bg-cyan-50 text-cyan-800',
   formularios: 'border-indigo-200 bg-indigo-50 text-indigo-800',
+  aguardando_reserva: 'border-orange-200 bg-orange-50 text-orange-800',
   conformidade: 'border-fuchsia-200 bg-fuchsia-50 text-fuchsia-800',
+  agendamento_agencia: 'border-teal-200 bg-teal-50 text-teal-800',
+  itbi: 'border-yellow-200 bg-yellow-50 text-yellow-800',
+  assinatura_contrato: 'border-purple-200 bg-purple-50 text-purple-800',
+  registro: 'border-slate-200 bg-slate-50 text-slate-800',
+  finalizado: 'border-green-200 bg-green-50 text-green-800',
 }
 
 const KANBAN_INITIAL_VISIBLE_COUNT = 10
 const TOP_SCROLLBAR_MIN_THUMB_WIDTH = 56
+const KANBAN_STATUS_POSITION = new Map<ProposalStatus, number>(
+  PROPOSAL_STATUSES.map((status, index) => [status, index]),
+)
 
 export function ProposalsKanbanBoard({
   items,
@@ -76,20 +86,26 @@ export function ProposalsKanbanBoard({
 
   const columns = useMemo(
     () =>
-      statusOptions.map((statusOption) => ({
-        status: statusOption.value,
-        label: statusOption.label,
-        items: items
-          .filter(
-            (proposal) =>
-              normalizeProposalStatus(proposal.status) === statusOption.value,
-          )
-          .sort(
-            (left, right) =>
-              new Date(right.createdAt).getTime() -
-              new Date(left.createdAt).getTime(),
-          ),
-      })),
+      [...statusOptions]
+        .sort(
+          (left, right) =>
+            (KANBAN_STATUS_POSITION.get(left.value) ?? Number.MAX_SAFE_INTEGER) -
+            (KANBAN_STATUS_POSITION.get(right.value) ?? Number.MAX_SAFE_INTEGER),
+        )
+        .map((statusOption) => ({
+          status: statusOption.value,
+          label: statusOption.label,
+          items: items
+            .filter(
+              (proposal) =>
+                normalizeProposalStatus(proposal.status) === statusOption.value,
+            )
+            .sort(
+              (left, right) =>
+                new Date(right.createdAt).getTime() -
+                new Date(left.createdAt).getTime(),
+            ),
+        })),
     [items, statusOptions],
   )
 

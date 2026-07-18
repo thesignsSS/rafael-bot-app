@@ -130,15 +130,23 @@ flowchart LR
 
 ### `/propostas` (protegida)
 
-- Tela "Minhas Propostas" com quadro kanban de propostas agrupadas por situação. As colunas vêm de `GET /api/proposals/statuses`; o fallback local usa `Em análise`, `Pendente`, `Condicionado`, `Reprovado`, `Aprovado` e `Validação de Renda`.
+- Tela "Minhas Propostas" com quadro kanban de propostas agrupadas por situação. As colunas vêm de `GET /api/proposals/statuses`, mas o quadro aplica a ordem canônica: `Em análise`, `Pendente`, `Condicionado`, `Reprovado`, `Aprovado`, `Validação de Renda`, `Renda Validada`, `Renda Não Validada`, `Engenharia`, `Formulários`, `Aguardando Reserva`, `Conformidade`, `Agendamento na Agência`, `ITBI`, `Assinatura de Contrato`, `Registro` e `Finalizado`.
 - Dados consumidos de `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>`; o frontend busca os lotes necessários para montar todas as colunas do quadro.
-- Busca por cliente, corretor ou código da proposta via parâmetro `search`.
+- Busca por cliente, corretor ou código da proposta via parâmetro `search`, sem diferenciar maiúsculas/minúsculas ou acentos (`José` também é encontrado por `jose`).
+- Filtro local por situação disponível para todos os usuários e combinável com a busca; administradores também podem combiná-lo com o filtro por corretor. No Kanban, uma situação selecionada exibe somente sua coluna; `Todas as situações` restaura o quadro completo.
+- O botão `Filtros avançados` abre um modal em que o corretor é selecionado individualmente e habilita outro select com apenas os clientes vinculados a ele. Situação, tipo de imóvel e presença de documentos aceitam múltipla escolha, além do período de criação. `Com documentos` e `Sem documentos` usam a contagem completa da aba `Proposta`, incluindo documentos legados sem escopo registrado. Valores da mesma categoria usam lógica `OU`; categorias distintas são combinadas com `E`. A data `Até` só é habilitada após preencher `De`; sem `Até`, o filtro considera todas as propostas criadas desde `De`.
 - Exibe loading, erro, estado vazio e total de itens retornado pelo backend.
 - Layout compartilhado via `DashboardLayout` (sidebar com navegação, header com título por rota, footer).
 - Botão "Nova Proposta" redireciona para `/`.
 - Cards do kanban navegam para `/propostas/:proposalId`.
 - Apenas administradores podem arrastar cards entre colunas. Corretores visualizam o mesmo quadro, mas sem drag and drop.
 - Mudança de coluna atualiza a situação da proposta via `PATCH /api/proposals/:proposalId` com payload mínimo de status.
+
+### Comunicados após login
+
+- Após a sessão e o perfil autenticado estarem disponíveis, o sistema pode abrir comunicados operacionais em um modal global.
+- O comunicado `renda-formal-2026-07` apresenta a nova regra de comprovação de renda com identidade visual da Effectus.
+- O ícone `X`, o clique no fundo, a tecla `Esc` e o botão `Fechar` encerram apenas a exibição atual. O botão `Não exibir mais` grava a chave versionada `effectus-announcement:hidden:renda-formal-2026-07:<userId>` no `localStorage`, mantendo a preferência separada por usuário e permitindo que comunicados futuros usem novas versões.
 
 ### `/perfil` (protegida)
 
@@ -157,10 +165,13 @@ flowchart LR
 - Quando a proposta está em `Aprovado` ou `Validação de Renda`, o detalhe prioriza duas abas: `Dados da Proposta` e `Validação de Renda`.
 - A aba `Validação de Renda` traz formulário com produto, cidade do imóvel herdada da proposta, valores financeiros, tipo do imóvel, descrição detalhada da atividade, tipo de renda e campos de documentos por categoria.
 - Os campos de documentos da validação de renda mudam conforme o tipo de renda selecionado (`Renda formal`, `Renda informal` ou `Renda mista`).
-- Após `Aprovado`, corretores ficam em modo somente leitura; apenas administradores podem editar proposta, documentos, compartilhamento e convidados.
+- Após `Aprovado`, corretores ficam em modo somente leitura para os dados cadastrais, compartilhamento e gestão de convidados. Proprietário, convidados vinculados e administradores continuam podendo enviar documentos e comentários em qualquer situação.
 - Cards de dados do cliente, dados do imóvel e informações adicionais.
 - Lista de documentos enviados com nome, tamanho e data de upload.
-- Edição da proposta via PATCH; documentos com visualizar, renomear, excluir, upload adicional e baixar tudo em zip.
+- As áreas `Proposta`, `Validação de Renda`, `Vendedor` e `Imóvel` reutilizam o mesmo componente de comentários, permitindo ao proprietário, convidados e administradores registrar mensagens identificadas por foto, nome, data e horário.
+- Comentários e auditorias de documentos são separados no JSON por `scope` (`proposal`, `income_validation`, `seller` ou `property`). Cada área exibe apenas seu próprio histórico; registros antigos sem escopo são tratados como `proposal`.
+- A `Linha do tempo` agrega todos os escopos; uploads aparecem identificados como `Documento anexado` ou `Documentos anexados`.
+- Edição da proposta via PATCH; documentos com visualizar, baixar individualmente, renomear, excluir, upload adicional e baixar tudo em zip. Proprietário, convidados vinculados e administradores podem visualizar e baixar documentos de todas as áreas em qualquer situação; o ZIP agrega documentos da Proposta, Vendedor, Imóvel e Validação de Renda. Administradores podem excluir qualquer documento; proprietário e convidados só podem excluir arquivos enviados pelo próprio usuário.
 - Mutações de proposta/documentos fazem refetch do detalhe após sucesso.
 - Exibe loading, erro e redireciona para `/propostas` quando a proposta não é encontrada.
 
@@ -292,7 +303,18 @@ Resposta esperada:
     { "value": "condicionado", "label": "Condicionado" },
     { "value": "reprovado", "label": "Reprovado" },
     { "value": "aprovado", "label": "Aprovado" },
-    { "value": "validacao_renda", "label": "Validação de Renda" }
+    { "value": "validacao_renda", "label": "Validação de Renda" },
+    { "value": "renda_validada", "label": "Renda Validada" },
+    { "value": "renda_nao_validada", "label": "Renda Não Validada" },
+    { "value": "engenharia", "label": "Engenharia" },
+    { "value": "formularios", "label": "Formulários" },
+    { "value": "aguardando_reserva", "label": "Aguardando Reserva" },
+    { "value": "conformidade", "label": "Conformidade" },
+    { "value": "agendamento_agencia", "label": "Agendamento na Agência" },
+    { "value": "itbi", "label": "ITBI" },
+    { "value": "assinatura_contrato", "label": "Assinatura de Contrato" },
+    { "value": "registro", "label": "Registro" },
+    { "value": "finalizado", "label": "Finalizado" }
   ]
 }
 ```
@@ -302,6 +324,8 @@ O frontend também aceita, por compatibilidade, uma resposta no formato `{ "stat
 ### Listagem
 
 O frontend chama `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY`.
+
+Os filtros de nome usam as colunas normalizadas `client_name_search` e `broker_name_search`, preenchidas automaticamente por trigger no banco. Isso preserva paginação e totalização enquanto torna a busca insensível a acentos e caixa.
 
 Cada item da resposta deve incluir a situação quando disponível:
 
@@ -314,7 +338,7 @@ type ProposalListItem = {
   propertyType: 'Novo' | 'Usado'
   createdAt: string
   documentsCount: number
-  status?: 'em_analise' | 'pendente' | 'condicionado' | 'reprovado' | 'aprovado' | 'validacao_renda'
+  status?: ProposalStatus
 }
 ```
 
@@ -331,7 +355,7 @@ Administradores podem alterar a situação pelo kanban ou pelo detalhe da propos
 }
 ```
 
-Valores aceitos pelo frontend: `em_analise`, `pendente`, `condicionado`, `reprovado`, `aprovado` e `validacao_renda`. O backend deve aplicar a regra de permissão para permitir essa mutação apenas para admin.
+Valores aceitos pelo frontend seguem a sequência retornada em `GET /api/proposals/statuses`, de `em_analise` até `finalizado`. O backend aplica a regra de permissão para permitir essa mutação apenas para admin.
 
 Listagem:
 
@@ -359,7 +383,7 @@ Situação:
 PATCH /api/proposals/:proposalId
 ```
 
-Payload: `brokerUserId` e `status` (`em_analise`, `pendente`, `condicionado`, `reprovado`, `aprovado` ou `validacao_renda`).
+Payload: `brokerUserId` e `status`, usando um dos valores documentados em **Status disponíveis**.
 
 Documentos:
 
@@ -372,6 +396,8 @@ Documentos:
 | Baixar zip | `GET /api/proposals/:proposalId/download?brokerUserId=<uuid>` |
 
 Após editar, enviar, renomear ou excluir documentos, o frontend faz refetch do detalhe para refletir o estado persistido.
+
+Uploads e comentários são permitidos ao proprietário, aos convidados vinculados à proposta e aos administradores em qualquer situação. Na exclusão, o backend compara `uploadedByUserId`: administradores podem remover qualquer arquivo, enquanto usuários com papel `broker` só podem remover os próprios. Documentos legados sem autor registrado são atribuídos ao proprietário da proposta para essa verificação.
 
 ## Permissionamento
 

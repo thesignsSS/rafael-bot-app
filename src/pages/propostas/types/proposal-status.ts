@@ -9,7 +9,13 @@ export const PROPOSAL_STATUSES = [
   'renda_nao_validada',
   'engenharia',
   'formularios',
+  'aguardando_reserva',
   'conformidade',
+  'agendamento_agencia',
+  'itbi',
+  'assinatura_contrato',
+  'registro',
+  'finalizado',
 ] as const
 
 export type ProposalStatus = (typeof PROPOSAL_STATUSES)[number]
@@ -32,7 +38,13 @@ export const PROPOSAL_STATUS_LABELS: Record<ProposalStatus, string> = {
   renda_nao_validada: 'Renda Não Validada',
   engenharia: 'Engenharia',
   formularios: 'Formulários',
+  aguardando_reserva: 'Aguardando Reserva',
   conformidade: 'Conformidade',
+  agendamento_agencia: 'Agendamento na Agência',
+  itbi: 'ITBI',
+  assinatura_contrato: 'Assinatura de Contrato',
+  registro: 'Registro',
+  finalizado: 'Finalizado',
 }
 
 export const DEFAULT_PROPOSAL_STATUS_OPTIONS: ProposalStatusOption[] =
@@ -113,8 +125,47 @@ export function normalizeProposalStatus(status: unknown): ProposalStatus {
     return 'formularios'
   }
 
+  if (
+    status === 'aguardando_reserva' ||
+    status === 'aguardando reserva'
+  ) {
+    return 'aguardando_reserva'
+  }
+
   if (status === 'conformidade') {
     return 'conformidade'
+  }
+
+  if (
+    status === 'agendamento_agencia' ||
+    status === 'agendamento agencia' ||
+    status === 'agendamento na agência' ||
+    status === 'agendamento na agencia'
+  ) {
+    return 'agendamento_agencia'
+  }
+
+  if (status === 'itbi') {
+    return 'itbi'
+  }
+
+  if (
+    status === 'assinatura_contrato' ||
+    status === 'assinatura contrato' ||
+    status === 'assinatura de contrato'
+  ) {
+    return 'assinatura_contrato'
+  }
+
+  if (status === 'registro') {
+    return 'registro'
+  }
+
+  if (
+    status === 'finalizado' ||
+    status === 'finalizada'
+  ) {
+    return 'finalizado'
   }
 
   return DEFAULT_PROPOSAL_STATUS
@@ -132,7 +183,13 @@ export function isBrokerReadOnlyProposalStatus(status: ProposalStatus) {
     status === 'renda_nao_validada' ||
     status === 'engenharia' ||
     status === 'formularios' ||
-    status === 'conformidade'
+    status === 'aguardando_reserva' ||
+    status === 'conformidade' ||
+    status === 'agendamento_agencia' ||
+    status === 'itbi' ||
+    status === 'assinatura_contrato' ||
+    status === 'registro' ||
+    status === 'finalizado'
   )
 }
 
