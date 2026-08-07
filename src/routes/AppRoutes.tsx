@@ -5,6 +5,9 @@ import { DashboardLayout } from '../layouts/DashboardLayout'
 import AdminPage from '../pages/admin'
 import AdminWhatsAppPage from '../pages/admin/whatsapp'
 import CadastroPage from '../pages/cadastro'
+import EngenhariaRequestsPage from '../pages/engenharia'
+import EngenhariaRequestDetailPage from '../pages/engenharia/detail'
+import EngenhariaNovaPage from '../pages/engenharia/nova'
 import HomePage from '../pages/home'
 import LoginPage from '../pages/login'
 import PerfilPage from '../pages/perfil'
@@ -23,6 +26,9 @@ export function AppRoutes() {
       <Route element={<ProtectedRoute />}>
         <Route element={<DashboardLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/engenharia" element={<EngenhariaRequestsPage />} />
+          <Route path="/engenharia/nova" element={<EngenhariaNovaPage />} />
+          <Route path="/engenharia/:requestId" element={<EngenhariaRequestDetailPage />} />
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/convites" element={<ConvitesPage />} />
           <Route path="/propostas" element={<PropostasPage />} />

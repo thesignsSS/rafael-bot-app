@@ -6,7 +6,7 @@ import {
   supportedFileExtensions,
   supportedFileExtensionsLabel,
 } from '../lib/proposalUtils'
-import { FormSection } from './FormSection'
+import { FormSection } from '../../../components/ui/FormSection'
 
 type DocumentsSectionProps = {
   extraFiles: File[]

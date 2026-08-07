@@ -95,6 +95,13 @@ export function SidebarContent({
           isCollapsed={isCollapsed}
         />
         <SidebarNavItem
+          icon="engineering"
+          label="Solicitações de Engenharia"
+          to="/engenharia"
+          onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
+        />
+        <SidebarNavItem
           icon="person"
           label="Meu Perfil"
           to="/perfil"

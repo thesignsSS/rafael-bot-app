@@ -6,8 +6,8 @@ import {
   type IbgeCity,
   type PropertyType,
 } from '../types/proposal'
-import { Field } from './Field'
-import { FormSection } from './FormSection'
+import { Field } from '../../../components/ui/Field'
+import { FormSection } from '../../../components/ui/FormSection'
 
 type PropertyDataSectionProps = {
   propertyType: PropertyType

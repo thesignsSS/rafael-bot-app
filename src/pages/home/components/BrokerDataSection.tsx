@@ -1,7 +1,7 @@
 import { Icon } from '../../../components/ui/Icon'
 import { formatBrazilianPhone } from '../../../lib/phone'
-import { Field } from './Field'
-import { FormSection } from './FormSection'
+import { Field } from '../../../components/ui/Field'
+import { FormSection } from '../../../components/ui/FormSection'
 
 type BrokerDataSectionProps = {
   brokerPhone: string

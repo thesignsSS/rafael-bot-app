@@ -1,5 +1,5 @@
 import { additionalInfoMaxLength } from '../lib/proposalUtils'
-import { FormSection } from './FormSection'
+import { FormSection } from '../../../components/ui/FormSection'
 
 type AdditionalInfoSectionProps = {
   additionalInfo: string
