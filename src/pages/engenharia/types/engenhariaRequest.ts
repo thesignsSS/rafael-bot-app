@@ -1,19 +1,21 @@
 import type { PropertyKind } from './engenharia'
 
 export type EngenhariaRequestStatus =
-  | 'pending'
-  | 'in_progress'
-  | 'completed'
-  | 'cancelled'
+  | 'solicitar_engenharia'
+  | 'pendencia'
+  | 'boleto_enviado'
+  | 'ordem_servico'
+  | 'engenharia_concluida'
 
 export const ENGENHARIA_REQUEST_STATUS_OPTIONS: {
   value: EngenhariaRequestStatus
   label: string
 }[] = [
-  { value: 'pending', label: 'Pendente' },
-  { value: 'in_progress', label: 'Em Andamento' },
-  { value: 'completed', label: 'Concluída' },
-  { value: 'cancelled', label: 'Cancelada' },
+  { value: 'solicitar_engenharia', label: 'Solicitar Engenharia' },
+  { value: 'pendencia', label: 'Pendência' },
+  { value: 'boleto_enviado', label: 'Boleto Enviado' },
+  { value: 'ordem_servico', label: 'OS (Ordem de Serviço)' },
+  { value: 'engenharia_concluida', label: 'Engenharia Concluída' },
 ]
 
 export type EngenhariaRequestListItem = {

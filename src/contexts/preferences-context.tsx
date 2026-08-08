@@ -13,6 +13,7 @@ export type AppTheme =
 export type AppFontSize = 'medium' | 'large'
 export type AppDensity = 'default' | 'compact'
 export type ProposalsLayout = 'kanban' | 'table'
+export type EngenhariaLayout = 'kanban' | 'table'
 export type ChatWallpaper = 'classic' | 'subtle' | 'none'
 export type EnterBehavior = 'send' | 'newline'
 export type NotificationPreferenceKey =
@@ -27,6 +28,7 @@ export type AppPreferences = {
   fontSize: AppFontSize
   density: AppDensity
   proposalsLayout: ProposalsLayout
+  engenhariaLayout: EngenhariaLayout
   chatWallpaper: ChatWallpaper
   enterBehavior: EnterBehavior
   notifications: {
@@ -87,6 +89,7 @@ const DEFAULT_PREFERENCES: AppPreferences = {
   fontSize: 'medium',
   density: 'default',
   proposalsLayout: 'kanban',
+  engenhariaLayout: 'kanban',
   chatWallpaper: 'classic',
   enterBehavior: 'send',
   notifications: {
