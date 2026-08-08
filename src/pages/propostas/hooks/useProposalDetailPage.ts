@@ -95,6 +95,7 @@ export function useProposalDetailPage() {
     income_validation: '',
     seller: '',
     property: '',
+    email: '',
   })
   const commentDraft = commentDrafts.proposal
   const setScopedCommentDraft = useCallback(
@@ -186,6 +187,7 @@ export function useProposalDetailPage() {
       income_validation: '',
       seller: '',
       property: '',
+      email: '',
     })
     setHasPendingUpdates(false)
     setShareLink(

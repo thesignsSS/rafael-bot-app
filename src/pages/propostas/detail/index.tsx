@@ -22,6 +22,7 @@ import { ProposalDetailHeader } from '../components/detail/ProposalDetailHeader'
 import { ProposalDocumentsSection } from '../components/detail/ProposalDocumentsSection'
 import { ProposalEditForm } from '../components/detail/ProposalEditForm'
 import { ProposalDocumentPreviewModal } from '../components/detail/ProposalDocumentPreviewModal'
+import { ProposalEmailSection } from '../components/detail/ProposalEmailSection'
 import { ProposalGuestsSection } from '../components/detail/ProposalGuestsSection'
 import { ProposalIncomeValidationForm } from '../components/detail/ProposalIncomeValidationForm'
 import { ProposalInfoField } from '../components/detail/ProposalInfoField'
@@ -47,6 +48,7 @@ type ProposalSectionTab =
   | 'comentarios'
   | 'timeline'
   | 'convidados'
+  | 'email'
 
 function readIncomeValidationFinalized(formData: Record<string, unknown> | undefined) {
   const rawValue = formData?.validacao_renda
@@ -584,6 +586,21 @@ export default function ProposalDetailPage() {
                 </span>
               </button>
             ) : null}
+            {isAdmin ? (
+              <button
+                type="button"
+                role="tab"
+                aria-selected={activeProposalSectionTab === 'email'}
+                onClick={() => setActiveProposalSectionTab('email')}
+                className={`border-b-2 px-1 pb-3 text-label-lg font-semibold transition-all ${
+                  activeProposalSectionTab === 'email'
+                    ? 'border-primary text-on-surface'
+                    : 'border-transparent text-on-surface-variant hover:text-on-surface'
+                }`}
+              >
+                Email
+              </button>
+            ) : null}
           </div>
         </div>
       ) : null}
@@ -807,6 +824,12 @@ export default function ProposalDetailPage() {
           canAddComment
           onCommentDraftChange={setCommentDraft}
           onAddComment={() => void addComment('proposal')}
+        />
+      ) : activeProposalSectionTab === 'email' && isAdmin ? (
+        <ProposalEmailSection
+          proposal={proposal}
+          history={commentsForScope('email')}
+          onSent={refetch}
         />
       ) : (
         activeProposalSectionTab === 'convidados' && canViewGuests ? (

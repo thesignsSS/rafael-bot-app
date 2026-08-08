@@ -346,6 +346,26 @@ export async function sendIncomeValidationTestEmail(
   }
 }
 
+export async function sendProposalEmail(
+  proposalId: string,
+  payload: {
+    brokerUserId: string
+    to: string[]
+    subject: string
+    text: string
+  },
+): Promise<void> {
+  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/send-email`, {
+    method: 'POST',
+    headers: getJsonRequestHeaders(),
+    body: JSON.stringify(payload),
+  })
+
+  if (!response.ok) {
+    throw new Error(getProposalsErrorMessage(response.status))
+  }
+}
+
 export async function viewProposalDocument(
   proposalId: string,
   documentId: string,
