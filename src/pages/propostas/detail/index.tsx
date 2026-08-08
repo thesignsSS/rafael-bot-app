@@ -830,6 +830,8 @@ export default function ProposalDetailPage() {
           proposal={proposal}
           history={commentsForScope('email')}
           onSent={refetch}
+          onUploadAttachment={(files) => addDocuments(files, 'email')}
+          onDownloadAttachment={downloadDocument}
         />
       ) : (
         activeProposalSectionTab === 'convidados' && canViewGuests ? (

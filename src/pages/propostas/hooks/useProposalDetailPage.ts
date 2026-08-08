@@ -436,6 +436,7 @@ export function useProposalDetailPage() {
     ...(proposal?.sellerDocuments ?? []),
     ...(proposal?.propertyDocuments ?? []),
     ...(proposal?.incomeValidationDocuments ?? []),
+    ...(proposal?.emailDocuments ?? []),
   ]
 
   const renameDocument = useCallback(

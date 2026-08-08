@@ -1,6 +1,7 @@
 import type {
   AcceptProposalShareResponse,
   ProposalDetail,
+  ProposalDocumentScope,
   ProposalShareLinkResponse,
   ProposalSharePreview,
   UpdateProposalStatusPayload,
@@ -241,7 +242,7 @@ export async function uploadProposalDocuments(
   proposalId: string,
   brokerUserId: string,
   documents: FormSubmissionDocument[],
-  documentScope: 'proposal' | 'income_validation' | 'seller' | 'property' = 'proposal',
+  documentScope: ProposalDocumentScope = 'proposal',
 ): Promise<void> {
   const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/documents`, {
     method: 'POST',
@@ -353,6 +354,11 @@ export async function sendProposalEmail(
     to: string[]
     subject: string
     text: string
+    attachments?: Array<{
+      type: 'proposal_document'
+      documentId: string
+      filename?: string
+    }>
   },
 ): Promise<void> {
   const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/send-email`, {

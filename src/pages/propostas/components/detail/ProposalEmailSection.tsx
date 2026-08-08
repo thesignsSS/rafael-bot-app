@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { toast } from 'sonner'
 import { Icon } from '../../../../components/ui/Icon'
 import { useAuth } from '../../../../contexts/auth-context'
+import { filterProposalDocumentsExcludingIncomeValidation } from '../../lib/proposalDetailUtils'
 import { sendProposalEmail } from '../../lib/proposalsApi'
 import {
   DEFAULT_PROPOSAL_EMAIL_RECIPIENT,
@@ -28,23 +29,43 @@ type ProposalEmailSectionProps = {
   proposal: ProposalDetail
   history: ProposalComment[]
   onSent: () => void
+  onUploadAttachment: (files: File[]) => Promise<void>
+  onDownloadAttachment: (documentId: string) => void
 }
 
 export function ProposalEmailSection({
   proposal,
   history,
   onSent,
+  onUploadAttachment,
+  onDownloadAttachment,
 }: ProposalEmailSectionProps) {
   const { user } = useAuth()
   const [activeTemplateId, setActiveTemplateId] =
     useState<ProposalEmailTemplateId | null>(null)
   const [isSending, setIsSending] = useState(false)
+  const [isUploadingAttachment, setIsUploadingAttachment] = useState(false)
 
   const activeTemplate = PROPOSAL_EMAIL_TEMPLATES.find(
     (template) => template.id === activeTemplateId,
   )
 
-  const handleSend = async (recipients: string[]) => {
+  const handleUploadAttachment = async (files: File[]) => {
+    try {
+      setIsUploadingAttachment(true)
+      await onUploadAttachment(files)
+    } finally {
+      setIsUploadingAttachment(false)
+    }
+  }
+
+  const attachableDocuments = [...proposal.emailDocuments, ...proposal.documents]
+
+  const handleSend = async (
+    recipients: string[],
+    attachmentIds: string[],
+    bodyText: string,
+  ) => {
     if (!user?.id || !activeTemplate) {
       return
     }
@@ -55,9 +76,15 @@ export function ProposalEmailSection({
         brokerUserId: user.id,
         to: recipients,
         subject: activeTemplate.subject,
-        text: activeTemplate.buildText({
-          clientName: proposal.client.name,
-          clientCpf: proposal.client.cpf,
+        text: bodyText,
+        attachments: attachmentIds.map((documentId) => {
+          const document = attachableDocuments.find((item) => item.id === documentId)
+
+          return {
+            type: 'proposal_document' as const,
+            documentId,
+            filename: document?.displayName ?? document?.originalFilename,
+          }
         }),
       })
       toast.success('E-mail enviado com sucesso.')
@@ -127,6 +154,23 @@ export function ProposalEmailSection({
                   <p className="mt-1 text-body-sm text-on-surface-variant">
                     {entry.authorName} · {formatSentAt(entry.createdAt)}
                   </p>
+                  {entry.attachments && entry.attachments.length > 0 ? (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {entry.attachments.map((attachment) => (
+                        <button
+                          key={attachment.id}
+                          type="button"
+                          onClick={() => onDownloadAttachment(attachment.id)}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-outline-variant bg-surface-container px-2.5 py-1 text-body-sm text-on-surface-variant transition-all hover:border-primary hover:text-primary"
+                        >
+                          <Icon name="attach_file" size={14} />
+                          <span className="max-w-[14rem] truncate">
+                            {attachment.filename}
+                          </span>
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
                 </div>
               ))}
           </div>
@@ -144,12 +188,21 @@ export function ProposalEmailSection({
             clientCpf: proposal.client.cpf,
           })}
           defaultRecipient={DEFAULT_PROPOSAL_EMAIL_RECIPIENT}
+          existingAttachments={proposal.emailDocuments}
+          proposalDocuments={filterProposalDocumentsExcludingIncomeValidation(
+            proposal.documents,
+            proposal.formData,
+          )}
+          isUploadingAttachment={isUploadingAttachment}
+          onUploadAttachment={(files) => void handleUploadAttachment(files)}
           onClose={() => {
             if (!isSending) {
               setActiveTemplateId(null)
             }
           }}
-          onSend={(recipients) => void handleSend(recipients)}
+          onSend={(recipients, attachmentIds, bodyText) =>
+            void handleSend(recipients, attachmentIds, bodyText)
+          }
         />
       ) : null}
     </div>

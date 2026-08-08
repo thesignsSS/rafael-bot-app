@@ -7,14 +7,20 @@ export type ProposalDocumentScope =
   | 'income_validation'
   | 'seller'
   | 'property'
+  | 'email'
 
-export type ProposalCommentScope = ProposalDocumentScope | 'email'
+export type ProposalCommentScope = ProposalDocumentScope
 
 export type ProposalCommentType =
   | 'comment'
   | 'pending_reason'
   | 'resubmission'
   | 'audit'
+
+export type ProposalCommentAttachment = {
+  id: string
+  filename: string
+}
 
 export type ProposalComment = {
   id: string
@@ -26,6 +32,7 @@ export type ProposalComment = {
   message: string
   type: ProposalCommentType
   scope: ProposalCommentScope
+  attachments?: ProposalCommentAttachment[]
 }
 
 export type ProposalDocument = {
@@ -129,6 +136,7 @@ export type ProposalDetail = {
   incomeValidationDocuments: ProposalDocument[]
   sellerDocuments: ProposalDocument[]
   propertyDocuments: ProposalDocument[]
+  emailDocuments: ProposalDocument[]
   guests: ProposalGuest[]
   shareLinkToken: string | null
   pendingInvitations: ProposalInvitation[]
