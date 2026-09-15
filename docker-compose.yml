@@ -1,0 +1,13 @@
+services:
+  effectus-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL}
+        VITE_SUPABASE_ANON_KEY: ${VITE_SUPABASE_ANON_KEY}
+        VITE_FORM_SUBMISSION_API_URL: ${VITE_FORM_SUBMISSION_API_URL}
+        VITE_FORM_SUBMISSION_API_KEY: ${VITE_FORM_SUBMISSION_API_KEY}
+        VITE_ASSISTANT_API_URL: ${VITE_ASSISTANT_API_URL}
+    container_name: effectus-app
+    restart: unless-stopped
