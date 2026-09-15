@@ -5,9 +5,14 @@ import { useAuth } from '../../../../contexts/auth-context'
 import { useDocumentTitle } from '../../../../hooks/useDocumentTitle'
 import { formatBrazilianPhone } from '../../../../lib/phone'
 import {
+  deleteEngenhariaRequestDocument,
   deleteEngenhariaRequest,
+  downloadEngenhariaRequestDocument,
   fetchEngenhariaRequestDetail,
+  renameEngenhariaRequestDocument,
   updateEngenhariaRequest,
+  uploadEngenhariaRequestDocuments,
+  viewEngenhariaRequestDocument,
 } from '../../lib/engenhariaRequestsApi'
 import {
   formatPropertyValueInput,
@@ -27,7 +32,7 @@ type EditDraft = {
   status: EngenhariaRequestStatus
 }
 
-type DetailTab = 'dados' | 'comentarios'
+type DetailTab = 'dados' | 'documentos' | 'comentarios'
 
 export function useEngenhariaRequestDetailPage() {
   const { requestId } = useParams<{ requestId: string }>()
@@ -48,7 +53,9 @@ export function useEngenhariaRequestDetailPage() {
   const [isDeleting, setIsDeleting] = useState(false)
 
   const [commentDraft, setCommentDraft] = useState('')
+  const [commentDraftsByScope, setCommentDraftsByScope] = useState<Record<string, string>>({})
   const [isSavingComment, setIsSavingComment] = useState(false)
+  const [isUpdatingDocuments, setIsUpdatingDocuments] = useState(false)
 
   useDocumentTitle(
     request ? `${request.requestCode} | Effectus` : 'Solicitação de Engenharia | Effectus',
@@ -232,6 +239,99 @@ export function useEngenhariaRequestDetailPage() {
     }
   }, [requestId, user?.id, commentDraft, loadRequest])
 
+  const setScopedCommentDraft = useCallback((scope: string, value: string) => {
+    setCommentDraftsByScope((current) => ({ ...current, [scope]: value }))
+  }, [])
+
+  const addScopedComment = useCallback(async (scope: string) => {
+    const message = commentDraftsByScope[scope]?.trim()
+    if (!requestId || !user?.id || !message) return
+    try {
+      setIsSavingComment(true)
+      await updateEngenhariaRequest(requestId, {
+        brokerUserId: user.id,
+        commentMessage: message,
+        commentScope: scope,
+      })
+      setCommentDraftsByScope((current) => ({ ...current, [scope]: '' }))
+      await loadRequest()
+    } catch (commentError) {
+      toast.error(commentError instanceof Error ? commentError.message : 'Não foi possível adicionar o comentário.')
+    } finally {
+      setIsSavingComment(false)
+    }
+  }, [requestId, user?.id, commentDraftsByScope, loadRequest])
+
+  const uploadDocuments = useCallback(async (documentKey: string, files: File[]) => {
+    if (!requestId || !user?.id || files.length === 0) return
+    try {
+      setIsUpdatingDocuments(true)
+      await uploadEngenhariaRequestDocuments(requestId, user.id, documentKey, files)
+      await loadRequest()
+      toast.success('Documento(s) anexado(s) com sucesso.')
+    } catch (uploadError) {
+      toast.error(uploadError instanceof Error ? uploadError.message : 'Não foi possível anexar os documentos.')
+    } finally {
+      setIsUpdatingDocuments(false)
+    }
+  }, [requestId, user?.id, loadRequest])
+
+  const renameDocument = useCallback(async (documentId: string) => {
+    const document = request?.documents.find((item) => item.id === documentId)
+    const originalFilename = window.prompt('Novo nome do arquivo', document?.originalFilename ?? '')?.trim()
+    if (!requestId || !user?.id || !originalFilename || originalFilename === document?.originalFilename) return
+    try {
+      setIsUpdatingDocuments(true)
+      await renameEngenhariaRequestDocument(requestId, documentId, user.id, originalFilename)
+      await loadRequest()
+      toast.success('Documento renomeado com sucesso.')
+    } catch (renameError) {
+      toast.error(renameError instanceof Error ? renameError.message : 'Não foi possível renomear o documento.')
+    } finally {
+      setIsUpdatingDocuments(false)
+    }
+  }, [requestId, user?.id, request?.documents, loadRequest])
+
+  const deleteDocument = useCallback(async (documentId: string) => {
+    const document = request?.documents.find((item) => item.id === documentId)
+    if (!requestId || !user?.id || !window.confirm(`Excluir "${document?.originalFilename ?? 'documento'}"?`)) return
+    try {
+      setIsUpdatingDocuments(true)
+      await deleteEngenhariaRequestDocument(requestId, documentId, user.id)
+      await loadRequest()
+      toast.success('Documento excluído com sucesso.')
+    } catch (deleteError) {
+      toast.error(deleteError instanceof Error ? deleteError.message : 'Não foi possível excluir o documento.')
+    } finally {
+      setIsUpdatingDocuments(false)
+    }
+  }, [requestId, user?.id, request?.documents, loadRequest])
+
+  const viewDocument = useCallback(async (documentId: string) => {
+    if (!requestId || !user?.id) return
+    try {
+      const result = await viewEngenhariaRequestDocument(requestId, documentId, user.id)
+      window.open(result.url, '_blank', 'noopener,noreferrer')
+    } catch (viewError) {
+      toast.error(viewError instanceof Error ? viewError.message : 'Não foi possível visualizar o documento.')
+    }
+  }, [requestId, user?.id])
+
+  const downloadDocument = useCallback(async (documentId: string) => {
+    if (!requestId || !user?.id) return
+    try {
+      const result = await downloadEngenhariaRequestDocument(requestId, documentId, user.id)
+      const url = URL.createObjectURL(result.blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = result.filename
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (downloadError) {
+      toast.error(downloadError instanceof Error ? downloadError.message : 'Não foi possível baixar o documento.')
+    }
+  }, [requestId, user?.id])
+
   return {
     request,
     isLoading,
@@ -257,6 +357,15 @@ export function useEngenhariaRequestDetailPage() {
     setCommentDraft,
     isSavingComment,
     addComment,
+    commentDraftsByScope,
+    setScopedCommentDraft,
+    addScopedComment,
+    isUpdatingDocuments,
+    uploadDocuments,
+    renameDocument,
+    deleteDocument,
+    viewDocument,
+    downloadDocument,
     goBack: () => navigate('/engenharia'),
   }
 }

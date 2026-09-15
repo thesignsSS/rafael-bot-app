@@ -79,7 +79,20 @@ export default function EngenhariaRequestDetailPage() {
             onSave={page.saveEdits}
           />
         ) : (
-          <EngenhariaRequestSummary request={request} />
+          <EngenhariaRequestSummary
+            request={request}
+            isUpdatingDocuments={page.isUpdatingDocuments}
+            onUploadDocuments={(files) => void page.uploadDocuments('anexos-gerais', files)}
+            onViewDocument={(documentId) => void page.viewDocument(documentId)}
+            onDownloadDocument={(documentId) => void page.downloadDocument(documentId)}
+            onRenameDocument={(documentId) => void page.renameDocument(documentId)}
+            onDeleteDocument={(documentId) => void page.deleteDocument(documentId)}
+            commentDraft={page.commentDraft}
+            comments={request.comments}
+            isSavingComment={page.isSavingComment}
+            onCommentDraftChange={page.setCommentDraft}
+            onAddComment={() => void page.addComment()}
+          />
         )
       ) : (
         <EngenhariaCommentsSection

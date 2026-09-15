@@ -25,6 +25,18 @@ function formatSentAt(value: string) {
   })
 }
 
+function getFormDataText(formData: Record<string, unknown>, keys: string[]) {
+  for (const key of keys) {
+    const value = formData[key]
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value).trim()
+    }
+  }
+
+  return ''
+}
+
 type ProposalEmailSectionProps = {
   proposal: ProposalDetail
   history: ProposalComment[]
@@ -186,6 +198,11 @@ export function ProposalEmailSection({
           bodyPreview={activeTemplate.buildText({
             clientName: proposal.client.name,
             clientCpf: proposal.client.cpf,
+            propertyCode: getFormDataText(proposal.formData, [
+              'Código do Imóvel',
+              'Codigo do Imovel',
+              'codigoImovel',
+            ]),
           })}
           defaultRecipient={DEFAULT_PROPOSAL_EMAIL_RECIPIENT}
           existingAttachments={proposal.emailDocuments}
