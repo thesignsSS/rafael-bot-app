@@ -1,8 +1,12 @@
-export type ProposalEmailTemplateId = 'autorizar_qv' | 'desbloquear_cadastro'
+export type ProposalEmailTemplateId =
+  | 'autorizar_qv'
+  | 'desbloquear_cadastro'
+  | 'vincular_imovel'
 
 export type ProposalEmailTemplateClientInput = {
   clientName: string
   clientCpf: string
+  propertyCode: string
 }
 
 export type ProposalEmailTemplate = {
@@ -28,5 +32,12 @@ export const PROPOSAL_EMAIL_TEMPLATES: ProposalEmailTemplate[] = [
     subject: 'Desbloquear cadastro',
     buildText: ({ clientName, clientCpf }) =>
       `Bom Dia,\n\n${clientName}\n${clientCpf}\n\nAt,\nRafael Ribeiro`,
+  },
+  {
+    id: 'vincular_imovel',
+    buttonLabel: 'Vincular imóvel',
+    subject: 'vincular imóvel',
+    buildText: ({ propertyCode }) =>
+      `Boa tarde,\n\nCódigo do Imóvel: ${propertyCode}\nCCA 000635448\n\nAt,\nRafael Ribeiro`,
   },
 ]

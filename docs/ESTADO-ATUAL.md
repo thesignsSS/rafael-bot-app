@@ -175,6 +175,13 @@ flowchart LR
 - Mutações de proposta/documentos fazem refetch do detalhe após sucesso.
 - Exibe loading, erro e redireciona para `/propostas` quando a proposta não é encontrada.
 
+- A área de modelos de e-mail para administradores inclui `Autorizar QV`, `Desbloquear Cadastro` e `Vincular imóvel`. Este último usa o assunto `vincular imóvel`, preenche o Código do Imóvel quando registrado no `formData` e inclui o CCA `000635448`; o corpo permanece editável antes do envio.
+
+### Solicitações de Engenharia
+
+- A própria tela de dados do detalhe da solicitação concentra a lista `Documentos Anexados`, onde é possível anexar arquivos, comentar, visualizar, baixar, excluir e renomear documentos, respeitando a permissão de edição da solicitação.
+- Cada anexo informa o responsável pelo envio e a data e hora em que foi adicionado.
+
 ### `/login`
 
 - Card central (Proton Enterprise): logo, e-mail, senha, toggle visibilidade.

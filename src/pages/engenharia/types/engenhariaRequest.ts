@@ -40,6 +40,7 @@ export type EngenhariaRequestComment = {
   authorRole: 'admin' | 'broker'
   createdAt: string
   message: string
+  scope?: string
 }
 
 export type EngenhariaRequestDocument = {
@@ -49,6 +50,7 @@ export type EngenhariaRequestDocument = {
   contentType: string
   sizeBytes: number
   uploadedAt: string
+  uploadedByName?: string
 }
 
 export type EngenhariaRequestDetail = {

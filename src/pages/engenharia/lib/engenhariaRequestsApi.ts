@@ -2,6 +2,7 @@ import type {
   EngenhariaRequestDetail,
   EngenhariaRequestListItem,
 } from '../types/engenhariaRequest'
+import { fileToBase64 } from '../nova/lib/submitEngenhariaRequest'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
 const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
@@ -21,7 +22,10 @@ export type UpdateEngenhariaRequestPayload = {
   accompanyingName?: string
   status?: string
   commentMessage?: string
+  commentScope?: string
 }
+
+export type EngenhariaDocumentDownload = { blob: Blob; filename: string }
 
 function getEngenhariaRequestsApiUrl() {
   if (!formSubmissionApiUrl) {
@@ -145,6 +149,83 @@ export async function deleteEngenhariaRequest(
       | null
     throw new Error(getEngenhariaRequestsErrorMessage(response.status, data))
   }
+}
+
+export async function uploadEngenhariaRequestDocuments(
+  requestId: string,
+  brokerUserId: string,
+  documentKey: string,
+  files: File[],
+): Promise<void> {
+  const documents = await Promise.all(
+    files.map(async (file) => ({
+      documentKey,
+      filename: file.name,
+      contentBase64: await fileToBase64(file),
+    })),
+  )
+  const response = await fetch(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents`, {
+    method: 'POST',
+    headers: getJsonRequestHeaders(),
+    body: JSON.stringify({ brokerUserId, documents }),
+  })
+
+  if (!response.ok) {
+    throw new Error(getEngenhariaRequestsErrorMessage(response.status))
+  }
+}
+
+export async function renameEngenhariaRequestDocument(
+  requestId: string,
+  documentId: string,
+  brokerUserId: string,
+  originalFilename: string,
+): Promise<void> {
+  const response = await fetch(
+    `${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}`,
+    {
+      method: 'PATCH',
+      headers: getJsonRequestHeaders(),
+      body: JSON.stringify({ brokerUserId, originalFilename }),
+    },
+  )
+  if (!response.ok) throw new Error(getEngenhariaRequestsErrorMessage(response.status))
+}
+
+export async function deleteEngenhariaRequestDocument(
+  requestId: string,
+  documentId: string,
+  brokerUserId: string,
+): Promise<void> {
+  const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+  const response = await fetch(url, { method: 'DELETE', headers: getRequestHeaders() })
+  if (!response.ok) throw new Error(getEngenhariaRequestsErrorMessage(response.status))
+}
+
+export async function viewEngenhariaRequestDocument(
+  requestId: string,
+  documentId: string,
+  brokerUserId: string,
+): Promise<{ url: string; filename: string }> {
+  const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}/view`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+  const response = await fetch(url, { headers: getRequestHeaders() })
+  return parseApiResponse<{ url: string; filename: string }>(response)
+}
+
+export async function downloadEngenhariaRequestDocument(
+  requestId: string,
+  documentId: string,
+  brokerUserId: string,
+): Promise<EngenhariaDocumentDownload> {
+  const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}/download`)
+  url.searchParams.set('brokerUserId', brokerUserId)
+  const response = await fetch(url, { headers: getRequestHeaders() })
+  if (!response.ok) throw new Error(getEngenhariaRequestsErrorMessage(response.status))
+  const disposition = response.headers.get('Content-Disposition')
+  const match = disposition?.match(/filename="?([^";]+)"?/i)
+  return { blob: await response.blob(), filename: match?.[1] ?? `documento-${documentId}` }
 }
 
 function getEngenhariaRequestsErrorMessage(
