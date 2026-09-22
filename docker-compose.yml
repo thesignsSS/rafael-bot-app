@@ -9,7 +9,7 @@ services:
         VITE_FORM_SUBMISSION_API_URL: ${VITE_FORM_SUBMISSION_API_URL}
         VITE_FORM_SUBMISSION_API_KEY: ${VITE_FORM_SUBMISSION_API_KEY}
         VITE_ASSISTANT_API_URL: ${VITE_ASSISTANT_API_URL}
-    container_name: effectus-app
+    container_name: ${CONTAINER_NAME:-effectus-app}
     restart: unless-stopped
     ports:
-      - "8081:8080"
+      - "${HOST_PORT:-8081}:8080"
