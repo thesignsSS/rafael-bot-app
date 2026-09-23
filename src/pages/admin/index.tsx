@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Icon } from '../../components/ui/Icon'
 import { useAuth } from '../../contexts/auth-context'
@@ -6,21 +6,33 @@ import { useDocumentTitle } from '../../hooks/useDocumentTitle'
 import type { UserRole } from '../../lib/auth/roles'
 import { supabase } from '../../lib/supabase'
 import { ProposalsPagination } from '../propostas/components/ProposalsPagination'
-
-type ManagedProfile = {
-  id: string
-  full_name: string | null
-  role: UserRole
-  is_active: boolean
-  can_view_preferences_insights: boolean
-  created_at: string
-}
+import { ConfirmActionModal } from './components/ConfirmActionModal'
+import { InviteMemberModal } from './components/InviteMemberModal'
+import { RevealPasswordModal } from './components/RevealPasswordModal'
+import {
+  deleteTeamMember,
+  fetchTeam,
+  inviteTeamMember,
+  resetTeamMemberPassword,
+  type TeamMember,
+  type TeamRole,
+} from './lib/teamApi'
 
 type ProfileDraft = {
   role: UserRole
   isActive: boolean
   canViewPreferencesInsights: boolean
 }
+
+type RevealPasswordState = {
+  title: string
+  description: string
+  password: string
+}
+
+type PendingAction =
+  | { type: 'reset-password'; member: TeamMember }
+  | { type: 'delete'; member: TeamMember }
 
 const PAGE_SIZE = 10
 type SortOrder = 'default' | 'alphabetical' | 'newest' | 'oldest'
@@ -41,7 +53,9 @@ function formatCreatedAt(value: string) {
 
 export default function AdminPage() {
   const { currentUserProfile, refreshProfile } = useAuth()
-  const [profiles, setProfiles] = useState<ManagedProfile[]>([])
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [seatsUsed, setSeatsUsed] = useState(0)
+  const [seatsIncluded, setSeatsIncluded] = useState(0)
   const [search, setSearch] = useState('')
   const [isLoading, setIsLoading] = useState(true)
   const [savingProfileId, setSavingProfileId] = useState<string | null>(null)
@@ -49,139 +63,121 @@ export default function AdminPage() {
   const [expandedProfileId, setExpandedProfileId] = useState<string | null>(null)
   const [page, setPage] = useState(1)
   const [sortOrder, setSortOrder] = useState<SortOrder>('default')
+  const [isInviteOpen, setIsInviteOpen] = useState(false)
+  const [pendingAction, setPendingAction] = useState<PendingAction | null>(null)
+  const [revealPassword, setRevealPassword] = useState<RevealPasswordState | null>(
+    null,
+  )
 
   useDocumentTitle('Gerenciar Perfis | Effectus')
 
+  const loadTeam = useCallback(async () => {
+    if (!currentUserProfile?.id) {
+      return
+    }
+
+    try {
+      setIsLoading(true)
+
+      const result = await fetchTeam(currentUserProfile.id)
+
+      setMembers(result.members)
+      setSeatsUsed(result.seatsUsed)
+      setSeatsIncluded(result.seatsIncluded)
+      setExpandedProfileId((currentProfileId) => {
+        if (
+          currentProfileId &&
+          result.members.some((member) => member.id === currentProfileId)
+        ) {
+          return currentProfileId
+        }
+
+        return result.members[0]?.id ?? null
+      })
+      setDrafts(
+        Object.fromEntries(
+          result.members.map((member) => [
+            member.id,
+            {
+              role: member.role,
+              isActive: member.isActive,
+              canViewPreferencesInsights: member.canViewPreferencesInsights,
+            },
+          ]),
+        ),
+      )
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível carregar os usuários da empresa.',
+      )
+    } finally {
+      setIsLoading(false)
+    }
+  }, [currentUserProfile?.id])
+
   useEffect(() => {
-    let isMounted = true
+    void loadTeam()
+  }, [loadTeam])
 
-    async function loadProfiles() {
-      try {
-        setIsLoading(true)
-
-        const { data, error } = await supabase
-          .from('profiles')
-          .select('id, full_name, role, is_active, can_view_preferences_insights, created_at')
-          .order('created_at', { ascending: false })
-
-        if (error) {
-          throw error
-        }
-
-        if (!isMounted) {
-          return
-        }
-
-        const nextProfiles = (data ?? []).map((item) => ({
-          id: item.id,
-          full_name: item.full_name,
-          role: item.role === 'admin' ? 'admin' : 'broker',
-          is_active: item.is_active !== false,
-          can_view_preferences_insights:
-            item.role === 'admin' || item.can_view_preferences_insights === true,
-          created_at: item.created_at,
-        })) satisfies ManagedProfile[]
-
-        setProfiles(nextProfiles)
-        setExpandedProfileId((currentExpandedProfileId) => {
-          if (
-            currentExpandedProfileId &&
-            nextProfiles.some((profile) => profile.id === currentExpandedProfileId)
-          ) {
-            return currentExpandedProfileId
-          }
-
-          return nextProfiles[0]?.id ?? null
-        })
-        setDrafts(
-          Object.fromEntries(
-            nextProfiles.map((profile) => [
-              profile.id,
-              {
-                role: profile.role,
-                isActive: profile.is_active,
-                canViewPreferencesInsights: profile.can_view_preferences_insights,
-              },
-            ]),
-          ),
-        )
-      } catch (error) {
-        toast.error(
-          error instanceof Error
-            ? error.message
-            : 'Não foi possível carregar os perfis.',
-        )
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadProfiles()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
-  const filteredProfiles = useMemo(() => {
+  const filteredMembers = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase()
 
     if (!normalizedSearch) {
-      return profiles
+      return members
     }
 
-    return profiles.filter((profile) => {
-      const displayName = (profile.full_name ?? '').toLowerCase()
+    return members.filter((member) => {
+      const displayName = member.fullName.toLowerCase()
       return (
         displayName.includes(normalizedSearch) ||
-        profile.id.toLowerCase().includes(normalizedSearch)
+        member.email.toLowerCase().includes(normalizedSearch) ||
+        member.id.toLowerCase().includes(normalizedSearch)
       )
     })
-  }, [profiles, search])
-  const sortedProfiles = useMemo(() => {
-    const nextProfiles = [...filteredProfiles]
+  }, [members, search])
+
+  const sortedMembers = useMemo(() => {
+    const nextMembers = [...filteredMembers]
 
     if (sortOrder === 'alphabetical') {
-      nextProfiles.sort((leftProfile, rightProfile) =>
-        (leftProfile.full_name?.trim() || 'Usuário sem nome').localeCompare(
-          rightProfile.full_name?.trim() || 'Usuário sem nome',
+      nextMembers.sort((left, right) =>
+        (left.fullName.trim() || 'Usuário sem nome').localeCompare(
+          right.fullName.trim() || 'Usuário sem nome',
           'pt-BR',
         ),
       )
 
-      return nextProfiles
+      return nextMembers
     }
 
     if (sortOrder === 'oldest') {
-      nextProfiles.sort(
-        (leftProfile, rightProfile) =>
-          new Date(leftProfile.created_at).getTime() -
-          new Date(rightProfile.created_at).getTime(),
+      nextMembers.sort(
+        (left, right) =>
+          new Date(left.createdAt).getTime() - new Date(right.createdAt).getTime(),
       )
 
-      return nextProfiles
+      return nextMembers
     }
 
     if (sortOrder === 'newest') {
-      nextProfiles.sort(
-        (leftProfile, rightProfile) =>
-          new Date(rightProfile.created_at).getTime() -
-          new Date(leftProfile.created_at).getTime(),
+      nextMembers.sort(
+        (left, right) =>
+          new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime(),
       )
     }
 
-    return nextProfiles
-  }, [filteredProfiles, sortOrder])
+    return nextMembers
+  }, [filteredMembers, sortOrder])
 
-  const totalPages = Math.max(1, Math.ceil(sortedProfiles.length / PAGE_SIZE))
+  const totalPages = Math.max(1, Math.ceil(sortedMembers.length / PAGE_SIZE))
   const currentPage = Math.min(page, totalPages)
-  const paginatedProfiles = useMemo(() => {
+  const paginatedMembers = useMemo(() => {
     const start = (currentPage - 1) * PAGE_SIZE
 
-    return sortedProfiles.slice(start, start + PAGE_SIZE)
-  }, [currentPage, sortedProfiles])
+    return sortedMembers.slice(start, start + PAGE_SIZE)
+  }, [currentPage, sortedMembers])
   const pageNumbers = useMemo(() => {
     if (totalPages <= 1) {
       return [1]
@@ -220,15 +216,15 @@ export default function AdminPage() {
     }))
   }
 
-  async function handleSaveProfile(profile: ManagedProfile) {
-    const draft = drafts[profile.id]
+  async function handleSaveProfile(member: TeamMember) {
+    const draft = drafts[member.id]
 
     if (!draft) {
       return
     }
 
     try {
-      setSavingProfileId(profile.id)
+      setSavingProfileId(member.id)
 
       const { error } = await supabase
         .from('profiles')
@@ -237,26 +233,26 @@ export default function AdminPage() {
           is_active: draft.isActive,
           can_view_preferences_insights: draft.canViewPreferencesInsights,
         })
-        .eq('id', profile.id)
+        .eq('id', member.id)
 
       if (error) {
         throw error
       }
 
-      setProfiles((currentProfiles) =>
-        currentProfiles.map((currentProfile) =>
-          currentProfile.id === profile.id
+      setMembers((currentMembers) =>
+        currentMembers.map((currentMember) =>
+          currentMember.id === member.id
             ? {
-                ...currentProfile,
+                ...currentMember,
                 role: draft.role,
-                is_active: draft.isActive,
-                can_view_preferences_insights: draft.canViewPreferencesInsights,
+                isActive: draft.isActive,
+                canViewPreferencesInsights: draft.canViewPreferencesInsights,
               }
-            : currentProfile,
+            : currentMember,
         ),
       )
 
-      if (currentUserProfile?.id === profile.id) {
+      if (currentUserProfile?.id === member.id) {
         await refreshProfile()
       }
 
@@ -272,6 +268,69 @@ export default function AdminPage() {
     }
   }
 
+  async function handleInvite(input: {
+    email: string
+    fullName: string
+    role: TeamRole
+  }) {
+    if (!currentUserProfile?.id) {
+      return
+    }
+
+    try {
+      const result = await inviteTeamMember({
+        requesterId: currentUserProfile.id,
+        ...input,
+      })
+
+      setIsInviteOpen(false)
+      setRevealPassword({
+        title: 'Usuário convidado',
+        description: `Envie essa senha para ${input.fullName} — ela vai precisar trocá-la no primeiro acesso.`,
+        password: result.temporaryPassword,
+      })
+      await loadTeam()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Não foi possível convidar o usuário.',
+      )
+    }
+  }
+
+  async function handleConfirmPendingAction() {
+    if (!pendingAction || !currentUserProfile?.id) {
+      return
+    }
+
+    try {
+      if (pendingAction.type === 'reset-password') {
+        const result = await resetTeamMemberPassword(
+          currentUserProfile.id,
+          pendingAction.member.id,
+        )
+
+        setPendingAction(null)
+        setRevealPassword({
+          title: 'Senha redefinida',
+          description: `Envie essa nova senha para ${pendingAction.member.fullName}.`,
+          password: result.temporaryPassword,
+        })
+        return
+      }
+
+      await deleteTeamMember(currentUserProfile.id, pendingAction.member.id)
+      toast.success('Usuário excluído.')
+      setPendingAction(null)
+      await loadTeam()
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : 'Não foi possível concluir a ação.',
+      )
+    }
+  }
+
+  const seatsAvailable = seatsIncluded > 0 && seatsUsed >= seatsIncluded
+
   return (
     <div className="mx-auto max-w-6xl animate-fade-up space-y-6">
       <section className="rounded-[28px] border border-outline-variant bg-[linear-gradient(135deg,var(--color-surface-container-lowest)_0%,var(--color-surface-container-low)_100%)] p-6 shadow-[0px_10px_32px_rgba(19,27,46,0.08)] sm:p-8">
@@ -279,11 +338,11 @@ export default function AdminPage() {
           Administração
         </p>
         <h1 className="mt-2 text-headline-xl font-semibold text-on-surface">
-          Gerenciar perfis
+          Gerenciar usuários
         </h1>
         <p className="mt-3 max-w-3xl text-body-md text-on-surface-variant">
-          Ative ou inative acessos e defina quais usuários terão perfil de
-          administrador no Effectus.
+          Convide pessoas para a sua empresa, ajuste permissões e controle
+          quem tem acesso ao Effectus.
         </p>
       </section>
 
@@ -291,72 +350,86 @@ export default function AdminPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-headline-md font-semibold text-on-surface">
-              Perfis cadastrados
+              Usuários da empresa
             </h2>
             <p className="mt-1 text-body-sm text-on-surface-variant">
-              {filteredProfiles.length} usuário
-              {filteredProfiles.length === 1 ? '' : 's'} encontrado
-              {filteredProfiles.length === 1 ? '' : 's'}.
+              {filteredMembers.length} usuário
+              {filteredMembers.length === 1 ? '' : 's'} encontrado
+              {filteredMembers.length === 1 ? '' : 's'}
+              {seatsIncluded > 0 ? ` · ${seatsUsed} de ${seatsIncluded} vagas usadas` : ''}
+              .
             </p>
           </div>
 
-          <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
-            <select
-              value={sortOrder}
-              onChange={(event) =>
-                setSortOrder(event.target.value as SortOrder)
-              }
-              className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-[220px]"
-            >
-              <option value="default">Sem filtro</option>
-              <option value="alphabetical">Ordem alfabética</option>
-              <option value="newest">Mais recentes</option>
-              <option value="oldest">Mais antigos</option>
-            </select>
+          <button
+            type="button"
+            onClick={() => setIsInviteOpen(true)}
+            disabled={seatsAvailable}
+            title={
+              seatsAvailable
+                ? 'Limite de usuários do plano atingido'
+                : undefined
+            }
+            className="flex items-center justify-center gap-2 rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-colors hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <Icon name="person_add" size={20} />
+            Convidar usuário
+          </button>
+        </div>
 
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Buscar por nome ou ID"
-              className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-[320px]"
-            />
-          </div>
+        <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center">
+          <select
+            value={sortOrder}
+            onChange={(event) => setSortOrder(event.target.value as SortOrder)}
+            className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-[220px]"
+          >
+            <option value="default">Sem filtro</option>
+            <option value="alphabetical">Ordem alfabética</option>
+            <option value="newest">Mais recentes</option>
+            <option value="oldest">Mais antigos</option>
+          </select>
+
+          <input
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Buscar por nome, e-mail ou ID"
+            className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all placeholder:text-outline focus:border-primary focus:ring-2 focus:ring-primary/20 sm:w-[320px]"
+          />
         </div>
 
         <div className="mt-6 space-y-4">
           {isLoading ? (
             <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center text-body-md text-on-surface-variant">
-              Carregando perfis...
+              Carregando usuários...
             </div>
-          ) : sortedProfiles.length === 0 ? (
+          ) : sortedMembers.length === 0 ? (
             <div className="rounded-2xl border border-dashed border-outline-variant bg-surface-container-low px-4 py-10 text-center text-body-md text-on-surface-variant">
-              Nenhum perfil encontrado com esse filtro.
+              Nenhum usuário encontrado com esse filtro.
             </div>
           ) : (
-            paginatedProfiles.map((profile) => {
-              const draft = drafts[profile.id] ?? {
-                role: profile.role,
-                isActive: profile.is_active,
-                canViewPreferencesInsights: profile.can_view_preferences_insights,
+            paginatedMembers.map((member) => {
+              const draft = drafts[member.id] ?? {
+                role: member.role,
+                isActive: member.isActive,
+                canViewPreferencesInsights: member.canViewPreferencesInsights,
               }
               const hasChanges =
-                draft.role !== profile.role ||
-                draft.isActive !== profile.is_active ||
-                draft.canViewPreferencesInsights !==
-                  profile.can_view_preferences_insights
-              const isCurrentUser = currentUserProfile?.id === profile.id
-              const isExpanded = expandedProfileId === profile.id
+                draft.role !== member.role ||
+                draft.isActive !== member.isActive ||
+                draft.canViewPreferencesInsights !== member.canViewPreferencesInsights
+              const isCurrentUser = currentUserProfile?.id === member.id
+              const isExpanded = expandedProfileId === member.id
 
               return (
                 <article
-                  key={profile.id}
+                  key={member.id}
                   className="rounded-2xl border border-outline-variant bg-surface-container-lowest p-5 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]"
                 >
                   <button
                     type="button"
                     onClick={() =>
                       setExpandedProfileId((currentProfileId) =>
-                        currentProfileId === profile.id ? null : profile.id,
+                        currentProfileId === member.id ? null : member.id,
                       )
                     }
                     aria-expanded={isExpanded}
@@ -365,11 +438,16 @@ export default function AdminPage() {
                     <div className="min-w-0">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="text-headline-md font-semibold text-on-surface">
-                          {profile.full_name?.trim() || 'Usuário sem nome'}
+                          {member.fullName.trim() || 'Usuário sem nome'}
                         </h3>
                         {isCurrentUser ? (
                           <span className="rounded-full bg-primary-container px-2.5 py-1 text-label-sm font-semibold text-on-primary-container">
                             Você
+                          </span>
+                        ) : null}
+                        {member.isOwner ? (
+                          <span className="rounded-full bg-amber-500/14 px-2.5 py-1 text-label-sm font-semibold text-amber-500">
+                            Dono da empresa
                           </span>
                         ) : null}
                         <span
@@ -402,11 +480,11 @@ export default function AdminPage() {
                         ) : null}
                       </div>
 
-                      <p className="mt-2 break-all text-body-sm text-on-surface-variant">
-                        ID: {profile.id}
+                      <p className="mt-2 text-body-sm text-on-surface-variant">
+                        {member.email}
                       </p>
                       <p className="mt-1 text-body-sm text-on-surface-variant">
-                        Criado em {formatCreatedAt(profile.created_at)}
+                        Criado em {formatCreatedAt(member.createdAt)}
                       </p>
                     </div>
 
@@ -429,9 +507,8 @@ export default function AdminPage() {
                           <select
                             value={draft.role}
                             onChange={(event) =>
-                              updateDraft(profile.id, {
-                                role:
-                                  event.target.value === 'admin' ? 'admin' : 'broker',
+                              updateDraft(member.id, {
+                                role: event.target.value === 'admin' ? 'admin' : 'broker',
                               })
                             }
                             className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -448,7 +525,7 @@ export default function AdminPage() {
                           <select
                             value={draft.isActive ? 'active' : 'inactive'}
                             onChange={(event) =>
-                              updateDraft(profile.id, {
+                              updateDraft(member.id, {
                                 isActive: event.target.value === 'active',
                               })
                             }
@@ -466,9 +543,8 @@ export default function AdminPage() {
                           <select
                             value={draft.canViewPreferencesInsights ? 'enabled' : 'disabled'}
                             onChange={(event) =>
-                              updateDraft(profile.id, {
-                                canViewPreferencesInsights:
-                                  event.target.value === 'enabled',
+                              updateDraft(member.id, {
+                                canViewPreferencesInsights: event.target.value === 'enabled',
                               })
                             }
                             className="w-full rounded-xl border border-outline-variant bg-surface-container-lowest px-4 py-3 text-body-md text-on-surface outline-none transition-all focus:border-primary focus:ring-2 focus:ring-primary/20"
@@ -483,16 +559,36 @@ export default function AdminPage() {
                         </label>
                       </div>
 
-                      <div className="mt-4 flex justify-end">
+                      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setPendingAction({ type: 'reset-password', member })
+                            }
+                            className="rounded-xl border border-outline-variant px-4 py-2.5 text-label-md font-semibold text-on-surface transition-colors hover:bg-surface-container"
+                          >
+                            Redefinir senha
+                          </button>
+
+                          {!member.isOwner ? (
+                            <button
+                              type="button"
+                              onClick={() => setPendingAction({ type: 'delete', member })}
+                              className="rounded-xl border border-red-500/40 px-4 py-2.5 text-label-md font-semibold text-red-500 transition-colors hover:bg-red-500/10"
+                            >
+                              Excluir usuário
+                            </button>
+                          ) : null}
+                        </div>
+
                         <button
                           type="button"
-                          onClick={() => void handleSaveProfile(profile)}
-                          disabled={!hasChanges || savingProfileId === profile.id}
+                          onClick={() => void handleSaveProfile(member)}
+                          disabled={!hasChanges || savingProfileId === member.id}
                           className="rounded-xl bg-primary px-5 py-3 text-label-md font-semibold text-on-primary transition-all hover:bg-primary-container disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {savingProfileId === profile.id
-                            ? 'Salvando...'
-                            : 'Salvar alterações'}
+                          {savingProfileId === member.id ? 'Salvando...' : 'Salvar alterações'}
                         </button>
                       </div>
                     </div>
@@ -503,10 +599,10 @@ export default function AdminPage() {
           )}
         </div>
 
-        {!isLoading && filteredProfiles.length > 0 ? (
+        {!isLoading && filteredMembers.length > 0 ? (
           <ProposalsPagination
-            visibleCount={paginatedProfiles.length}
-            totalCount={sortedProfiles.length}
+            visibleCount={paginatedMembers.length}
+            totalCount={sortedMembers.length}
             page={currentPage}
             pageNumbers={pageNumbers}
             hasPrev={currentPage > 1}
@@ -519,6 +615,43 @@ export default function AdminPage() {
           />
         ) : null}
       </section>
+
+      {isInviteOpen ? (
+        <InviteMemberModal
+          onClose={() => setIsInviteOpen(false)}
+          onSubmit={handleInvite}
+        />
+      ) : null}
+
+      {pendingAction?.type === 'reset-password' ? (
+        <ConfirmActionModal
+          title="Redefinir senha"
+          description={`A senha atual de ${pendingAction.member.fullName} vai parar de funcionar, e uma nova senha aleatória será gerada para você enviar a ela.`}
+          confirmLabel="Redefinir senha"
+          onClose={() => setPendingAction(null)}
+          onConfirm={handleConfirmPendingAction}
+        />
+      ) : null}
+
+      {pendingAction?.type === 'delete' ? (
+        <ConfirmActionModal
+          title="Excluir usuário"
+          description={`${pendingAction.member.fullName} será excluído permanentemente e não poderá mais acessar o Effectus. Propostas, documentos e comentários já enviados por essa pessoa continuam no sistema.`}
+          confirmLabel="Excluir permanentemente"
+          isDanger
+          onClose={() => setPendingAction(null)}
+          onConfirm={handleConfirmPendingAction}
+        />
+      ) : null}
+
+      {revealPassword ? (
+        <RevealPasswordModal
+          title={revealPassword.title}
+          description={revealPassword.description}
+          password={revealPassword.password}
+          onClose={() => setRevealPassword(null)}
+        />
+      ) : null}
     </div>
   )
 }
