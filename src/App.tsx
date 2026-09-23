@@ -11,6 +11,7 @@ import { BrazilThemeCelebration } from './components/theme/BrazilThemeCelebratio
 import { BrazucaThemeNotice } from './components/theme/BrazucaThemeNotice'
 import { PreferencesProfileSync } from './components/theme/PreferencesProfileSync'
 import { IncomeFormalAnnouncementModal } from './components/announcements/IncomeFormalAnnouncementModal'
+import { ForcePasswordChangeModal } from './components/auth/ForcePasswordChangeModal'
 
 function AppContent() {
   const {
@@ -20,10 +21,15 @@ function AppContent() {
     refreshProfile,
     session,
     signOut,
+    user,
   } = useAuth()
 
   if (isLoading) {
     return <SessionLoadingScreen />
+  }
+
+  if (session && user?.user_metadata?.must_change_password) {
+    return <ForcePasswordChangeModal />
   }
 
   if (session && !currentUserProfile && profileError) {
