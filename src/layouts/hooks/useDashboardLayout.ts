@@ -3,7 +3,6 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useMobileSidebar } from '../../components/dashboard/hooks/useMobileSidebar'
 import { useAuth } from '../../contexts/auth-context'
 import { usePermissionDeniedToast } from '../../hooks/usePermissionDeniedToast'
-import { useState } from 'react'
 
 const ROUTE_TITLES: Record<string, string> = {
   '/': 'Nova Proposta',
@@ -13,7 +12,6 @@ const ROUTE_TITLES: Record<string, string> = {
   '/admin': 'Gerenciar Perfis',
   '/admin/whatsapp': 'Bot do WhatsApp',
 }
-const DASHBOARD_SIDEBAR_COLLAPSED_STORAGE_KEY = 'dashboard-sidebar-collapsed'
 
 function resolveRouteTitle(pathname: string, isAdmin: boolean): string {
   if (pathname.startsWith('/propostas/')) {
@@ -33,17 +31,8 @@ export function useDashboardLayout() {
   const { pathname } = useLocation()
   const { isOpen: isSidebarOpen, open: openSidebar, close: closeSidebar } =
     useMobileSidebar()
-  const [isDesktopSidebarCollapsed, setIsDesktopSidebarCollapsed] = useState(false)
 
   usePermissionDeniedToast()
-
-  useEffect(() => {
-    const savedValue = window.localStorage.getItem(
-      DASHBOARD_SIDEBAR_COLLAPSED_STORAGE_KEY,
-    )
-
-    setIsDesktopSidebarCollapsed(savedValue === 'true')
-  }, [])
 
   const title = useMemo(
     () => resolveRouteTitle(pathname, isAdmin),
@@ -63,19 +52,6 @@ export function useDashboardLayout() {
     closeSidebar()
   }, [pathname, closeSidebar])
 
-  const toggleDesktopSidebarCollapse = useCallback(() => {
-    setIsDesktopSidebarCollapsed((currentValue) => {
-      const nextValue = !currentValue
-
-      window.localStorage.setItem(
-        DASHBOARD_SIDEBAR_COLLAPSED_STORAGE_KEY,
-        String(nextValue),
-      )
-
-      return nextValue
-    })
-  }, [])
-
   return {
     title,
     currentUserProfile,
@@ -86,7 +62,5 @@ export function useDashboardLayout() {
     isSidebarOpen,
     openSidebar,
     closeSidebar,
-    isDesktopSidebarCollapsed,
-    toggleDesktopSidebarCollapse,
   }
 }

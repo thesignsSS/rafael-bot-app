@@ -15,24 +15,15 @@ export function DashboardLayout() {
     isSidebarOpen,
     openSidebar,
     closeSidebar,
-    isDesktopSidebarCollapsed,
-    toggleDesktopSidebarCollapse,
   } = useDashboardLayout()
 
   return (
     <div className="brazuca-page-shell min-h-screen bg-background text-on-background">
       <div className="brazuca-page-decor" aria-hidden="true" />
       <div className="relative z-[1]">
-        <DashboardSidebar
-          isMobileOpen={isSidebarOpen}
-          onMobileClose={closeSidebar}
-          isDesktopCollapsed={isDesktopSidebarCollapsed}
-          onToggleDesktopCollapse={toggleDesktopSidebarCollapse}
-        />
+        <DashboardSidebar isMobileOpen={isSidebarOpen} onMobileClose={closeSidebar} />
 
-        <div
-          className={`relative ${isDesktopSidebarCollapsed ? 'lg:pl-20' : 'lg:pl-60'}`}
-        >
+        <div className="relative lg:pl-20">
           <DashboardHeader
             title={title}
             currentUserProfile={currentUserProfile}

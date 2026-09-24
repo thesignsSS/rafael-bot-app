@@ -15,14 +15,12 @@ type SidebarContentProps = {
   onNavigate?: () => void
   trailingAction?: ReactNode
   isCollapsed?: boolean
-  onToggleCollapse?: () => void
 }
 
 export function SidebarContent({
   onNavigate,
   trailingAction,
   isCollapsed = false,
-  onToggleCollapse,
 }: SidebarContentProps) {
   const { currentUserProfile, isAdmin } = useAuth()
   const { preferences } = usePreferences()
@@ -59,21 +57,6 @@ export function SidebarContent({
             </div>
           ) : null}
         </div>
-        {onToggleCollapse ? (
-          <button
-            type="button"
-            onClick={onToggleCollapse}
-            aria-label={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
-            title={isCollapsed ? 'Expandir menu lateral' : 'Minimizar menu lateral'}
-            className={`hidden h-10 w-10 shrink-0 items-center justify-center rounded-full border border-outline-variant bg-surface text-on-surface-variant shadow-[0px_10px_24px_rgba(19,27,46,0.12)] transition-all hover:bg-surface-container-high hover:text-on-surface lg:flex ${
-              isCollapsed
-                ? 'absolute top-1/2 -right-5 z-10 -translate-y-1/2'
-                : 'ml-auto'
-            }`}
-          >
-            <Icon name={isCollapsed ? 'chevron_right' : 'chevron_left'} size={22} />
-          </button>
-        ) : null}
         {trailingAction}
       </div>
 

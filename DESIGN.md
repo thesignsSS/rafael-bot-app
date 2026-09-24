@@ -136,7 +136,7 @@ This design system uses **Inter** exclusively to ensure a systematic and utilita
 The layout utilizes a **Fixed Grid** approach for desktop views to maintain focus and prevent excessively long line lengths in forms. 
 
 - **Grid:** A 12-column grid with a 24px gutter.
-- **Sidebar:** A fixed-width left navigation (240px) provides consistent context.
+- **Sidebar:** A fixed-width left rail (80px), icon-first — every item shows a centered icon with a small 2-line label beneath it, never a wide horizontal row. No expand/collapse affordance on desktop; the rail width never changes. The mobile drawer (overlay, opened from the header) keeps the older full-width horizontal icon+label rows since it has room and is temporary.
 - **Form Layouts:** Input fields should align to 4 or 6 column spans to create structured vertical rhythm.
 - **Padding:** Content containers use generous internal padding (32px) to differentiate themselves from the page background.
 
