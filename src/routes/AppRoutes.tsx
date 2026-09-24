@@ -4,6 +4,7 @@ import { ProtectedRoute } from '../components/auth/ProtectedRoute'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import AdminPage from '../pages/admin'
 import AdminWhatsAppPage from '../pages/admin/whatsapp'
+import AuthCallbackPage from '../pages/auth-callback'
 import CadastroPage from '../pages/cadastro'
 import EngenhariaRequestsPage from '../pages/engenharia'
 import EngenhariaRequestDetailPage from '../pages/engenharia/detail'
@@ -57,6 +58,7 @@ export function AppRoutes() {
         <Route path="/recuperar-senha" element={<RecuperarSenhaPage />} />
       </Route>
       <Route path="/redefinir-senha" element={<RedefinirSenhaPage />} />
+      <Route path="/auth/callback" element={<AuthCallbackPage />} />
       <Route path="*" element={<Navigate to="/login" replace />} />
     </Routes>
   )
