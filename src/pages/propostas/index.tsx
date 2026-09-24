@@ -163,7 +163,7 @@ export default function PropostasPage() {
   const isFilteredEmpty = !list.isLoading && filteredItems.length === 0
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-[1600px]">
       <PendingReasonModal
         isOpen={list.isPendingReasonModalOpen}
         isSaving={Boolean(list.movingProposalId)}

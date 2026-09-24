@@ -79,7 +79,7 @@ export function DashboardHeader({
   }, [])
 
   return (
-    <header className="dashboard-header-shell sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-4 backdrop-blur sm:px-8 lg:pl-8">
+    <header className="dashboard-header-shell sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-2.5 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -113,7 +113,7 @@ export function DashboardHeader({
               onClick={toggleMenu}
               aria-expanded={isOpen}
               aria-haspopup="menu"
-              className="flex items-center gap-2 rounded-lg px-2 py-2 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high sm:px-3"
+              className="flex items-center gap-2 rounded-lg px-2 py-1 text-label-md text-on-surface-variant transition-colors hover:bg-surface-container-high sm:px-3"
             >
               <div className="flex flex-col items-start gap-0.5">
                 <span className="max-w-32 truncate sm:max-w-44">Olá, {displayName}</span>

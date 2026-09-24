@@ -99,7 +99,7 @@ rounded:
   xl: 1.5rem
   full: 9999px
 spacing:
-  container-max: 1200px
+  container-max: 1600px
   gutter: 1.5rem
   margin-mobile: 1rem
   stack-sm: 0.5rem
@@ -136,6 +136,7 @@ This design system uses **Inter** exclusively to ensure a systematic and utilita
 The layout utilizes a **Fixed Grid** approach for desktop views to maintain focus and prevent excessively long line lengths in forms. 
 
 - **Grid:** A 12-column grid with a 24px gutter.
+- **Container width:** Dense/list screens (proposal kanban, tables) use the wider `container-max` (1600px) to fill the space freed by the narrow sidebar. Forms and single-record pages stay intentionally narrower (`max-w-4xl`/`max-w-6xl`) for readable line lengths — don't widen those to match.
 - **Sidebar:** A fixed-width left rail (80px), icon-first — every item shows a centered icon with a small 2-line label beneath it, never a wide horizontal row. No expand/collapse affordance on desktop; the rail width never changes. The mobile drawer (overlay, opened from the header) keeps the older full-width horizontal icon+label rows since it has room and is temporary.
 - **Form Layouts:** Input fields should align to 4 or 6 column spans to create structured vertical rhythm.
 - **Padding:** Content containers use generous internal padding (32px) to differentiate themselves from the page background.
