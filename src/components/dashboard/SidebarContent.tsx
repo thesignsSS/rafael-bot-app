@@ -6,6 +6,7 @@ import {
 } from '../../contexts/preferences-context'
 import { usePendingInvitationsIndicator } from '../../hooks/usePendingInvitationsIndicator'
 import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndicator'
+import { useTenant } from '../../hooks/useTenant'
 import { ThemeBrandMark } from '../brand/ThemeBrandMark'
 import { Icon } from '../ui/Icon'
 import { SidebarNavButton } from './SidebarNavButton'
@@ -36,6 +37,9 @@ export function SidebarContent({
     enabled: !isAdmin,
   })
   const isBrazucaTheme = isBrazilTheme(preferences.theme)
+  const tenant = useTenant()
+  const companyName = tenant.status === 'encontrada' ? tenant.empresa.nome : null
+  const companyLogoUrl = tenant.status === 'encontrada' ? tenant.empresa.logoUrl : null
 
   return (
     <>
@@ -47,10 +51,20 @@ export function SidebarContent({
         <div
           className={`flex min-w-0 items-center ${isCollapsed ? 'justify-center' : 'gap-3'}`}
         >
-          <ThemeBrandMark size="sm" />
+          {companyLogoUrl ? (
+            <img
+              src={companyLogoUrl}
+              alt={`Logo de ${companyName}`}
+              className="h-10 w-10 shrink-0 rounded-xl border border-outline-variant object-contain bg-surface-container-lowest"
+            />
+          ) : (
+            <ThemeBrandMark size="sm" />
+          )}
           {!isCollapsed ? (
             <div className="min-w-0">
-              <h1 className="text-headline-md font-bold text-on-surface">Effectus</h1>
+              <h1 className="truncate text-headline-md font-bold text-on-surface">
+                {companyName ?? 'Effectus'}
+              </h1>
               <p className="text-body-sm text-on-surface-variant">
                 {isBrazucaTheme ? 'Modo Brazuca' : 'Documentos'}
               </p>
