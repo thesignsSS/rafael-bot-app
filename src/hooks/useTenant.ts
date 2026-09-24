@@ -7,7 +7,11 @@ export type Empresa = {
   slug: string
   nome: string
   logoUrl: string | null
+  /** `true` durante o trial também — quem está em teste usa o sistema. */
   ativa: boolean
+  emTrial: boolean
+  /** ISO. Nulo fora do trial. */
+  trialExpiraEm: string | null
 }
 
 type EstadoTenant =

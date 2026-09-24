@@ -9,6 +9,10 @@ import { usePendingProposalIndicator } from '../../hooks/usePendingProposalIndic
 import { useTenant } from '../../hooks/useTenant'
 import { ThemeBrandMark } from '../brand/ThemeBrandMark'
 import { Icon } from '../ui/Icon'
+import {
+  SUPORTE_WHATSAPP_EXIBICAO,
+  SUPORTE_WHATSAPP_URL,
+} from '../../lib/suporte'
 import { SidebarNavButton } from './SidebarNavButton'
 import { SidebarNavItem } from './SidebarNavItem'
 
@@ -145,7 +149,7 @@ export function SidebarContent({
         >
           {isCollapsed ? (
             <a
-              href="https://wa.me/5585988686633"
+              href={SUPORTE_WHATSAPP_URL}
               target="_blank"
               rel="noreferrer"
               aria-label="Falar com o administrador"
@@ -160,13 +164,13 @@ export function SidebarContent({
                 Dúvidas? Fale com o administrador
               </p>
               <a
-                href="https://wa.me/5585988686633"
+                href={SUPORTE_WHATSAPP_URL}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 text-body-sm font-semibold text-primary"
               >
                 <Icon name="call" size={18} />
-                (85) 9 8868-6633
+                {SUPORTE_WHATSAPP_EXIBICAO}
               </a>
             </>
           )}

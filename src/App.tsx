@@ -12,8 +12,11 @@ import { BrazucaThemeNotice } from './components/theme/BrazucaThemeNotice'
 import { PreferencesProfileSync } from './components/theme/PreferencesProfileSync'
 import { IncomeFormalAnnouncementModal } from './components/announcements/IncomeFormalAnnouncementModal'
 import { ForcePasswordChangeModal } from './components/auth/ForcePasswordChangeModal'
+import { EmpresaSuspensaScreen } from './components/tenant/EmpresaSuspensaScreen'
+import { useTenant } from './hooks/useTenant'
 
 function AppContent() {
+  const tenant = useTenant()
   const {
     currentUserProfile,
     isLoading,
@@ -23,6 +26,18 @@ function AppContent() {
     signOut,
     user,
   } = useAuth()
+
+  // Antes de qualquer coisa, inclusive do login: não há por que deixar alguém
+  // entrar numa empresa cujo acesso está suspenso. Em `localhost` e nos
+  // domínios internos o hook devolve `sem-empresa` e isto nunca dispara.
+  if (tenant.status === 'encontrada' && !tenant.empresa.ativa) {
+    return (
+      <EmpresaSuspensaScreen
+        nomeEmpresa={tenant.empresa.nome}
+        logoUrl={tenant.empresa.logoUrl}
+      />
+    )
+  }
 
   if (isLoading) {
     return <SessionLoadingScreen />
