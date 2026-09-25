@@ -12,7 +12,7 @@ import { BrazucaThemeNotice } from './components/theme/BrazucaThemeNotice'
 import { PreferencesProfileSync } from './components/theme/PreferencesProfileSync'
 import { IncomeFormalAnnouncementModal } from './components/announcements/IncomeFormalAnnouncementModal'
 import { ForcePasswordChangeModal } from './components/auth/ForcePasswordChangeModal'
-import { EmpresaSuspensaScreen } from './components/tenant/EmpresaSuspensaScreen'
+import { TelaCobranca } from './components/tenant/TelaCobranca'
 import { useTenant } from './hooks/useTenant'
 
 function AppContent() {
@@ -32,7 +32,7 @@ function AppContent() {
   // domínios internos o hook devolve `sem-empresa` e isto nunca dispara.
   if (tenant.status === 'encontrada' && !tenant.empresa.ativa) {
     return (
-      <EmpresaSuspensaScreen
+      <TelaCobranca
         nomeEmpresa={tenant.empresa.nome}
         logoUrl={tenant.empresa.logoUrl}
       />
