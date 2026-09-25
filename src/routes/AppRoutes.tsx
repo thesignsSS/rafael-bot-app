@@ -1,6 +1,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { GuestRoute } from '../components/auth/GuestRoute'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
+import AssinaturaPage from '../pages/assinatura'
 import { DashboardLayout } from '../layouts/DashboardLayout'
 import AdminPage from '../pages/admin'
 import AdminWhatsAppPage from '../pages/admin/whatsapp'
@@ -31,6 +32,7 @@ export function AppRoutes() {
           <Route path="/engenharia/nova" element={<EngenhariaNovaPage />} />
           <Route path="/engenharia/:requestId" element={<EngenhariaRequestDetailPage />} />
           <Route path="/perfil" element={<PerfilPage />} />
+          <Route path="/assinatura" element={<AssinaturaPage />} />
           <Route path="/convites" element={<ConvitesPage />} />
           <Route path="/propostas" element={<PropostasPage />} />
           <Route

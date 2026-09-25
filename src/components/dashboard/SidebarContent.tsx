@@ -123,6 +123,13 @@ export function SidebarContent({
         {isAdmin ? (
           <>
             <SidebarNavItem
+              icon="credit_card"
+              label="Assinatura"
+              to="/assinatura"
+              onNavigate={onNavigate}
+              isCollapsed={isCollapsed}
+            />
+            <SidebarNavItem
               icon="manage_accounts"
               label="Gerenciar Perfis"
               to="/admin"

@@ -89,6 +89,32 @@ export function pagarAssinatura(
   })
 }
 
+export function trocarPlano(plano: string): Promise<unknown> {
+  return chamar('/minha-assinatura/plano', {
+    method: 'POST',
+    body: JSON.stringify({ plano }),
+  })
+}
+
+export function cancelarAssinatura(): Promise<unknown> {
+  return chamar('/minha-assinatura/cancelar', { method: 'POST' })
+}
+
+export function reativarAssinatura(): Promise<unknown> {
+  return chamar('/minha-assinatura/reativar', { method: 'POST' })
+}
+
+/**
+ * Espelha `CATALOGO_PLANOS` do effectus-api, só com o que é vendido. Duplicado
+ * de propósito: são serviços separados, e a alternativa seria um endpoint só
+ * para listar três planos que mudam de ano em ano. Mudou lá, mude aqui.
+ */
+export const PLANOS_VENDAVEIS = [
+  { id: 'essencial', nome: 'Essencial', precoMensalCentavos: 29900, usuariosIncluidos: 1 },
+  { id: 'pro', nome: 'Pro', precoMensalCentavos: 49900, usuariosIncluidos: 5 },
+  { id: 'enterprise', nome: 'Enterprise', precoMensalCentavos: 89900, usuariosIncluidos: 10 },
+] as const
+
 export function formatarPreco(centavos: number): string {
   return (centavos / 100).toLocaleString('pt-BR', {
     style: 'currency',

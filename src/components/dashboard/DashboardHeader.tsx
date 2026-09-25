@@ -10,6 +10,7 @@ import {
 } from '../../lib/dashboard-header-feedback'
 import type { CurrentUserProfile } from '../../lib/current-user-profile'
 import { getProfileAvatarUrl } from '../../lib/profile-avatar'
+import { BadgeTrial } from './BadgeTrial'
 import { CopaThemeBadge } from '../brand/CopaThemeBadge'
 import { ThemeBrandMark } from '../brand/ThemeBrandMark'
 import { Icon } from '../ui/Icon'
@@ -82,6 +83,7 @@ export function DashboardHeader({
     <header className="dashboard-header-shell sticky top-0 z-10 border-b border-outline-variant bg-surface/95 px-4 py-2.5 backdrop-blur sm:px-8 lg:pl-8">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
+          <BadgeTrial />
           <button
             type="button"
             onClick={onOpenSidebar}
