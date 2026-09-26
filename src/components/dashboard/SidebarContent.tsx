@@ -102,6 +102,15 @@ export function SidebarContent({
           onNavigate={onNavigate}
           isCollapsed={isCollapsed}
         />
+        {currentUserProfile?.isCompanyOwner ? (
+          <SidebarNavItem
+            icon="campaign"
+            label="Captação de Leads"
+            to="/captacao"
+            onNavigate={onNavigate}
+            isCollapsed={isCollapsed}
+          />
+        ) : null}
         <SidebarNavItem
           icon="person"
           label="Meu Perfil"

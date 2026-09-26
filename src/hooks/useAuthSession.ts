@@ -32,6 +32,7 @@ function buildFallbackProfile(user: User): CurrentUserProfile {
     appearsInChat: true,
     avatarPath: null,
     canViewPreferencesInsights: isAdminRole(role),
+    isCompanyOwner: false,
     updatedAt: null,
   }
 }
@@ -70,7 +71,8 @@ function readStoredProfile(userId: string): CurrentUserProfile | null {
       return null
     }
 
-    return parsedValue
+    // Cache gravado antes deste campo existir não traz a chave.
+    return { ...parsedValue, isCompanyOwner: parsedValue.isCompanyOwner === true }
   } catch {
     return null
   }

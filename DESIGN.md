@@ -197,3 +197,13 @@ The shape language is consistent and "Rounded," using a base radius of 8px (0.5r
 
 ### File Uploaders
 - A dashed border container with a central icon and "drag and drop" instructions. Use a lighter tint of the primary color for the background to indicate a drop zone.
+
+### Seletor de publicação do Instagram
+- Grade de miniaturas quadradas (3 colunas no mobile, até 5 no desktop), cada uma é um `radio` acessível. Selecionada: borda e anel `primary` com um check centralizado sobre um véu `primary/25`. Vídeos mostram um selo de play no canto.
+- Carregamento usa blocos `surface-container` pulsando no mesmo formato da grade; erro usa a caixa `error/5` com ação "Tentar de novo".
+
+### Campo de valor em reais
+- Digitação estilo caixa eletrônico: só dígitos, os dois últimos são centavos, formatado como `R$ 0,00` enquanto digita. O valor trafega sempre como inteiro em centavos.
+
+### Status de campanha
+- Pílula no mesmo formato do status de engenharia. Tons: `primary` para criando, verde contido para no ar, âmbar para pausada, neutro para encerrada e `error` para falhou.

@@ -12,6 +12,8 @@ export type CurrentUserProfile = {
   appearsInChat: boolean
   avatarPath: string | null
   canViewPreferencesInsights: boolean
+  /** Dono da empresa (quem contratou o plano). Único que acessa a captação de leads. */
+  isCompanyOwner: boolean
   updatedAt: string | null
 }
 
@@ -25,6 +27,7 @@ type CurrentUserProfileApiResponse =
       appearsInChat?: boolean
       avatarPath: string | null
       canViewPreferencesInsights?: boolean
+      isCompanyOwner?: boolean
       updatedAt: string | null
     }
   | {
@@ -92,6 +95,7 @@ export async function fetchCurrentUserProfile(
     avatarPath: typeof data.avatarPath === 'string' ? data.avatarPath : null,
     canViewPreferencesInsights:
       data.canViewPreferencesInsights === true || data.isAdmin === true,
+    isCompanyOwner: data.isCompanyOwner === true,
     updatedAt: typeof data.updatedAt === 'string' ? data.updatedAt : null,
   }
 }
