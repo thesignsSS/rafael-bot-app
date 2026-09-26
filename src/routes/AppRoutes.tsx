@@ -1,4 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { CompanyOwnerRoute } from '../components/auth/CompanyOwnerRoute'
 import { GuestRoute } from '../components/auth/GuestRoute'
 import { ProtectedRoute } from '../components/auth/ProtectedRoute'
 import AssinaturaPage from '../pages/assinatura'
@@ -7,6 +8,9 @@ import AdminPage from '../pages/admin'
 import AdminWhatsAppPage from '../pages/admin/whatsapp'
 import AuthCallbackPage from '../pages/auth-callback'
 import CadastroPage from '../pages/cadastro'
+import CaptacaoPage from '../pages/captacao'
+import CampanhaDetailPage from '../pages/captacao/detail'
+import NovaCampanhaPage from '../pages/captacao/nova'
 import EngenhariaRequestsPage from '../pages/engenharia'
 import EngenhariaRequestDetailPage from '../pages/engenharia/detail'
 import EngenhariaNovaPage from '../pages/engenharia/nova'
@@ -44,6 +48,11 @@ export function AppRoutes() {
             element={<ProposalDocumentsPage />}
           />
           <Route path="/propostas/:proposalId" element={<ProposalDetailPage />} />
+          <Route element={<CompanyOwnerRoute />}>
+            <Route path="/captacao" element={<CaptacaoPage />} />
+            <Route path="/captacao/nova" element={<NovaCampanhaPage />} />
+            <Route path="/captacao/:campaignId" element={<CampanhaDetailPage />} />
+          </Route>
         </Route>
       </Route>
 

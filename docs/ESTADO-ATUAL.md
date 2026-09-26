@@ -182,6 +182,16 @@ flowchart LR
 - A própria tela de dados do detalhe da solicitação concentra a lista `Documentos Anexados`, onde é possível anexar arquivos, comentar, visualizar, baixar, excluir e renomear documentos, respeitando a permissão de edição da solicitação.
 - Cada anexo informa o responsável pelo envio e a data e hora em que foi adicionado.
 
+### Captação de Leads (`/captacao`, só dono da empresa)
+
+Anúncios do Instagram com formulário de lead nativo (Meta Lead Ads). Visível e acessível **apenas para o dono da empresa** (`companies.owner_id`, quem contratou o plano) — admin comum e corretores não veem o item no menu e são redirecionados se abrirem a URL. O backend aplica a mesma regra; o guard do front é só conveniência.
+
+- `/captacao`: conecta o Instagram da empresa (OAuth da Meta, uma conexão por empresa) e lista as campanhas com status e número de leads. O retorno do OAuth chega com `?meta=connected` ou `?meta=error&reason=...`, vira um toast e é removido da URL.
+- `/captacao/nova`: escolhe uma das últimas publicações do Instagram, nome, orçamento total (em centavos; mínimo R$ 20), duração, cidade + raio e faixa de idade. O backend cria campanha, formulário, conjunto de anúncios, criativo e anúncio na Meta; se algum passo falhar, a campanha fica salva como `failed` com o motivo e nada fica cobrando na Meta.
+- `/captacao/:campaignId`: dados da campanha e tabela de leads (nome, telefone com atalho para WhatsApp, e-mail, data) com situação editável (`Novo`, `Contatado`, `Qualificado`, `Descartado`).
+- Anúncio de imóvel entra na categoria especial `HOUSING` da Meta: a faixa de idade pode ser ignorada e o raio mínimo é 25 km (o backend ajusta sozinho).
+- Quando o backend roda com `META_ADS_PROVIDER=fake`, a tela mostra um aviso de modo de teste: conexão, posts e anúncios são simulados.
+
 ### `/login`
 
 - Card central (Proton Enterprise): logo, e-mail, senha, toggle visibilidade.
@@ -257,10 +267,28 @@ type CurrentUserProfile = {
   fullName: string
   role: 'admin' | 'broker'
   isAdmin: boolean
+  isCompanyOwner: boolean // dono da empresa; libera a captação de leads
 }
 ```
 
 Se o backend responder "Perfil não encontrado", o frontend aplica fallback local com os dados do usuário autenticado para não quebrar a UI.
+
+## Contrato da captação de leads
+
+Base: `VITE_FORM_SUBMISSION_API_URL` com `/form-submissions` trocado por `/lead-ads`, mesma API key. Todas exigem `userId` do dono da empresa (403 caso contrário).
+
+| Método e rota | Uso |
+|---|---|
+| `GET /connection?userId=` | Status da conexão com a Meta (`provider`, `connected`, `pageName`, `instagramUsername`) |
+| `GET /connect-url?userId=` | URL de autorização da Meta (o navegador é redirecionado para ela) |
+| `DELETE /connection?userId=` | Desconecta (anúncios já no ar continuam na Meta) |
+| `GET /instagram-media?userId=` | Últimas publicações do Instagram conectado |
+| `GET /cities?userId=&q=` | Busca de cidades para segmentação |
+| `GET /campaigns?userId=` / `POST /campaigns` | Lista / cria campanha (`name`, `instagramMediaId`, `budgetCents`, `durationDays`, `audience`) |
+| `GET /campaigns/:id?userId=` | Campanha + leads |
+| `PATCH /leads/:id` | Muda a situação do lead (`userId`, `status`) |
+
+Erros vêm como `{ ok: false, error }`; `502` indica recusa da Meta e `503` que a captação está desligada no ambiente.
 
 ## Contrato de envio ao bot
 
@@ -430,6 +458,8 @@ Um único guard cobre autenticação e restrição por grupo:
 | Só corretor | `<ProtectedRoute allowedRoles={['broker']} />` | Corretores |
 | Vários grupos | `<ProtectedRoute allowedRoles={['admin', 'broker']} />` | União dos grupos |
 | Grupo futuro | Estender `UserRole` em `roles.ts` + `allowedRoles` na rota | Conforme definido |
+
+Rotas que exigem ser o dono da empresa (hoje só `/captacao/*`) ficam dentro de `<CompanyOwnerRoute />`, que usa `currentUserProfile.isCompanyOwner`.
 
 Acesso negado por role: redirect para `/` com toast "Sem permissão" (`usePermissionDeniedToast` no dashboard).
 
