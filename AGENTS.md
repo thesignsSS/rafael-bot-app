@@ -32,7 +32,7 @@ npm install
 
 - Node.js: 20.19+ ou 22.12+.
 - Gerenciador de pacotes: **npm** (`package-lock.json` presente).
-- Copie `.env.example` → `.env` com `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` e `VITE_FORM_SUBMISSION_API_KEY` (obrigatório para dev com envio ao bot).
+- Copie `.env.example` → `.env` com `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` (obrigatório para dev com envio ao bot). As chamadas ao bot se autenticam com o JWT da sessão Supabase, via `src/lib/botApi.ts`: não existe mais chave de API no frontend.
 
 ## Development Workflow
 
@@ -119,12 +119,11 @@ interface ImportMetaEnv {
   readonly VITE_SUPABASE_URL: string
   readonly VITE_SUPABASE_ANON_KEY: string
   readonly VITE_FORM_SUBMISSION_API_URL?: string
-  readonly VITE_FORM_SUBMISSION_API_KEY?: string
 }
 ```
 
 - Não commitar `.env` com segredos; usar `.env.example` quando introduzir env vars.
-- `VITE_FORM_SUBMISSION_API_KEY` fica exposta no bundle do browser; em produção, preferir proxy/backend para manter a chave no servidor.
+- Nenhum segredo em `VITE_*`: tudo que tem esse prefixo vai para o bundle do browser. Chamadas ao bot usam `botFetch` (`src/lib/botApi.ts`), que envia o token da sessão.
 
 ## Pull Request Guidelines
 
@@ -149,7 +148,7 @@ interface ImportMetaEnv {
 | Porta 5173 em uso | `vite --port 5174` ou `server.port` em `vite.config.ts` |
 | App não inicia / erro Supabase | Verificar `.env` com URL e anon key; reiniciar `npm run dev` após criar `.env` |
 | Badge admin não aparece após SQL | Confirmar `raw_app_meta_data.role = "admin"`; usuário deve logout/login para refrescar JWT |
-| Envio ao bot falha | Verificar `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY`, CORS do servidor e se o endpoint `/api/form-submissions` está ativo |
+| Envio ao bot falha | Verificar `VITE_FORM_SUBMISSION_API_URL`, se há sessão Supabase ativa (o bot responde 401 sem token), CORS do servidor e se o endpoint `/api/form-submissions` está ativo |
 
 ## Additional Notes
 

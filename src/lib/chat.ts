@@ -1,3 +1,5 @@
+import { botFetch, currentAccessToken } from './botApi'
+
 export type ChatDirectoryUser = {
   id: string
   fullName: string
@@ -89,7 +91,6 @@ export type ChatSocketEvent =
     }
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export const CHAT_OPEN_EVENT = 'effectus:open-chat'
 export const CHAT_NOTIFICATION_EVENT = 'effectus:notification-created'
@@ -102,19 +103,8 @@ function getChatApiUrl() {
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, '/chat')
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -137,9 +127,7 @@ export async function fetchChatUsers(userId: string) {
   const url = new URL(`${getChatApiUrl()}/users`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   const data = await parseJsonResponse<ChatUsersResponse>(
     response,
@@ -153,9 +141,7 @@ export async function fetchChatConversations(userId: string) {
   const url = new URL(`${getChatApiUrl()}/conversations`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   const data = await parseJsonResponse<ChatConversationsResponse>(
     response,
@@ -166,7 +152,7 @@ export async function fetchChatConversations(userId: string) {
 }
 
 export async function openDirectChatConversation(userId: string, targetUserId: string) {
-  const response = await fetch(`${getChatApiUrl()}/conversations/direct`, {
+  const response = await botFetch(`${getChatApiUrl()}/conversations/direct`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId, targetUserId }),
@@ -184,9 +170,7 @@ export async function fetchChatMessages(userId: string, conversationId: string) 
   const url = new URL(`${getChatApiUrl()}/conversations/${conversationId}/messages`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseJsonResponse<ChatMessagesResponse>(
     response,
@@ -195,7 +179,7 @@ export async function fetchChatMessages(userId: string, conversationId: string) 
 }
 
 export async function markChatConversationAsRead(userId: string, conversationId: string) {
-  const response = await fetch(`${getChatApiUrl()}/conversations/${conversationId}/read`, {
+  const response = await botFetch(`${getChatApiUrl()}/conversations/${conversationId}/read`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId }),
@@ -211,7 +195,7 @@ export async function sendChatMessage(
   recipientUserId: string,
   content: string,
 ) {
-  const response = await fetch(`${getChatApiUrl()}/messages`, {
+  const response = await botFetch(`${getChatApiUrl()}/messages`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId, recipientUserId, content }),
@@ -223,8 +207,12 @@ export async function sendChatMessage(
   )
 }
 
-export function resolveChatWebSocketUrl(userId: string) {
-  if (!formSubmissionApiUrl || !formSubmissionApiKey) {
+/**
+ * Navegador não manda header em websocket: o token da sessão vai na query e o
+ * bot tira dele o usuário (o `userId` enviado é ignorado quando há token).
+ */
+export async function resolveChatWebSocketUrl(userId: string) {
+  if (!formSubmissionApiUrl) {
     throw new Error('Chat em tempo real não configurado.')
   }
 
@@ -232,6 +220,6 @@ export function resolveChatWebSocketUrl(userId: string) {
   const protocol = apiUrl.protocol === 'https:' ? 'wss:' : 'ws:'
   const wsUrl = new URL('/ws/chat', `${protocol}//${apiUrl.host}`)
   wsUrl.searchParams.set('userId', userId)
-  wsUrl.searchParams.set('apiKey', formSubmissionApiKey)
+  wsUrl.searchParams.set('token', await currentAccessToken())
   return wsUrl.toString()
 }

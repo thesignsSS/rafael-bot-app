@@ -1,3 +1,5 @@
+import { botFetch } from './botApi'
+
 export type AssistantRole = 'user' | 'assistant'
 
 export type AssistantMessage = {
@@ -74,11 +76,7 @@ export async function sendAssistantMessage(input: {
     'Content-Type': 'application/json',
   }
 
-  if (import.meta.env.VITE_FORM_SUBMISSION_API_KEY) {
-    headers['x-api-key'] = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
-  }
-
-  const response = await fetch(assistantApiUrl, {
+  const response = await botFetch(assistantApiUrl, {
     method: 'POST',
     headers,
     body: JSON.stringify({

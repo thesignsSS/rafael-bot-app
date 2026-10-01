@@ -39,7 +39,7 @@ tsconfig.json      # referências app + node
 
 ## Variáveis de ambiente
 
-Copie `.env.example` para `.env` e preencha `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` e `VITE_FORM_SUBMISSION_API_KEY` (obrigatórios para auth e integração com propostas).
+Copie `.env.example` para `.env` e preencha `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` (obrigatórios para auth e integração com propostas).
 
 ## Permissionamento (dev)
 

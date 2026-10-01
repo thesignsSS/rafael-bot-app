@@ -15,9 +15,9 @@ import {
   normalizeProposalStatusOptions,
   type ProposalStatusOption,
 } from '../types/proposal-status'
+import { botFetch } from '../../../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 function getProposalsApiUrl() {
   if (!formSubmissionApiUrl) {
@@ -38,19 +38,8 @@ function getProposalShareLinksApiUrl() {
   )
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -112,9 +101,7 @@ export async function fetchProposals({
     url.searchParams.set('proposalCode', proposalCode.trim())
   }
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<ProposalsListResponse>(response)
 }
@@ -126,17 +113,13 @@ export async function fetchProposalDetail(
   const url = new URL(`${getProposalsApiUrl()}/${proposalId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<ProposalDetail>(response)
 }
 
 export async function fetchProposalStatuses(): Promise<ProposalStatusOption[]> {
-  const response = await fetch(`${getProposalsApiUrl()}/statuses`, {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(`${getProposalsApiUrl()}/statuses`)
 
   if (!response.ok) {
     return DEFAULT_PROPOSAL_STATUS_OPTIONS
@@ -151,7 +134,7 @@ export async function updateProposal(
   proposalId: string,
   payload: UpdateProposalPayload,
 ): Promise<void> {
-  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}`, {
+  const response = await botFetch(`${getProposalsApiUrl()}/${proposalId}`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify(payload),
@@ -166,7 +149,7 @@ export async function updateProposalStatus(
   proposalId: string,
   payload: UpdateProposalStatusPayload,
 ): Promise<void> {
-  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}`, {
+  const response = await botFetch(`${getProposalsApiUrl()}/${proposalId}`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({
@@ -184,7 +167,7 @@ export async function createProposalShareLink(
   proposalId: string,
   brokerUserId: string,
 ): Promise<ProposalShareLinkResponse> {
-  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/share-link`, {
+  const response = await botFetch(`${getProposalsApiUrl()}/${proposalId}/share-link`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ brokerUserId }),
@@ -200,9 +183,7 @@ export async function fetchProposalSharePreview(
   const url = new URL(`${getProposalShareLinksApiUrl()}/${token}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<ProposalSharePreview>(response)
 }
@@ -211,7 +192,7 @@ export async function acceptProposalShareLink(
   token: string,
   brokerUserId: string,
 ): Promise<AcceptProposalShareResponse> {
-  const response = await fetch(`${getProposalShareLinksApiUrl()}/${token}/accept`, {
+  const response = await botFetch(`${getProposalShareLinksApiUrl()}/${token}/accept`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ brokerUserId }),
@@ -228,9 +209,8 @@ export async function removeProposalGuest(
   const url = new URL(`${getProposalsApiUrl()}/${proposalId}/guests/${guestUserId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     method: 'DELETE',
-    headers: getRequestHeaders(),
   })
 
   if (!response.ok) {
@@ -244,7 +224,7 @@ export async function uploadProposalDocuments(
   documents: FormSubmissionDocument[],
   documentScope: ProposalDocumentScope = 'proposal',
 ): Promise<void> {
-  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/documents`, {
+  const response = await botFetch(`${getProposalsApiUrl()}/${proposalId}/documents`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ brokerUserId, documents, documentScope }),
@@ -261,7 +241,7 @@ export async function renameProposalDocument(
   brokerUserId: string,
   displayName: string,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await botFetch(
     `${getProposalsApiUrl()}/${proposalId}/documents/${documentId}`,
     {
       method: 'PATCH',
@@ -283,9 +263,8 @@ export async function deleteProposalDocument(
   const url = new URL(`${getProposalsApiUrl()}/${proposalId}/documents/${documentId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     method: 'DELETE',
-    headers: getRequestHeaders(),
   })
 
   if (!response.ok) {
@@ -300,9 +279,8 @@ export async function deleteProposal(
   const url = new URL(`${getProposalsApiUrl()}/${proposalId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     method: 'DELETE',
-    headers: getRequestHeaders(),
   })
 
   if (!response.ok) {
@@ -333,7 +311,7 @@ export async function sendIncomeValidationTestEmail(
     >
   },
 ): Promise<void> {
-  const response = await fetch(
+  const response = await botFetch(
     `${getProposalsApiUrl()}/${proposalId}/income-validation-test-email`,
     {
       method: 'POST',
@@ -361,7 +339,7 @@ export async function sendProposalEmail(
     }>
   },
 ): Promise<void> {
-  const response = await fetch(`${getProposalsApiUrl()}/${proposalId}/send-email`, {
+  const response = await botFetch(`${getProposalsApiUrl()}/${proposalId}/send-email`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify(payload),
@@ -382,9 +360,7 @@ export async function viewProposalDocument(
   )
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<ViewProposalDocumentResponse>(response)
 }
@@ -415,9 +391,7 @@ export async function downloadProposalZip(
   const url = new URL(`${getProposalsApiUrl()}/${proposalId}/download`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   if (!response.ok) {
     throw new Error(getProposalsErrorMessage(response.status))
@@ -441,9 +415,7 @@ export async function downloadProposalDocument(
   )
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   if (!response.ok) {
     throw new Error(getProposalsErrorMessage(response.status))

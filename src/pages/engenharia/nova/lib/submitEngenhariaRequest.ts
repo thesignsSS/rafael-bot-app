@@ -1,7 +1,7 @@
 import type { PropertyKind } from '../../types/engenharia'
+import { botFetch } from '../../../../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export type EngenhariaSubmissionDocument = {
   documentKey: string
@@ -73,15 +73,10 @@ function getEngenhariaRequestApiUrl() {
 export async function submitEngenhariaRequest(
   payload: SubmitEngenhariaRequestPayload,
 ): Promise<SubmitEngenhariaRequestResponse> {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  const response = await fetch(getEngenhariaRequestApiUrl(), {
+  const response = await botFetch(getEngenhariaRequestApiUrl(), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${formSubmissionApiKey}`,
     },
     body: JSON.stringify(payload),
   })

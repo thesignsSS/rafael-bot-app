@@ -1,5 +1,6 @@
+import { botFetch } from '../../../lib/botApi'
+
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export type LeadStatus = 'new' | 'contacted' | 'qualified' | 'discarded'
 export type CampaignStatus = 'creating' | 'active' | 'paused' | 'completed' | 'failed'
@@ -83,12 +84,7 @@ function getBaseUrl() {
 }
 
 function getHeaders(json = false): HeadersInit {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
   return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
     ...(json ? { 'Content-Type': 'application/json' } : {}),
   }
 }
@@ -103,7 +99,7 @@ async function request<T>(
     if (value) url.searchParams.set(key, value)
   }
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     ...init,
     headers: getHeaders(Boolean(init.body)),
   })

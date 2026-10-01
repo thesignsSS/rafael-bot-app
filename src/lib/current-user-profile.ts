@@ -1,7 +1,7 @@
 import { parseUserRole, type UserRole } from './auth/roles'
+import { botFetch } from './botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export type CurrentUserProfile = {
   id: string
@@ -54,18 +54,10 @@ function getCurrentUserProfileApiUrl() {
 export async function fetchCurrentUserProfile(
   userId: string,
 ): Promise<CurrentUserProfile> {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
   const url = new URL(getCurrentUserProfileApiUrl())
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      'x-api-key': formSubmissionApiKey,
-    },
-  })
+  const response = await botFetch(url.toString())
 
   const data = (await response.json().catch(() => null)) as
     | CurrentUserProfileApiResponse

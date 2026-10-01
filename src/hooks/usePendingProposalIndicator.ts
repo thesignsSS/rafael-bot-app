@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { botFetch } from '../lib/botApi'
 
 type PendingSummaryResponse = {
   pendingCount: number
@@ -16,7 +17,6 @@ const pendingSummaryInflightRequests = new Map<
 >()
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 function getPendingSummaryApiUrl() {
   if (!formSubmissionApiUrl) {
@@ -27,16 +27,6 @@ function getPendingSummaryApiUrl() {
     /\/form-submissions\/?$/,
     '/proposals/pending-summary',
   )
-}
-
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
 }
 
 async function fetchPendingSummary(
@@ -61,9 +51,7 @@ async function fetchPendingSummary(
     const url = new URL(getPendingSummaryApiUrl())
     url.searchParams.set('brokerUserId', brokerUserId)
 
-    const response = await fetch(url.toString(), {
-      headers: getRequestHeaders(),
-    })
+    const response = await botFetch(url.toString())
 
     const data = (await response.json().catch(() => null)) as PendingSummaryResponse | null
 

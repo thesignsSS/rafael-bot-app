@@ -3,9 +3,9 @@ import type {
   SubmitFormPayload,
   SubmitFormResponse,
 } from '../types/proposal'
+import { botFetch } from '../../../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export async function fileToBase64(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -38,15 +38,10 @@ export async function submitProposalToBot(payload: SubmitFormPayload) {
     throw new Error('URL de envio do formulário não configurada.')
   }
 
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  const response = await fetch(formSubmissionApiUrl, {
+  const response = await botFetch(formSubmissionApiUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
-      Authorization: `Bearer ${formSubmissionApiKey}`,
     },
     body: JSON.stringify(payload),
   })
