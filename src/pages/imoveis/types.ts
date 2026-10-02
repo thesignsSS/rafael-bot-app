@@ -34,6 +34,36 @@ export type PropertyAddress = {
   postalCode: string | null
 }
 
+export const TYPOLOGY_OPTIONS = [
+  { value: 'apartamento', label: 'Apartamento' },
+  { value: 'casa', label: 'Casa' },
+  { value: 'casa_condominio', label: 'Casa em condomínio' },
+  { value: 'terreno', label: 'Terreno' },
+  { value: 'sala_loja', label: 'Sala ou loja' },
+] as const
+
+export type Typology = (typeof TYPOLOGY_OPTIONS)[number]['value']
+export type TriState = 'sim' | 'nao' | 'nao_informado'
+
+export type PropertyAd = {
+  typology: Typology | null
+  title: string | null
+  headline: string | null
+  description: string | null
+  highlights: string[]
+  bedrooms: number | null
+  suites: number | null
+  bathrooms: number | null
+  parkingSpaces: number | null
+  acceptsFinancing: TriState
+  acceptsFgts: TriState
+  acceptsMcmv: TriState
+  showPrice: boolean
+  showFullAddress: boolean
+  latitude: number | null
+  longitude: number | null
+}
+
 export type Property = {
   id: string
   referenceCode: string
@@ -48,6 +78,7 @@ export type Property = {
   appraisal: { value: number; validUntil: string } | null
   internalNotes: string | null
   responsibleBrokerId: string
+  ad: PropertyAd
   responsibleBroker: { id: string; name: string | null }
   adReadiness?: { kind: 'ready' } | { kind: 'missing'; missing: string[] } | { kind: 'not_advertisable' }
   adReadinessLabel?: string

@@ -341,10 +341,10 @@ function AdCard({ property }: { property: Property }) {
       </p>
       {property.permissions.canEdit ? (
         <Link
-          to={`/imoveis/${property.id}/editar`}
+          to={`/imoveis/${property.id}/anuncio`}
           className="mt-3 flex min-h-11 items-center justify-center rounded-lg border border-primary/40 font-semibold text-primary hover:bg-primary/5"
         >
-          Completar para anunciar
+          {ready ? 'Dados do anúncio' : 'Completar para anunciar'}
         </Link>
       ) : (
         <p className="mt-3 text-body-sm text-on-surface-variant">Só o corretor responsável e o administrador criam anúncio.</p>

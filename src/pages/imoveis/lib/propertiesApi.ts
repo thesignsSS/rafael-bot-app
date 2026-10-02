@@ -228,3 +228,9 @@ export async function changeStatus(propertyId: string, status: Property['status'
     })
   ).property
 }
+
+export type AdPayload = Omit<import('../types').PropertyAd, 'latitude' | 'longitude'>
+
+export async function saveAd(propertyId: string, payload: AdPayload): Promise<{ property: Property; warnings: string[] }> {
+  return request(`/properties/${encodeURIComponent(propertyId)}/ad`, { method: 'PUT', body: JSON.stringify(payload) })
+}

@@ -16,6 +16,7 @@ import EngenhariaRequestDetailPage from '../pages/engenharia/detail'
 import EngenhariaNovaPage from '../pages/engenharia/nova'
 import HomePage from '../pages/home'
 import ImoveisPage from '../pages/imoveis'
+import DadosAnuncioPage from '../pages/imoveis/anuncio'
 import ImovelDetalhePage from '../pages/imoveis/detalhe'
 import EditarImovelPage from '../pages/imoveis/editar'
 import NovoImovelPage from '../pages/imoveis/novo'
@@ -42,6 +43,7 @@ export function AppRoutes() {
           <Route path="/imoveis" element={<ImoveisPage />} />
           <Route path="/imoveis/novo" element={<NovoImovelPage />} />
           <Route path="/imoveis/:propertyId" element={<ImovelDetalhePage />} />
+          <Route path="/imoveis/:propertyId/anuncio" element={<DadosAnuncioPage />} />
           <Route path="/imoveis/:propertyId/editar" element={<EditarImovelPage />} />
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/assinatura" element={<AssinaturaPage />} />
