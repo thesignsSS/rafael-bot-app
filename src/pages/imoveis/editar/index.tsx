@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Icon } from '../../../components/ui/Icon'
 import { PropertyForm } from '../components/PropertyForm'
 import { PropertyPageHeader } from '../components/PropertyPageHeader'
+import { usePropertyPhotos } from '../hooks/usePropertyPhotos'
+import type { EditPropertyLocationState } from '../novo'
 import { PropertyApiError, fetchProperty } from '../lib/propertiesApi'
 import type { Property } from '../types'
 
@@ -17,6 +19,9 @@ export default function EditarImovelPage() {
   const navigate = useNavigate()
   const [state, setState] = useState<LoadState>({ kind: 'loading' })
   const [attempt, setAttempt] = useState(0)
+  const location = useLocation()
+  const failedPhotos = (location.state as EditPropertyLocationState | null)?.failedPhotos ?? []
+  const photos = usePropertyPhotos(propertyId, failedPhotos)
 
   useEffect(() => {
     let cancelled = false
@@ -85,6 +90,7 @@ export default function EditarImovelPage() {
           <PropertyForm
             key={state.property.updatedAt}
             property={state.property}
+            photos={photos}
             onSaved={handleSaved}
             onCancel={() => navigate(-1)}
           />

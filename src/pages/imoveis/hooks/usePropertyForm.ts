@@ -111,7 +111,7 @@ function toPayload(values: PropertyFormValues): PropertyPayload {
   }
 }
 
-export function usePropertyForm(property: Property | null, onSaved: (saved: Property) => void) {
+export function usePropertyForm(property: Property | null, onSaved: (saved: Property) => void | Promise<void>) {
   const { currentUserProfile } = useAuth()
   const currentUserId = currentUserProfile?.id ?? ''
   const [initial] = useState(() => initialValues(property, currentUserId))
@@ -200,7 +200,7 @@ export function usePropertyForm(property: Property | null, onSaved: (saved: Prop
     try {
       const payload = toPayload(values)
       const saved = property ? await updateProperty(property.id, payload) : await createProperty(payload)
-      onSaved(saved)
+      await onSaved(saved)
     } catch (error) {
       if (error instanceof PropertyApiError) {
         setErrors(error.fields)

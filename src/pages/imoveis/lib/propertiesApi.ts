@@ -1,7 +1,9 @@
 import { botFetch } from '../../../lib/botApi'
+import { supabase } from '../../../lib/supabase'
 import type { Broker, FieldErrors, Municipality, Property, PropertyPayload } from '../types'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
+const PROPERTY_PHOTOS_BUCKET = 'property-photos'
 
 /** Erro da API com mensagens por campo, para o formulário mostrar junto de cada campo. */
 export class PropertyApiError extends Error {
@@ -77,4 +79,74 @@ export async function fetchMunicipalities(state: string): Promise<Municipality[]
 
 export async function fetchBrokers(): Promise<Broker[]> {
   return (await request<{ items: Broker[] }>('/brokers')).items
+}
+
+export type PhotoWarning = 'low_resolution' | 'may_be_cropped'
+
+export type PropertyPhoto = {
+  id: string
+  originalName: string
+  mimeType: 'image/jpeg' | 'image/png'
+  sizeBytes: number
+  width: number | null
+  height: number | null
+  isCover: boolean
+  position: number
+  url: string
+  thumbnailUrl: string
+  warnings: PhotoWarning[]
+}
+
+export async function fetchPhotos(propertyId: string): Promise<{ items: PropertyPhoto[]; canManage: boolean }> {
+  return request(`/properties/${encodeURIComponent(propertyId)}/photos`)
+}
+
+/**
+ * Envia uma foto em três passos: o bot libera o envio, o arquivo vai direto
+ * ao Storage pela URL assinada e o bot confere e registra. Dimensões vão
+ * junto só para os avisos de resolução e corte.
+ */
+export async function uploadPhoto(
+  propertyId: string,
+  file: File,
+  dimensions: { width: number; height: number } | null,
+): Promise<PropertyPhoto> {
+  const base = `/properties/${encodeURIComponent(propertyId)}/photos`
+  const { upload } = await request<{ upload: { path: string; token: string } }>(`${base}/uploads`, {
+    method: 'POST',
+    body: JSON.stringify({ fileName: file.name, contentType: file.type, sizeBytes: file.size }),
+  })
+
+  const sent = await supabase.storage
+    .from(PROPERTY_PHOTOS_BUCKET)
+    .uploadToSignedUrl(upload.path, upload.token, file, { contentType: file.type })
+
+  if (sent.error) {
+    throw new PropertyApiError('A foto não foi enviada. Confira sua conexão e tente de novo.', 0)
+  }
+
+  const { photo } = await request<{ photo: PropertyPhoto }>(base, {
+    method: 'POST',
+    body: JSON.stringify({
+      path: upload.path,
+      originalName: file.name,
+      width: dimensions?.width ?? null,
+      height: dimensions?.height ?? null,
+    }),
+  })
+
+  return photo
+}
+
+export async function setCoverPhoto(propertyId: string, photoId: string): Promise<void> {
+  await request(`/properties/${encodeURIComponent(propertyId)}/photos/${encodeURIComponent(photoId)}/cover`, {
+    method: 'POST',
+    body: '{}',
+  })
+}
+
+export async function removePhoto(propertyId: string, photoId: string): Promise<void> {
+  await request(`/properties/${encodeURIComponent(propertyId)}/photos/${encodeURIComponent(photoId)}`, {
+    method: 'DELETE',
+  })
 }

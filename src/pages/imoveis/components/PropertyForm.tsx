@@ -5,20 +5,23 @@ import { FormSection } from '../../../components/ui/FormSection'
 import { Icon } from '../../../components/ui/Icon'
 import { Modal } from '../../../components/ui/Modal'
 import { MoneyInput } from '../../../components/ui/MoneyInput'
+import type { PropertyPhotosController } from '../hooks/usePropertyPhotos'
 import { usePropertyForm } from '../hooks/usePropertyForm'
+import { PropertyPhotosSection } from './PropertyPhotosSection'
 import { BRAZILIAN_STATES, PROPERTY_TYPE_OPTIONS, type Property } from '../types'
 
 type PropertyFormProps = {
   /** Nulo = cadastro novo. */
   property: Property | null
-  onSaved: (saved: Property) => void
+  photos: PropertyPhotosController
+  onSaved: (saved: Property) => void | Promise<void>
   onCancel: () => void
 }
 
 const inputClass = (error?: string) => `proposal-input ${error ? 'proposal-input-error' : ''}`
 
 /** Cadastro e edição de imóvel (spec BKL-093, seção 8; protótipos 13, 18 e 20). */
-export function PropertyForm({ property, onSaved, onCancel }: PropertyFormProps) {
+export function PropertyForm({ property, photos, onSaved, onCancel }: PropertyFormProps) {
   const form = usePropertyForm(property, onSaved)
   const [confirmingCancel, setConfirmingCancel] = useState(false)
   const { values, errors } = form
@@ -27,7 +30,9 @@ export function PropertyForm({ property, onSaved, onCancel }: PropertyFormProps)
   const responsibleLocked = !isNew && !property.permissions.canTransfer
 
   // 8.12: formulário preenchido pede confirmação antes de descartar.
-  const handleCancel = () => (form.isDirty ? setConfirmingCancel(true) : onCancel())
+  // Fotos escolhidas e ainda não enviadas também contam (CA-11.8).
+  const hasPendingPhotos = photos.local.length > 0
+  const handleCancel = () => (form.isDirty || hasPendingPhotos ? setConfirmingCancel(true) : onCancel())
 
   return (
     <div className="pb-28">
@@ -236,6 +241,8 @@ export function PropertyForm({ property, onSaved, onCancel }: PropertyFormProps)
           ) : null}
         </FormSection>
 
+        <PropertyPhotosSection controller={photos} />
+
         <FormSection icon="description" title="Mais dados do imóvel" optional>
           <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
             <Field label="Área privativa (m²)" hint="opcional" error={errors.privateAreaM2}>
@@ -350,7 +357,9 @@ export function PropertyForm({ property, onSaved, onCancel }: PropertyFormProps)
       {confirmingCancel ? (
         <Modal titleId="descartar-imovel" title="Descartar o que foi preenchido?" onClose={() => setConfirmingCancel(false)}>
           <p className="text-body-md text-on-surface-variant">
-            {isNew ? 'O imóvel não será cadastrado.' : 'As alterações não salvas serão perdidas.'}
+            {isNew
+              ? 'O imóvel não será cadastrado e as fotos escolhidas não serão enviadas.'
+              : 'As alterações não salvas serão perdidas.'}
           </p>
           <div className="mt-6 flex justify-end gap-2">
             <button
