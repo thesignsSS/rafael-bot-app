@@ -234,3 +234,24 @@ export type AdPayload = Omit<import('../types').PropertyAd, 'latitude' | 'longit
 export async function saveAd(propertyId: string, payload: AdPayload): Promise<{ property: Property; warnings: string[] }> {
   return request(`/properties/${encodeURIComponent(propertyId)}/ad`, { method: 'PUT', body: JSON.stringify(payload) })
 }
+
+export type LifecycleOptions = {
+  proposals: number
+  activeProposals: number
+  engineeringRequests: number
+  canDelete: boolean
+  canInactivate: boolean
+  canTransfer: boolean
+}
+
+export async function fetchLifecycle(propertyId: string): Promise<LifecycleOptions> {
+  return (await request<{ options: LifecycleOptions }>(`/properties/${encodeURIComponent(propertyId)}/lifecycle`)).options
+}
+
+export async function deleteProperty(propertyId: string): Promise<void> {
+  await request(`/properties/${encodeURIComponent(propertyId)}`, { method: 'DELETE' })
+}
+
+export async function transferProperties(propertyIds: string[], toBrokerId: string): Promise<{ transferred: number }> {
+  return request('/properties/transfer', { method: 'POST', body: JSON.stringify({ propertyIds, toBrokerId }) })
+}

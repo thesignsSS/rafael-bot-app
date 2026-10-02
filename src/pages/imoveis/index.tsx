@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Icon } from '../../components/ui/Icon'
+import { useAuth } from '../../contexts/auth-context'
 import { formatReais } from '../../lib/money'
 import { PropertyStatusPill } from './components/PropertyStatusPill'
+import { TransferModal } from './components/TransferModal'
 import { PROPERTY_STATUS_OPTIONS } from './lib/propertyStatus'
 import { fetchBrokers, fetchProperties, type PropertyListItem } from './lib/propertiesApi'
 import { PROPERTY_TYPE_OPTIONS, type Broker } from './types'
@@ -23,6 +26,12 @@ export default function ImoveisPage() {
   const [state, setState] = useState<'loading' | 'ready' | 'error' | 'loading_more'>('loading')
   const [brokers, setBrokers] = useState<Broker[]>([])
   const [attempt, setAttempt] = useState(0)
+  const { isAdmin, currentUserProfile } = useAuth()
+  // 15.7: só o ADM (ou o dono do plano) transfere, um ou vários de uma vez.
+  const canTransfer = isAdmin || Boolean(currentUserProfile?.isCompanyOwner)
+  const [selecting, setSelecting] = useState(false)
+  const [selected, setSelected] = useState<string[]>([])
+  const [transferring, setTransferring] = useState(false)
 
   useEffect(() => {
     fetchBrokers()
@@ -124,6 +133,31 @@ export default function ImoveisPage() {
         </p>
       </div>
 
+      {canTransfer && items.length > 0 ? (
+        <div className="mb-3 flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setSelecting((value) => !value)
+              setSelected([])
+            }}
+            className="min-h-11 rounded-lg border border-outline-variant px-4 text-sm font-semibold text-on-surface hover:border-primary"
+          >
+            {selecting ? 'Cancelar seleção' : 'Selecionar para transferir'}
+          </button>
+          {selecting ? (
+            <button
+              type="button"
+              disabled={selected.length === 0}
+              onClick={() => setTransferring(true)}
+              className="min-h-11 rounded-lg bg-primary-container px-4 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              Transferir {selected.length > 0 ? `(${selected.length})` : ''}
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       {state === 'loading' ? (
         <div className="flex items-center gap-3 rounded-lg border border-outline-variant/60 bg-surface-container-lowest p-6 text-on-surface-variant">
           <Icon name="sync" size={22} className="animate-spin" />
@@ -177,7 +211,16 @@ export default function ImoveisPage() {
       {items.length > 0 && state !== 'loading' && state !== 'error' ? (
         <ul className="divide-y divide-outline-variant/60 overflow-hidden rounded-lg border border-outline-variant/60 bg-surface-container-lowest shadow-sm">
           {items.map((item) => (
-            <PropertyRow key={item.id} item={item} onOpen={() => navigate(`/imoveis/${item.id}`)} />
+            <PropertyRow
+              key={item.id}
+              item={item}
+              selectable={selecting}
+              selected={selected.includes(item.id)}
+              onToggle={() =>
+                setSelected((current) => (current.includes(item.id) ? current.filter((id) => id !== item.id) : [...current, item.id]))
+              }
+              onOpen={() => navigate(`/imoveis/${item.id}`)}
+            />
           ))}
         </ul>
       ) : null}
@@ -193,6 +236,20 @@ export default function ImoveisPage() {
             {state === 'loading_more' ? 'Carregando…' : 'Carregar mais'}
           </button>
         </div>
+      ) : null}
+
+      {transferring ? (
+        <TransferModal
+          propertyIds={selected}
+          onClose={() => setTransferring(false)}
+          onDone={(transferred) => {
+            toast.success(transferred === 1 ? '1 imóvel transferido' : `${transferred} imóveis transferidos`)
+            setTransferring(false)
+            setSelecting(false)
+            setSelected([])
+            setAttempt((value) => value + 1)
+          }}
+        />
       ) : null}
 
       {/* Celular: ação principal em botão flutuante (9.8). */}
@@ -242,14 +299,31 @@ function EmptyState({ icon, title, text, action }: { icon: string; title: string
 }
 
 /** 9.2: miniatura de 40 px, endereço, bairro, tipo, valor, situação e indicador de anúncio. */
-function PropertyRow({ item, onOpen }: { item: PropertyListItem; onOpen: () => void }) {
+function PropertyRow({
+  item,
+  onOpen,
+  selectable,
+  selected,
+  onToggle,
+}: {
+  item: PropertyListItem
+  onOpen: () => void
+  selectable: boolean
+  selected: boolean
+  onToggle: () => void
+}) {
   const faded = item.status === 'vendido' || item.status === 'inativo'
 
   return (
-    <li>
+    <li className="flex items-center">
+      {selectable ? (
+        <label className="flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center pl-3">
+          <input type="checkbox" checked={selected} onChange={onToggle} aria-label={`Selecionar ${item.referenceCode}`} className="h-5 w-5" />
+        </label>
+      ) : null}
       <button
         type="button"
-        onClick={onOpen}
+        onClick={selectable ? onToggle : onOpen}
         className={`flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-surface-container-low ${faded ? 'opacity-60' : ''}`}
       >
         {item.coverThumbnailUrl ? (

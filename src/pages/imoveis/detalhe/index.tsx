@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Icon } from '../../../components/ui/Icon'
 import { formatReais } from '../../../lib/money'
 import { ChangeStatusModal } from '../components/ChangeStatusModal'
+import { PropertyActionsCard } from '../components/PropertyActionsCard'
 import { PropertyPhotosSection } from '../components/PropertyPhotosSection'
 import { PropertyStatusPill } from '../components/PropertyStatusPill'
 import { usePropertyPhotos } from '../hooks/usePropertyPhotos'
@@ -73,6 +74,12 @@ export default function ImovelDetalhePage() {
     } finally {
       setSavingStatus(false)
     }
+  }
+
+  const handleActionDone = (updated?: Property) => {
+    if (updated) setState({ kind: 'ready', property: updated })
+    else setAttempt((value) => value + 1)
+    loadHistory()
   }
 
   if (state.kind === 'loading') {
@@ -252,6 +259,11 @@ export default function ImovelDetalhePage() {
           </Card>
           <StatusCard property={property} lastChange={lastStatusChange} onChange={() => setChangingStatus(true)} />
           <AdCard property={property} />
+          <PropertyActionsCard property={property} onChanged={handleActionDone} />
+        </div>
+
+        <div className="lg:hidden">
+          <PropertyActionsCard property={property} onChanged={handleActionDone} />
         </div>
 
         {permissions.canEdit ? (
