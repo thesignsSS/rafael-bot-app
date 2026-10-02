@@ -196,3 +196,35 @@ export async function fetchProperties(
 
   return request(`/properties?${query.toString()}`)
 }
+
+export type PropertyHistoryItem = {
+  id: string
+  kind:
+    | 'created'
+    | 'updated'
+    | 'status_changed'
+    | 'price_changed'
+    | 'type_corrected'
+    | 'photo_added'
+    | 'photo_removed'
+    | 'cover_changed'
+    | 'transferred'
+  actorId: string | null
+  /** Nulo = "Sistema" (mudança automática). */
+  actorName: string | null
+  data: Record<string, unknown>
+  createdAt: string
+}
+
+export async function fetchHistory(propertyId: string): Promise<PropertyHistoryItem[]> {
+  return (await request<{ items: PropertyHistoryItem[] }>(`/properties/${encodeURIComponent(propertyId)}/history`)).items
+}
+
+export async function changeStatus(propertyId: string, status: Property['status']): Promise<Property> {
+  return (
+    await request<{ property: Property }>(`/properties/${encodeURIComponent(propertyId)}/status`, {
+      method: 'POST',
+      body: JSON.stringify({ status }),
+    })
+  ).property
+}

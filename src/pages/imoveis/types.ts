@@ -49,6 +49,8 @@ export type Property = {
   internalNotes: string | null
   responsibleBrokerId: string
   responsibleBroker: { id: string; name: string | null }
+  adReadiness?: { kind: 'ready' } | { kind: 'missing'; missing: string[] } | { kind: 'not_advertisable' }
+  adReadinessLabel?: string
   status: PropertyStatus
   statusLabel: string
   statusChangedAt: string

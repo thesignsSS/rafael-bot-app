@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { toast } from 'sonner'
 import { FormSection } from '../../../components/ui/FormSection'
 import { Icon } from '../../../components/ui/Icon'
@@ -11,6 +11,8 @@ type Props = {
   controller: PropertyPhotosController
   /** Na tela de detalhe as fotos são só leitura (10.8). */
   readOnly?: boolean
+  /** Ação do estado vazio quando as fotos são só leitura aqui, mas o usuário pode incluir em outra tela (CA-10.6). */
+  emptyAction?: ReactNode
 }
 
 /** Celular tem câmera: mostra "Tirar fotos". No computador, só "Escolher fotos" (CA-11.9). */
@@ -20,7 +22,7 @@ function useIsTouchDevice() {
 }
 
 /** Seção 11 · protótipos 13 e 18 (bloco "Fotos do imóvel"). */
-export function PropertyPhotosSection({ controller, readOnly = false }: Props) {
+export function PropertyPhotosSection({ controller, readOnly = false, emptyAction }: Props) {
   const isTouch = useIsTouchDevice()
   const cameraInput = useRef<HTMLInputElement>(null)
   const galleryInput = useRef<HTMLInputElement>(null)
@@ -139,6 +141,7 @@ export function PropertyPhotosSection({ controller, readOnly = false }: Props) {
           {canManage
             ? 'Nenhuma foto ainda. As fotos ajudam a reconhecer o imóvel e serão usadas no anúncio.'
             : 'Nenhuma foto cadastrada.'}
+          {emptyAction ? <span className="mt-3 block">{emptyAction}</span> : null}
         </p>
       ) : null}
 
