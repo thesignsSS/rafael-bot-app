@@ -150,3 +150,49 @@ export async function removePhoto(propertyId: string, photoId: string): Promise<
     method: 'DELETE',
   })
 }
+
+export type AdReadiness =
+  | { kind: 'ready' }
+  | { kind: 'missing'; missing: string[] }
+  | { kind: 'not_advertisable' }
+
+export type PropertyListItem = {
+  id: string
+  referenceCode: string
+  street: string
+  number: string | null
+  neighborhood: string
+  municipality: string
+  state: string
+  type: Property['type']
+  typeLabel: string
+  salePrice: number
+  status: Property['status']
+  statusLabel: string
+  responsibleBroker: { id: string; name: string | null }
+  coverThumbnailUrl: string | null
+  adReadiness: AdReadiness
+  adReadinessLabel: string
+  updatedAt: string
+}
+
+export type PropertyListParams = {
+  q?: string
+  status?: string
+  type?: string
+  responsibleBrokerId?: string
+  page?: number
+  pageSize?: number
+}
+
+export async function fetchProperties(
+  params: PropertyListParams,
+): Promise<{ items: PropertyListItem[]; total: number; page: number; pageSize: number }> {
+  const query = new URLSearchParams()
+
+  for (const [key, value] of Object.entries(params)) {
+    if (value !== undefined && value !== '') query.set(key, String(value))
+  }
+
+  return request(`/properties?${query.toString()}`)
+}
