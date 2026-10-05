@@ -1,4 +1,4 @@
-import type { RefObject } from 'react'
+import { useState, type RefObject } from 'react'
 import { Icon } from '../../../components/ui/Icon'
 import { brazilianStates } from '../lib/proposalUtils'
 import {
@@ -8,8 +8,14 @@ import {
 } from '../types/proposal'
 import { Field } from '../../../components/ui/Field'
 import { FormSection } from '../../../components/ui/FormSection'
+import { formatReais } from '../../../lib/money'
+import { PropertyPicker } from '../../imoveis/components/PropertyPicker'
+import { PropertyStatusPill } from '../../imoveis/components/PropertyStatusPill'
+import type { PropertyListItem } from '../../imoveis/lib/propertiesApi'
 
 type PropertyDataSectionProps = {
+  selectedProperty: PropertyListItem | null
+  onPickProperty: (property: PropertyListItem | null) => void
   propertyType: PropertyType
   propertyState: string
   stateError: string
@@ -30,6 +36,8 @@ type PropertyDataSectionProps = {
 }
 
 export function PropertyDataSection({
+  selectedProperty,
+  onPickProperty,
   propertyType,
   propertyState,
   stateError,
@@ -48,9 +56,27 @@ export function PropertyDataSection({
   onToggleCityDropdown,
   onSelectCity,
 }: PropertyDataSectionProps) {
+  const [pickerOpen, setPickerOpen] = useState(false)
+
   return (
     <FormSection icon="home" title="Dados do Imóvel">
       <div className="grid gap-5">
+        <SelectedPropertyField
+          property={selectedProperty}
+          onOpenPicker={() => setPickerOpen(true)}
+          onClear={() => onPickProperty(null)}
+        />
+        {pickerOpen ? (
+          <PropertyPicker
+            context="proposta"
+            selectedId={selectedProperty?.id}
+            onPick={(property) => {
+              onPickProperty(property)
+              setPickerOpen(false)
+            }}
+            onClose={() => setPickerOpen(false)}
+          />
+        ) : null}
         <Field label="Tipo do Imóvel" required>
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {PROPERTY_TYPE_OPTIONS.map((type) => (
@@ -184,5 +210,71 @@ export function PropertyDataSection({
         </div>
       </div>
     </FormSection>
+  )
+}
+
+/** Imóvel cadastrado da proposta (BKL-093, 13.1 e 13.2): opcional; preenche UF e município. */
+function SelectedPropertyField({
+  property,
+  onOpenPicker,
+  onClear,
+}: {
+  property: PropertyListItem | null
+  onOpenPicker: () => void
+  onClear: () => void
+}) {
+  if (!property) {
+    return (
+      <div className="flex flex-col gap-3 rounded-lg border border-dashed border-outline-variant p-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p className="text-label-md font-semibold text-on-surface">Imóvel cadastrado</p>
+          <p className="text-body-sm text-on-surface-variant">
+            Opcional. Escolha um imóvel da imobiliária ou cadastre um novo; UF e município vêm preenchidos.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className="flex min-h-11 shrink-0 items-center justify-center gap-2 rounded-lg border border-primary px-4 text-sm font-semibold text-primary hover:bg-primary/5"
+        >
+          <Icon name="home_work" size={20} />
+          Escolher imóvel
+        </button>
+      </div>
+    )
+  }
+
+  return (
+    <div className="flex flex-col gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-label-sm font-semibold uppercase tracking-wide text-on-surface-variant">Imóvel da proposta</p>
+        <p className="truncate text-label-md font-semibold text-on-surface">
+          {property.street}
+          {property.number ? `, ${property.number}` : ''} · {property.neighborhood}
+        </p>
+        <p className="mt-1 flex flex-wrap items-center gap-2 text-body-sm text-on-surface-variant">
+          <span>
+            {property.typeLabel} · {formatReais(property.salePrice)} · {property.referenceCode}
+          </span>
+          <PropertyStatusPill status={property.status} label={property.statusLabel} />
+        </p>
+      </div>
+      <div className="flex shrink-0 gap-2">
+        <button
+          type="button"
+          onClick={onOpenPicker}
+          className="min-h-11 rounded-lg border border-outline-variant px-4 text-sm font-semibold text-on-surface hover:border-primary"
+        >
+          Trocar imóvel
+        </button>
+        <button
+          type="button"
+          onClick={onClear}
+          className="min-h-11 rounded-lg px-3 text-sm font-semibold text-on-surface-variant hover:text-error"
+        >
+          Remover
+        </button>
+      </div>
+    </div>
   )
 }

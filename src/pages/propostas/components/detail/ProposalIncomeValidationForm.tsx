@@ -130,6 +130,8 @@ type ProposalIncomeValidationFormProps = {
   isFinalized: boolean
   onFinalize: () => void
   onPersistedFormDataChange?: (formData: Record<string, unknown>) => void
+  /** Valor de venda do imóvel cadastrado: só sugestão inicial; editar aqui não muda o cadastro (BKL-093, 13.10). */
+  suggestedPropertyValue?: number | null
 }
 
 type DocumentFieldConfig = {
@@ -348,6 +350,7 @@ export function ProposalIncomeValidationForm({
   isFinalized,
   onFinalize,
   onPersistedFormDataChange,
+  suggestedPropertyValue = null,
 }: ProposalIncomeValidationFormProps) {
   const { user, currentUserProfile } = useAuth()
   const savedIncomeValidationData = isSavedIncomeValidationData(
@@ -367,6 +370,17 @@ export function ProposalIncomeValidationForm({
   const [propertyValue, setPropertyValue] = useState(
     savedIncomeValidationData?.propertyValue ?? '',
   )
+  const hasSavedPropertyValue = Boolean(savedIncomeValidationData?.propertyValue)
+
+  useEffect(() => {
+    if (hasSavedPropertyValue || !suggestedPropertyValue) {
+      return
+    }
+
+    setPropertyValue((current) =>
+      current ? current : formatCurrencyInput(String(Math.round(suggestedPropertyValue * 100))),
+    )
+  }, [hasSavedPropertyValue, suggestedPropertyValue])
   const [downPaymentValue, setDownPaymentValue] = useState(
     savedIncomeValidationData?.downPaymentValue ?? '',
   )

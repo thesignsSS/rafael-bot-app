@@ -74,6 +74,7 @@ export type ChatSocketEvent =
           | 'proposal_collaborator_added'
           | 'proposal_invitation_received'
           | 'chat_message'
+          | 'property_alert'
         title: string
         message: string
         createdAt: string

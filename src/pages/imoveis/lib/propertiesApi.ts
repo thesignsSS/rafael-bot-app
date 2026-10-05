@@ -255,3 +255,34 @@ export async function deleteProperty(propertyId: string): Promise<void> {
 export async function transferProperties(propertyIds: string[], toBrokerId: string): Promise<{ transferred: number }> {
   return request('/properties/transfer', { method: 'POST', body: JSON.stringify({ propertyIds, toBrokerId }) })
 }
+
+/** Situações que não podem entrar em nova proposta ou engenharia (13.3). */
+export const BLOCKED_FOR_NEW_USE: Property['status'][] = ['vendido', 'inativo']
+
+/** Seletor (13.2): todas as situações, para mostrar Vendido e Inativo desabilitados com o motivo. */
+export async function fetchPickerProperties(q: string): Promise<{ items: PropertyListItem[]; total: number }> {
+  return fetchProperties({ q, status: 'disponivel,em_negociacao,reservado,em_proposta,vendido,inativo', pageSize: 50 })
+}
+
+export type ProposalPropertyView = {
+  property: PropertyListItem | null
+  /** Trocar, vincular ou remover: só antes de a proposta ser Finalizada (13.11). */
+  canChange: boolean
+  modalityWarning: string | null
+}
+
+export async function fetchProposalProperty(proposalId: string): Promise<ProposalPropertyView> {
+  return request(`/proposals/${encodeURIComponent(proposalId)}/property`)
+}
+
+export async function setProposalProperty(proposalId: string, propertyId: string | null): Promise<ProposalPropertyView> {
+  return request(`/proposals/${encodeURIComponent(proposalId)}/property`, {
+    method: 'PUT',
+    body: JSON.stringify({ propertyId }),
+  })
+}
+
+/** Motivo de a linha do seletor estar desabilitada (13.2), ou nulo. */
+export function blockedReason(item: Pick<PropertyListItem, 'status' | 'statusLabel'>) {
+  return BLOCKED_FOR_NEW_USE.includes(item.status) ? `${item.statusLabel}: não pode entrar em nova proposta` : null
+}
