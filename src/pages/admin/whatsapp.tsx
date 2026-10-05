@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { useAuth } from '../../contexts/auth-context'
 import { useDocumentTitle } from '../../hooks/useDocumentTitle'
+import { botFetch } from '../../lib/botApi'
 
 type WhatsAppAdminState = {
   connectionStatus: 'waiting_qr' | 'connected' | 'disconnected'
@@ -12,7 +13,6 @@ type WhatsAppAdminState = {
 }
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 function getAdminApiUrl(path: string) {
   if (!formSubmissionApiUrl) {
@@ -20,16 +20,6 @@ function getAdminApiUrl(path: string) {
   }
 
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, path)
-}
-
-function getAdminApiHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
 }
 
 function formatDateTime(value: string | null | undefined) {
@@ -81,9 +71,7 @@ export default function AdminWhatsAppPage() {
         const url = new URL(getAdminApiUrl('/admin/whatsapp/state'))
         url.searchParams.set('userId', currentUserId)
 
-        const response = await fetch(url.toString(), {
-          headers: getAdminApiHeaders(),
-        })
+        const response = await botFetch(url.toString())
         const data = (await response.json().catch(() => null)) as
           | ({ ok: true } & WhatsAppAdminState)
           | { ok: false; error: string }
@@ -144,9 +132,8 @@ export default function AdminWhatsAppPage() {
       const url = new URL(getAdminApiUrl('/admin/whatsapp/session'))
       url.searchParams.set('userId', currentUserProfile.id)
 
-      const response = await fetch(url.toString(), {
+      const response = await botFetch(url.toString(), {
         method: 'DELETE',
-        headers: getAdminApiHeaders(),
       })
 
       const data = (await response.json().catch(() => null)) as

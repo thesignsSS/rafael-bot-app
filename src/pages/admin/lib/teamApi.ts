@@ -1,3 +1,5 @@
+import { botFetch } from '../../../lib/botApi'
+
 export type TeamRole = 'admin' | 'broker'
 
 export type TeamMember = {
@@ -27,7 +29,6 @@ type ResetPasswordResponse = {
 }
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 function getApiBaseUrl() {
   if (!formSubmissionApiUrl) {
@@ -37,19 +38,8 @@ function getApiBaseUrl() {
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, '')
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -82,9 +72,7 @@ export async function fetchTeam(userId: string) {
   const url = new URL(`${getApiBaseUrl()}/team`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseJsonResponse<TeamResponse>(
     response,
@@ -98,7 +86,7 @@ export async function inviteTeamMember(input: {
   fullName: string
   role: TeamRole
 }) {
-  const response = await fetch(`${getApiBaseUrl()}/team/invite`, {
+  const response = await botFetch(`${getApiBaseUrl()}/team/invite`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({
@@ -119,7 +107,7 @@ export async function resetTeamMemberPassword(
   requesterId: string,
   targetUserId: string,
 ) {
-  const response = await fetch(
+  const response = await botFetch(
     `${getApiBaseUrl()}/team/${targetUserId}/reset-password`,
     {
       method: 'POST',
@@ -141,9 +129,8 @@ export async function deleteTeamMember(
   const url = new URL(`${getApiBaseUrl()}/team/${targetUserId}`)
   url.searchParams.set('userId', requesterId)
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     method: 'DELETE',
-    headers: getRequestHeaders(),
   })
 
   await parseJsonResponse<{ ok: boolean }>(

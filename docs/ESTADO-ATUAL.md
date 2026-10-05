@@ -19,7 +19,7 @@ Documentação do projeto na versão **0.0.0**. Última revisão: bootstrap de p
 | **API / backend** | Supabase Auth (e-mail/senha); API pública do IBGE para municípios do Ceará; endpoints HTTP do bot para perfil atual, criação, listagem, detalhe e situação de propostas; recuperação ainda stub |
 | **Testes** | Não configurados |
 | **CI/CD** | Não configurado |
-| **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL`, `VITE_FORM_SUBMISSION_API_KEY` (ver `.env.example`) |
+| **Variáveis de ambiente** | `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_FORM_SUBMISSION_API_URL` (ver `.env.example`) |
 
 ## Stack e versões instaladas
 
@@ -244,7 +244,6 @@ Copie `.env.example` para `.env` e preencha:
 VITE_SUPABASE_URL=https://seu-projeto.supabase.co
 VITE_SUPABASE_ANON_KEY=sua-anon-key
 VITE_FORM_SUBMISSION_API_URL=http://localhost:3335/api/form-submissions
-VITE_FORM_SUBMISSION_API_KEY=sua-api-key-do-bot
 ```
 
 No Supabase Dashboard: **Authentication → Providers → Email** habilitado.
@@ -256,7 +255,7 @@ O frontend chama `GET /api/me?userId=<uuid>` logo após restaurar a sessão Supa
 Headers:
 
 ```http
-x-api-key: <VITE_FORM_SUBMISSION_API_KEY>
+Authorization: Bearer <access_token da sessão Supabase>
 ```
 
 Shape usado no estado global:
@@ -292,7 +291,7 @@ Erros vêm como `{ ok: false, error }`; `502` indica recusa da Meta e `503` que 
 
 ## Contrato de envio ao bot
 
-O frontend envia `POST` para `VITE_FORM_SUBMISSION_API_URL` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY`.
+O frontend envia `POST` para `VITE_FORM_SUBMISSION_API_URL` com `Authorization: Bearer <token da sessão>` (via `botFetch`).
 
 Payload esperado:
 
@@ -326,7 +325,7 @@ Resposta esperada: `ok: true`, `proposalId`, `proposalCode` e `savedClient` indi
 
 ### Status disponíveis
 
-O frontend chama `GET /api/proposals/statuses` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY` para montar as colunas do kanban e as opções do seletor no detalhe.
+O frontend chama `GET /api/proposals/statuses` com `Authorization: Bearer <token da sessão>` para montar as colunas do kanban e as opções do seletor no detalhe.
 
 Resposta esperada:
 
@@ -358,7 +357,7 @@ O frontend também aceita, por compatibilidade, uma resposta no formato `{ "stat
 
 ### Listagem
 
-O frontend chama `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>` com `Authorization: Bearer VITE_FORM_SUBMISSION_API_KEY`.
+O frontend chama `GET /api/proposals?brokerUserId=<uuid>&page=<n>&pageSize=100&search=<texto>` com `Authorization: Bearer <token da sessão>` (via `botFetch`).
 
 Os filtros de nome usam as colunas normalizadas `client_name_search` e `broker_name_search`, preenchidas automaticamente por trigger no banco. Isso preserva paginação e totalização enquanto torna a busca insensível a acentos e caixa.
 
@@ -512,7 +511,7 @@ CREATE TRIGGER on_auth_user_created_set_role
 
 Guards de rota são **UX no frontend**. Ao integrar dados reais, reforçar permissões com RLS/policies no Supabase — o cliente não deve ser a única barreira.
 
-> Segurança: `VITE_FORM_SUBMISSION_API_KEY` fica exposta no bundle do browser. Em produção, usar uma rota backend/proxy para chamar o servidor do bot com a chave somente no servidor.
+> Segurança: as chamadas ao bot se autenticam com o JWT da sessão Supabase (`src/lib/botApi.ts`); o bot tira usuário, empresa e papel do token. A antiga chave `VITE_FORM_SUBMISSION_API_KEY` saiu do frontend (effectus-api/docs/prd-autenticacao-bot-wpp.md).
 
 ## O que ainda não existe
 

@@ -1,3 +1,5 @@
+import { botFetch } from './botApi'
+
 export type NotificationItem = {
   id: string
   userId: string
@@ -22,7 +24,6 @@ type NotificationsResponse = {
 }
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 function getNotificationsApiUrl() {
   if (!formSubmissionApiUrl) {
@@ -32,19 +33,8 @@ function getNotificationsApiUrl() {
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, '/notifications')
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -53,9 +43,7 @@ export async function fetchNotifications(userId: string): Promise<NotificationIt
   const url = new URL(getNotificationsApiUrl())
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   const data = (await response.json().catch(() => null)) as NotificationsResponse | null
 
@@ -67,7 +55,7 @@ export async function fetchNotifications(userId: string): Promise<NotificationIt
 }
 
 export async function markNotificationAsRead(userId: string, notificationId: string) {
-  const response = await fetch(`${getNotificationsApiUrl()}/${notificationId}/read`, {
+  const response = await botFetch(`${getNotificationsApiUrl()}/${notificationId}/read`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId }),
@@ -79,7 +67,7 @@ export async function markNotificationAsRead(userId: string, notificationId: str
 }
 
 export async function markAllNotificationsAsRead(userId: string) {
-  const response = await fetch(`${getNotificationsApiUrl()}/read-all`, {
+  const response = await botFetch(`${getNotificationsApiUrl()}/read-all`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId }),

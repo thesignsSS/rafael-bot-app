@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { useAuth } from '../contexts/auth-context'
+import { botFetch } from '../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export type WhatsAppConnectionStatus = 'waiting_qr' | 'connected' | 'disconnected'
 
@@ -12,16 +12,6 @@ function getAdminApiUrl(path: string) {
   }
 
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, path)
-}
-
-function getAdminApiHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
 }
 
 export function useWhatsAppConnectionStatus(enabled = true) {
@@ -49,9 +39,7 @@ export function useWhatsAppConnectionStatus(enabled = true) {
         const url = new URL(getAdminApiUrl('/admin/whatsapp/state'))
         url.searchParams.set('userId', currentUserId)
 
-        const response = await fetch(url.toString(), {
-          headers: getAdminApiHeaders(),
-        })
+        const response = await botFetch(url.toString())
         const data = (await response.json().catch(() => null)) as
           | { ok: true; connectionStatus: WhatsAppConnectionStatus }
           | { ok: false; error: string }

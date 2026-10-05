@@ -2,9 +2,9 @@ import type {
   InviteSearchUser,
   ProposalInvitation,
 } from '../types/proposal-detail'
+import { botFetch } from '../../../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 type InvitationsResponse = {
   items: ProposalInvitation[]
@@ -31,19 +31,8 @@ function getApiBaseUrl() {
   return formSubmissionApiUrl.replace(/\/form-submissions\/?$/, '')
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -77,9 +66,7 @@ export async function searchInviteCandidates(userId: string, query: string) {
   url.searchParams.set('userId', userId)
   url.searchParams.set('query', query)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   const data = await parseJsonResponse<SearchProfilesResponse>(
     response,
@@ -94,7 +81,7 @@ export async function createProposalInvitation(
   brokerUserId: string,
   inviteeUserId: string,
 ) {
-  const response = await fetch(`${getApiBaseUrl()}/proposals/${proposalId}/invitations`, {
+  const response = await botFetch(`${getApiBaseUrl()}/proposals/${proposalId}/invitations`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ brokerUserId, inviteeUserId }),
@@ -112,9 +99,7 @@ export async function fetchInvitations(userId: string) {
   const url = new URL(`${getApiBaseUrl()}/invitations`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   const data = await parseJsonResponse<InvitationsResponse>(
     response,
@@ -129,7 +114,7 @@ export async function respondProposalInvitation(
   userId: string,
   action: 'accept' | 'reject',
 ) {
-  const response = await fetch(`${getApiBaseUrl()}/invitations/${invitationId}`, {
+  const response = await botFetch(`${getApiBaseUrl()}/invitations/${invitationId}`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ userId, action }),
@@ -147,9 +132,7 @@ export async function fetchPendingInvitationsSummary(userId: string) {
   const url = new URL(`${getApiBaseUrl()}/invitations/pending-summary`)
   url.searchParams.set('userId', userId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseJsonResponse<PendingInvitationsSummaryResponse>(
     response,

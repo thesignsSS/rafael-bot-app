@@ -318,17 +318,10 @@ export function ChatWidget() {
       return
     }
 
-    let socket: WebSocket
+    let socket: WebSocket | null = null
+    let cancelled = false
 
-    try {
-      socket = new WebSocket(resolveChatWebSocketUrl(currentUserId))
-    } catch {
-      return
-    }
-
-    socketRef.current = socket
-
-    socket.onmessage = (event) => {
+    const handleMessage = (event: MessageEvent<string>) => {
       const payload = JSON.parse(event.data) as ChatSocketEvent
 
       if (payload.type === 'chat_presence_snapshot') {
@@ -401,9 +394,24 @@ export function ChatWidget() {
       }
     }
 
+    // A URL leva o token da sessão, lido de forma assíncrona: se o efeito for
+    // desfeito antes disso, o socket nem chega a abrir.
+    void resolveChatWebSocketUrl(currentUserId)
+      .then((url) => {
+        if (cancelled) {
+          return
+        }
+
+        socket = new WebSocket(url)
+        socketRef.current = socket
+        socket.onmessage = handleMessage
+      })
+      .catch(() => undefined)
+
     return () => {
+      cancelled = true
       socketRef.current = null
-      socket.close()
+      socket?.close()
     }
   }, [activeConversation?.id, currentUserId, markConversationAsReadLocally])
 

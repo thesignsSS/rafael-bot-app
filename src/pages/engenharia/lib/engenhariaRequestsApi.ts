@@ -3,9 +3,9 @@ import type {
   EngenhariaRequestListItem,
 } from '../types/engenhariaRequest'
 import { fileToBase64 } from '../nova/lib/submitEngenhariaRequest'
+import { botFetch } from '../../../lib/botApi'
 
 const formSubmissionApiUrl = import.meta.env.VITE_FORM_SUBMISSION_API_URL
-const formSubmissionApiKey = import.meta.env.VITE_FORM_SUBMISSION_API_KEY
 
 export type EngenhariaRequestsListResponse = {
   items: EngenhariaRequestListItem[]
@@ -38,19 +38,8 @@ function getEngenhariaRequestsApiUrl() {
   )
 }
 
-function getRequestHeaders() {
-  if (!formSubmissionApiKey) {
-    throw new Error('Chave de API de envio do formulário não configurada.')
-  }
-
-  return {
-    Authorization: `Bearer ${formSubmissionApiKey}`,
-  }
-}
-
 function getJsonRequestHeaders() {
   return {
-    ...getRequestHeaders(),
     'Content-Type': 'application/json',
   }
 }
@@ -92,9 +81,7 @@ export async function fetchEngenhariaRequests({
     url.searchParams.set('search', search.trim())
   }
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<EngenhariaRequestsListResponse>(response)
 }
@@ -106,9 +93,7 @@ export async function fetchEngenhariaRequestDetail(
   const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
-    headers: getRequestHeaders(),
-  })
+  const response = await botFetch(url.toString())
 
   return parseApiResponse<EngenhariaRequestDetail>(response)
 }
@@ -117,7 +102,7 @@ export async function updateEngenhariaRequest(
   requestId: string,
   payload: UpdateEngenhariaRequestPayload,
 ): Promise<void> {
-  const response = await fetch(`${getEngenhariaRequestsApiUrl()}/${requestId}`, {
+  const response = await botFetch(`${getEngenhariaRequestsApiUrl()}/${requestId}`, {
     method: 'PATCH',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify(payload),
@@ -138,9 +123,8 @@ export async function deleteEngenhariaRequest(
   const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
 
-  const response = await fetch(url.toString(), {
+  const response = await botFetch(url.toString(), {
     method: 'DELETE',
-    headers: getRequestHeaders(),
   })
 
   if (!response.ok) {
@@ -164,7 +148,7 @@ export async function uploadEngenhariaRequestDocuments(
       contentBase64: await fileToBase64(file),
     })),
   )
-  const response = await fetch(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents`, {
+  const response = await botFetch(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents`, {
     method: 'POST',
     headers: getJsonRequestHeaders(),
     body: JSON.stringify({ brokerUserId, documents }),
@@ -181,7 +165,7 @@ export async function renameEngenhariaRequestDocument(
   brokerUserId: string,
   originalFilename: string,
 ): Promise<void> {
-  const response = await fetch(
+  const response = await botFetch(
     `${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}`,
     {
       method: 'PATCH',
@@ -199,7 +183,7 @@ export async function deleteEngenhariaRequestDocument(
 ): Promise<void> {
   const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}`)
   url.searchParams.set('brokerUserId', brokerUserId)
-  const response = await fetch(url, { method: 'DELETE', headers: getRequestHeaders() })
+  const response = await botFetch(url, { method: 'DELETE' })
   if (!response.ok) throw new Error(getEngenhariaRequestsErrorMessage(response.status))
 }
 
@@ -210,7 +194,7 @@ export async function viewEngenhariaRequestDocument(
 ): Promise<{ url: string; filename: string }> {
   const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}/view`)
   url.searchParams.set('brokerUserId', brokerUserId)
-  const response = await fetch(url, { headers: getRequestHeaders() })
+  const response = await botFetch(url)
   return parseApiResponse<{ url: string; filename: string }>(response)
 }
 
@@ -221,7 +205,7 @@ export async function downloadEngenhariaRequestDocument(
 ): Promise<EngenhariaDocumentDownload> {
   const url = new URL(`${getEngenhariaRequestsApiUrl()}/${requestId}/documents/${documentId}/download`)
   url.searchParams.set('brokerUserId', brokerUserId)
-  const response = await fetch(url, { headers: getRequestHeaders() })
+  const response = await botFetch(url)
   if (!response.ok) throw new Error(getEngenhariaRequestsErrorMessage(response.status))
   const disposition = response.headers.get('Content-Disposition')
   const match = disposition?.match(/filename="?([^";]+)"?/i)
