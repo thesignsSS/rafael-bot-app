@@ -15,6 +15,11 @@ import EngenhariaRequestsPage from '../pages/engenharia'
 import EngenhariaRequestDetailPage from '../pages/engenharia/detail'
 import EngenhariaNovaPage from '../pages/engenharia/nova'
 import HomePage from '../pages/home'
+import ImoveisPage from '../pages/imoveis'
+import DadosAnuncioPage from '../pages/imoveis/anuncio'
+import ImovelDetalhePage from '../pages/imoveis/detalhe'
+import EditarImovelPage from '../pages/imoveis/editar'
+import NovoImovelPage from '../pages/imoveis/novo'
 import LoginPage from '../pages/login'
 import PerfilPage from '../pages/perfil'
 import ConvitesPage from '../pages/propostas/convites'
@@ -35,6 +40,11 @@ export function AppRoutes() {
           <Route path="/engenharia" element={<EngenhariaRequestsPage />} />
           <Route path="/engenharia/nova" element={<EngenhariaNovaPage />} />
           <Route path="/engenharia/:requestId" element={<EngenhariaRequestDetailPage />} />
+          <Route path="/imoveis" element={<ImoveisPage />} />
+          <Route path="/imoveis/novo" element={<NovoImovelPage />} />
+          <Route path="/imoveis/:propertyId" element={<ImovelDetalhePage />} />
+          <Route path="/imoveis/:propertyId/anuncio" element={<DadosAnuncioPage />} />
+          <Route path="/imoveis/:propertyId/editar" element={<EditarImovelPage />} />
           <Route path="/perfil" element={<PerfilPage />} />
           <Route path="/assinatura" element={<AssinaturaPage />} />
           <Route path="/convites" element={<ConvitesPage />} />

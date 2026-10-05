@@ -102,6 +102,13 @@ export function SidebarContent({
           onNavigate={onNavigate}
           isCollapsed={isCollapsed}
         />
+        <SidebarNavItem
+          icon="home_work"
+          label="Imóveis"
+          to="/imoveis"
+          onNavigate={onNavigate}
+          isCollapsed={isCollapsed}
+        />
         {currentUserProfile?.isCompanyOwner ? (
           <SidebarNavItem
             icon="campaign"
