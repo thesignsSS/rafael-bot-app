@@ -10,5 +10,3 @@ services:
         VITE_ASSISTANT_API_URL: ${VITE_ASSISTANT_API_URL}
     container_name: ${CONTAINER_NAME:-effectus-app}
     restart: unless-stopped
-    ports:
-      - "${HOST_PORT:-8081}:8080"
