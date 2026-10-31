@@ -45,6 +45,7 @@ export type NotificationType =
   | 'proposal_collaborator_added'
   | 'proposal_invitation_received'
   | 'chat_message'
+  | 'property_alert'
 
 type PreferencesContextValue = {
   preferences: AppPreferences
@@ -213,7 +214,8 @@ export function usePreferences() {
 }
 
 export function getNotificationPreferenceKey(type: NotificationType): NotificationPreferenceKey {
-  if (type === 'proposal_status_changed') {
+  // Imóvel vendido por outra proposta (BKL-093, 13.7) é mudança de situação.
+  if (type === 'proposal_status_changed' || type === 'property_alert') {
     return 'status_changes'
   }
 

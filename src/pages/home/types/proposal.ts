@@ -23,6 +23,8 @@ export type SubmitFormPayload = {
   brokerName: string
   brokerPhone?: string
   clientName: string
+  /** Imóvel cadastrado da proposta (BKL-093, seção 13). */
+  propertyId?: string
   formData: Record<string, unknown>
   documents: FormSubmissionDocument[]
 }

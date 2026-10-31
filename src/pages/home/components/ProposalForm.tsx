@@ -74,6 +74,8 @@ export function ProposalForm() {
         />
 
         <PropertyDataSection
+          selectedProperty={form.selectedProperty}
+          onPickProperty={form.pickProperty}
           propertyType={form.propertyType}
           propertyState={form.propertyState}
           stateError={form.stateError}

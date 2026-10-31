@@ -32,6 +32,7 @@ import { RemoveProposalGuestModal } from '../components/detail/RemoveProposalGue
 import { ProposalStatusControl } from '../components/detail/ProposalStatusControl'
 import { ProposalTimelineSection } from '../components/detail/ProposalTimelineSection'
 import { useProposalDetailPage } from '../hooks/useProposalDetailPage'
+import { useProposalProperty } from '../hooks/useProposalProperty'
 import { normalizeProposalStatus } from '../types/proposal-status'
 import type { ProposalCommentScope } from '../types/proposal-detail'
 import { Icon } from '../../../components/ui/Icon'
@@ -141,6 +142,8 @@ export default function ProposalDetailPage() {
     setScopedCommentDraft,
     resendForAnalysis,
   } = useProposalDetailPage()
+  // Imóvel cadastrado (BKL-093, seção 13); recarrega quando a fase muda (Finalizada trava a troca).
+  const linkedProperty = useProposalProperty(proposal?.id, proposal?.status)
   const [activeMainTab, setActiveMainTab] = useState<MainDetailTab>('dados_proposta')
   const [activeProposalSectionTab, setActiveProposalSectionTab] =
     useState<ProposalSectionTab>('visao_geral')
@@ -643,6 +646,7 @@ export default function ProposalDetailPage() {
                 propertyType={proposal.property.type}
                 city={proposal.property.city}
                 state={proposal.property.state}
+                linked={linkedProperty}
               />
 
               <section className="rounded-xl border border-outline-variant bg-surface-container-lowest p-6 shadow-[0px_1px_3px_rgba(0,0,0,0.05)]">
@@ -713,6 +717,7 @@ export default function ProposalDetailPage() {
             proposal={proposal}
             isAdmin={isAdmin}
             isFinalized={isIncomeValidationFinalized}
+            suggestedPropertyValue={linkedProperty.view?.property?.salePrice ?? null}
             onFinalize={() => setIsIncomeValidationFinalized(true)}
             onPersistedFormDataChange={(formData) =>
               updateProposalState((currentProposal) => ({

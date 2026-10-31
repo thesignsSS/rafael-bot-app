@@ -22,6 +22,15 @@ import {
   type ProposalBank,
 } from '../types/proposal'
 import { useCityCombobox } from './useCityCombobox'
+import type { PropertyListItem } from '../../imoveis/lib/propertiesApi'
+import type { PropertyType as RegisteredPropertyType } from '../../imoveis/types'
+
+/** Tipo do imóvel cadastrado → opção "Tipo do Imóvel" da proposta, quando há uma equivalente. */
+const PROPOSAL_TYPE_BY_PROPERTY_TYPE: Partial<Record<RegisteredPropertyType, PropertyType>> = {
+  novo: 'Novo',
+  usado: 'Usado',
+  adjudicado: 'Adjudicado Caixa',
+}
 
 const PROPOSAL_DRAFT_STORAGE_KEY = 'proposal-form-draft'
 
@@ -36,6 +45,7 @@ type ProposalFormDraft = {
   selectedBank: ProposalBank | ''
   city: string
   additionalInfo: string
+  selectedProperty?: PropertyListItem | null
 }
 
 export function useProposalForm() {
@@ -57,8 +67,44 @@ export function useProposalForm() {
   const [extraFiles, setExtraFiles] = useState<File[]>([])
   const [additionalInfo, setAdditionalInfo] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  // Imóvel cadastrado escolhido no seletor (BKL-093, seção 13). Opcional.
+  const [selectedProperty, setSelectedProperty] = useState<PropertyListItem | null>(null)
   const hasHydratedDraftRef = useRef(false)
+  const pendingCityRef = useRef<string | null>(null)
   const cityCombobox = useCityCombobox(propertyState)
+  const { restoreCity } = cityCombobox
+
+  // Trocar a UF limpa o município; o município do imóvel escolhido entra depois disso.
+  useEffect(() => {
+    if (pendingCityRef.current) {
+      restoreCity(pendingCityRef.current)
+      pendingCityRef.current = null
+    }
+  }, [propertyState, restoreCity])
+
+  const pickProperty = useCallback(
+    (property: PropertyListItem | null) => {
+      setSelectedProperty(property)
+
+      if (!property) {
+        return
+      }
+
+      const proposalType = PROPOSAL_TYPE_BY_PROPERTY_TYPE[property.type]
+
+      if (proposalType) {
+        setPropertyType(proposalType)
+      }
+
+      if (property.state === propertyState) {
+        restoreCity(property.municipality)
+      } else {
+        pendingCityRef.current = property.municipality
+        setPropertyState(property.state)
+      }
+    },
+    [propertyState, restoreCity],
+  )
 
   const handleClientCpfChange = useCallback(
     (value: string) => {
@@ -217,6 +263,10 @@ export function useProposalForm() {
       if (typeof draft.additionalInfo === 'string') {
         setAdditionalInfo(draft.additionalInfo)
       }
+
+      if (draft.selectedProperty && typeof draft.selectedProperty.id === 'string') {
+        setSelectedProperty(draft.selectedProperty)
+      }
     } catch {
       sessionStorage.removeItem(PROPOSAL_DRAFT_STORAGE_KEY)
     }
@@ -238,6 +288,7 @@ export function useProposalForm() {
       selectedBank,
       city: cityCombobox.city,
       additionalInfo,
+      selectedProperty,
     }
 
     sessionStorage.setItem(PROPOSAL_DRAFT_STORAGE_KEY, JSON.stringify(draft))
@@ -252,6 +303,7 @@ export function useProposalForm() {
     propertyState,
     propertyType,
     selectedBank,
+    selectedProperty,
   ])
 
   const handleSubmit = useCallback(async () => {
@@ -333,6 +385,7 @@ export function useProposalForm() {
         brokerName,
         brokerPhone: brokerPhone.trim(),
         clientName: clientName.trim(),
+        propertyId: selectedProperty?.id,
         formData: {
           'Nome do Corretor': brokerName,
           'WhatsApp do Corretor': brokerPhone.trim(),
@@ -391,6 +444,7 @@ export function useProposalForm() {
     brokerPhone,
     additionalInfo,
     extraFiles,
+    selectedProperty,
     cityCombobox.city,
     validateClientCpf,
     validateClientPhone,
@@ -428,6 +482,8 @@ export function useProposalForm() {
     additionalInfo,
     setAdditionalInfo,
     isSubmitting,
+    selectedProperty,
+    pickProperty,
     clientLabel,
     emailLabel,
     bankLabel,
