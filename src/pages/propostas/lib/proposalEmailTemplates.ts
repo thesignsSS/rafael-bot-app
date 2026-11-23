@@ -2,6 +2,7 @@ export type ProposalEmailTemplateId =
   | 'autorizar_qv'
   | 'desbloquear_cadastro'
   | 'vincular_imovel'
+  | 'extrato_fgts'
 
 export type ProposalEmailTemplateClientInput = {
   clientName: string
@@ -39,5 +40,12 @@ export const PROPOSAL_EMAIL_TEMPLATES: ProposalEmailTemplate[] = [
     subject: 'vincular imóvel',
     buildText: ({ propertyCode }) =>
       `Boa tarde,\n\nCódigo do Imóvel: ${propertyCode}\nCCA 000635448\n\nAt,\nRafael Ribeiro`,
+  },
+  {
+    id: 'extrato_fgts',
+    buttonLabel: 'Extrato FGTS',
+    subject: 'Extrato FGTS',
+    buildText: ({ clientName, clientCpf }) =>
+      `Bom Dia,\n\n${clientName.toUpperCase()}\n${clientCpf}\n\nAt,\nRafael Ribeiro`,
   },
 ]
