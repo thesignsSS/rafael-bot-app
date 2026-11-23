@@ -3,6 +3,7 @@ export type ProposalEmailTemplateId =
   | 'desbloquear_cadastro'
   | 'vincular_imovel'
   | 'extrato_fgts'
+  | 'cancelar_proposta_siopi'
 
 export type ProposalEmailTemplateClientInput = {
   clientName: string
@@ -47,5 +48,12 @@ export const PROPOSAL_EMAIL_TEMPLATES: ProposalEmailTemplate[] = [
     subject: 'Extrato FGTS',
     buildText: ({ clientName, clientCpf }) =>
       `Bom Dia,\n\n${clientName.toUpperCase()}\n${clientCpf}\n\nAt,\nRafael Ribeiro`,
+  },
+  {
+    id: 'cancelar_proposta_siopi',
+    buttonLabel: 'Cancelar proposta no siopi',
+    subject: 'Cancelar proposta no siopi',
+    buildText: ({ propertyCode }) =>
+      `Boa tarde,\n\ncancelar proposta no siopi ${propertyCode}\n\nAt,\nRafael Ribeiro`,
   },
 ]
